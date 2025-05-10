@@ -147,6 +147,8 @@ const char *Q_PlatformStringByID( const int platform )
 		return "nswitch";
 	case PLATFORM_PSVITA:
 		return "psvita";
+	case PLATFORM_WII:
+		return "wii";
 	case PLATFORM_WASI:
 		return "wasi";
 	case PLATFORM_SUNOS:

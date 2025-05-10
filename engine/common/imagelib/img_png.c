@@ -20,9 +20,12 @@ GNU General Public License for more details.
 
 #if defined(XASH_NO_NETWORK)
 	#include "platform/stub/net_stub.h"
-#elif XASH_NSWITCH
+#elif XASH_NSWITCH 
 	// our ntohl is here
 	#include <arpa/inet.h>
+#elif XASH_WII
+	#include <network.h>
+	//#include "platform/stub/net_stub.h" //disable network
 #elif !XASH_WIN32
 	#include <netinet/in.h>
 #endif

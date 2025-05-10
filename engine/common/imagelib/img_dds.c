@@ -54,7 +54,7 @@ static qboolean Image_CheckDXT5Alpha( dds_t *hdr, byte *fin )
 {
 	uint	bits, bitmask;
 	byte	*alphamask;
-	int	x, y, i, j;
+	int	    x, y, i, j;
 
 	for( y = 0; y < hdr->dwHeight; y += 4 )
 	{

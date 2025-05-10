@@ -48,6 +48,11 @@ GNU General Public License for more details.
 #include <vitasdk.h>
 #endif
 
+#if XASH_WII
+#include <unistd.h>
+#include <signal.h>
+#endif
+
 #include "menu_int.h" // _UPDATE_PAGE macro
 
 #include "library.h"

@@ -59,7 +59,7 @@ Then you can use another oneliner to query all variables:
 #undef XASH_ARMv6
 #undef XASH_ARMv7
 #undef XASH_ARMv8
-#undef XASH_BIG_ENDIAN
+//#undef XASH_BIG_ENDIAN
 #undef XASH_DOS4GW
 #undef XASH_E2K
 #undef XASH_EMSCRIPTEN
@@ -69,7 +69,7 @@ Then you can use another oneliner to query all variables:
 #undef XASH_IRIX
 #undef XASH_JS
 #undef XASH_LINUX
-#undef XASH_LITTLE_ENDIAN
+//#undef XASH_LITTLE_ENDIAN
 #undef XASH_MIPS
 #undef XASH_MOBILE_PLATFORM
 #undef XASH_NETBSD
@@ -87,6 +87,7 @@ Then you can use another oneliner to query all variables:
 #undef XASH_X86
 #undef XASH_NSWITCH
 #undef XASH_PSVITA
+#undef XASH_WII
 #undef XASH_WASI
 #undef XASH_WASM
 
@@ -133,6 +134,8 @@ Then you can use another oneliner to query all variables:
 		#define XASH_NSWITCH 1
 	#elif defined __vita__
 		#define XASH_PSVITA 1
+	#elif defined __wii__
+		#define XASH_WII 1
 	#elif defined __wasi__
 		#define XASH_WASI 1
 	#elif defined __sun__

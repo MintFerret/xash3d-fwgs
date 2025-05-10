@@ -42,6 +42,8 @@ NSWITCH_ENVVARS = ['DEVKITPRO']
 
 PSVITA_ENVVARS = ['VITASDK']
 
+WII_ENVVARS = ['DEVKITPRO']
+
 # This class does support ONLY r10e and r19c/r20 NDK
 class Android:
 	ctx            = None # waf context
@@ -461,6 +463,79 @@ class NintendoSwitch:
 		ldflags = [] # ['-lm', '-lstdc++']
 		return ldflags
 
+class NintendoWii:
+ ctx          = None # waf context
+ arch         = "powerpc" #why it doesn't identify?
+ dkp_dir      = None
+ portlibs_dir = None
+ dkppc_dir    = None
+ libogc_dir   = None
+
+ def __init__(self, ctx):
+  self.ctx = ctx
+
+  for i in WII_ENVVARS:
+   self.dkp_dir = os.getenv(i)
+   if self.dkp_dir != None:
+    break
+  else:
+   ctx.fatal('Set %s environment variable pointing to the DEVKITPRO home!' %
+    ' or '.join(WII_ENVVARS))
+
+  self.dkp_dir = os.path.abspath(self.dkp_dir)
+
+  self.dkppc_dir = os.path.join(self.dkp_dir, 'devkitPPC')
+  if not os.path.exists(self.dkppc_dir):
+   ctx.fatal('devkitPPC not found in `%s`. Install devkitPPC!' % self.dkPPC_dir)
+
+  self.libogc_dir = os.path.join(self.dkp_dir, 'libogc')
+  if not os.path.exists(self.libogc_dir):
+   ctx.fatal('libogc not found in `%s`. Install libogc!' % self.libogc_dir)
+
+  self.portlibs_dir = os.path.join(self.dkp_dir, 'portlibs', 'wii')
+  if not os.path.exists(self.portlibs_dir):
+   ctx.fatal('No Wii libraries found in `%s`!' % self.portlibs_dir)
+
+ def gen_toolchain_prefix(self):
+  return 'powerpc-eabi-'
+
+ def gen_gcc_toolchain_path(self):
+  return os.path.join(self.dkppc_dir, 'bin', self.gen_toolchain_prefix())
+
+ def cc(self):
+  return self.gen_gcc_toolchain_path() + 'gcc'
+
+ def cxx(self):
+  return self.gen_gcc_toolchain_path() + 'g++'
+
+ def strip(self):
+  return self.gen_gcc_toolchain_path() + 'strip'
+
+
+ def pkgconfig(self):
+  return os.path.join(self.portlibs_dir, 'bin', self.gen_toolchain_prefix() + 'pkg-config')
+
+  #oh yea it's all comming together
+ def cflags(self, cxx = False):
+    cflags = []
+    # compiler flags
+	#-MMD
+    cflags += ['-MMD', '-MP', '-MF', '-g', '-Wall', '-DGEKKO', '-mrvl', '-mcpu=750', '-meabi', '-mhard-float', '-D__wii__', '-D__ppc__', '-logc']
+    # help the linker out # linker flags
+    cflags += ['-ffunction-sections', '-fdata-sections']
+    # base include dirs
+    cflags += ['-isystem %s/include' % self.libogc_dir, '-I%s/include' % self.portlibs_dir]
+    return cflags
+ def linkflags(self):
+  linkflags = []
+  linkflags += ['-Wl']
+  return linkflags
+
+ def ldflags(self):
+  ldflags = []
+  ldflags += ['-g', '-DGEKKO', '-mrvl', '-mcpu=750', '-meabi', '-mhard-float', '-Wl,-Map,out-xash-wii.map', '-L/opt/devkitpro/libogc/lib/wii', '-lfat', '-lwiiuse', '-lbte', '-logc', '-lm']
+  return ldflags
+
 class PSVita:
 	ctx          = None # waf context
 	arch         ='armeabi-v7a-hard'
@@ -535,6 +610,8 @@ def options(opt):
 		help='enable building with MSVC using Wine [default: %(default)s]')
 	xc.add_option('--nswitch', action='store_true', dest='NSWITCH', default = False,
 		help='enable building for Nintendo Switch [default: %(default)s]')
+	xc.add_option('--wii', action='store_true', dest='WII', default = False,
+		help='enable building for Nintendo Wii [default: %(default)s]')
 	xc.add_option('--psvita', action='store_true', dest='PSVITA', default = False,
 		help='enable building for PlayStation Vita [default: %(default)s]')
 	xc.add_option('--sailfish', action='store', dest='SAILFISH', default = None,
@@ -612,6 +689,19 @@ def configure(conf):
 		conf.env.HAVE_M = True
 		conf.env.LIB_M = ['m']
 		conf.env.DEST_OS = 'nswitch'
+	elif conf.options.WII:
+		conf.wii = wii = NintendoWii(conf)
+		conf.environ['CC'] = wii.cc()
+		conf.environ['CXX'] = wii.cxx()
+		conf.environ['STRIP'] = wii.strip()
+		conf.env.PKGCONFIG = wii.pkgconfig()
+		conf.env.CFLAGS += wii.cflags()
+		conf.env.CXXFLAGS += wii.cflags(True)
+		conf.env.LDFLAGS += wii.ldflags()
+		conf.env.HAVE_M = True
+		conf.env.LIB_M = ['m']
+		conf.env.DEST_OS = 'wii'
+		conf.env.DEST_CPU = 'powerpc' #this is a ppc, get it right
 	elif conf.options.PSVITA:
 		conf.psvita = psvita = PSVita(conf)
 		conf.environ['CC'] = psvita.cc()
@@ -631,7 +721,7 @@ def configure(conf):
 	conf.env.MAGX = conf.options.MAGX
 	conf.env.MSVC_WINE = conf.options.MSVC_WINE
 	conf.env.SAILFISH = conf.options.SAILFISH
-	MACRO_TO_DESTOS = OrderedDict({ '__ANDROID__' : 'android', '__SWITCH__' : 'nswitch', '__vita__' : 'psvita', '__wasi__': 'wasi' })
+	MACRO_TO_DESTOS = OrderedDict({ '__ANDROID__' : 'android', '__SWITCH__' : 'nswitch', '__vita__' : 'psvita', '__wasi__': 'wasi' ,'__WII__' : 'wii'})
 	for k in c_config.MACRO_TO_DESTOS:
 		MACRO_TO_DESTOS[k] = c_config.MACRO_TO_DESTOS[k] # ordering is important
 	c_config.MACRO_TO_DESTOS  = MACRO_TO_DESTOS

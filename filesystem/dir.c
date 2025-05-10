@@ -22,6 +22,10 @@ GNU General Public License for more details.
 #include <stddef.h>
 #if XASH_POSIX
 #include <unistd.h>
+#elif XASH_WII
+#include <wiisd_io.h> // probably should implement read contents from sd card
+#include <unistd.h>
+#include <fat.h>
 #if !XASH_PSVITA
 #include <sys/ioctl.h>
 #endif
@@ -55,7 +59,7 @@ typedef struct dir_s
 
 static qboolean Platform_GetDirectoryCaseSensitivity( const char *dir )
 {
-#if XASH_WIN32 || XASH_PSVITA || XASH_NSWITCH
+#if XASH_WIN32 || XASH_PSVITA || XASH_NSWITCH || XASH_WII
 	return false;
 #elif XASH_ANDROID
 	// on Android, doing code below causes crash in MediaProviderGoogle.apk!libfuse_jni.so

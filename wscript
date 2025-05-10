@@ -84,9 +84,9 @@ SUBDIRS = [
 	Subproject('filesystem'),
 	Subproject('stub/server'),
 	Subproject('dllemu'),
-	Subproject('3rdparty/libbacktrace'),
 
 	# disable only by engine feature, makes no sense to even parse subprojects in dedicated mode
+	Subproject('3rdparty/libbacktrace', lambda x: x.env.DEST_OS != 'wii'),
 	Subproject('3rdparty/extras',       lambda x: x.env.CLIENT and x.env.DEST_OS != 'android'),
 	Subproject('3rdparty/nanogl',       lambda x: x.env.CLIENT and x.env.NANOGL),
 	Subproject('3rdparty/gl-wes-v2',    lambda x: x.env.CLIENT and x.env.GLWES),
@@ -215,6 +215,9 @@ def configure(conf):
 	if conf.options.NSWITCH:
 		conf.load('nswitch')
 
+	if conf.options.WII:
+		conf.load('wii')
+
 	if conf.options.PSVITA:
 		conf.load('psvita')
 
@@ -255,6 +258,13 @@ def configure(conf):
 		conf.options.NO_VGUI          = True
 		conf.options.GL               = True
 		conf.options.USE_STBTT        = True
+	elif conf.env.DEST_OS == 'wii':
+		conf.options.NO_VGUI          = True
+		conf.options.GL               = True
+		conf.options.LOW_MEMORY       = 1
+		conf.options.NO_ASYNC_RESOLVE = True
+		conf.options.USE_STBTT        = False
+		enforce_pic                   = False
 	elif conf.env.DEST_OS == 'psvita':
 		conf.options.NO_VGUI          = True
 		conf.options.GL               = True
@@ -300,6 +310,10 @@ def configure(conf):
 	elif conf.env.DEST_OS == 'psvita':
 		conf.env.append_unique('CFLAGS_cshlib', ['-fPIC'])
 		conf.env.append_unique('CXXFLAGS_cxxshlib', ['-fPIC', '-fno-use-cxa-atexit'])
+		conf.env.append_unique('LINKFLAGS_cshlib', ['-nostdlib', '-Wl,--unresolved-symbols=ignore-all'])
+		conf.env.append_unique('LINKFLAGS_cxxshlib', ['-nostdlib', '-Wl,--unresolved-symbols=ignore-all'])
+	elif conf.env.DEST_OS == 'wii':
+		linkflags.remove('-Wl,--no-undefined')
 		conf.env.append_unique('LINKFLAGS_cshlib', ['-nostdlib', '-Wl,--unresolved-symbols=ignore-all'])
 		conf.env.append_unique('LINKFLAGS_cxxshlib', ['-nostdlib', '-Wl,--unresolved-symbols=ignore-all'])
 	# check if we need to use irix linkflags
@@ -413,7 +427,7 @@ def configure(conf):
 	if not conf.options.DEDICATED:
 		conf.env.SERVER = conf.options.ENABLE_DEDICATED
 		conf.env.CLIENT = True
-		conf.env.LAUNCHER = conf.env.DEST_OS not in ['android', 'nswitch', 'psvita', 'dos'] and not conf.env.MAGX and not conf.env.STATIC_LINKING
+		conf.env.LAUNCHER = conf.env.DEST_OS not in ['android', 'nswitch', 'psvita', 'dos', 'wii'] and not conf.env.MAGX and not conf.env.STATIC_LINKING
 	else:
 		conf.env.SERVER = True
 		conf.env.CLIENT = False
@@ -431,7 +445,7 @@ def configure(conf):
 		# OpenBSD requires -z origin to enable $ORIGIN expansion in RPATH
 		conf.env.RPATH_ST = '-Wl,-z,origin,-rpath,%s'
 		conf.env.DEFAULT_RPATH = '$ORIGIN'
-	elif conf.env.DEST_OS in ['nswitch', 'psvita']:
+	elif conf.env.DEST_OS in ['nswitch', 'psvita', 'wii']:
 		conf.env.DEFAULT_RPATH = None
 	else:
 		conf.env.DEFAULT_RPATH = '$ORIGIN'

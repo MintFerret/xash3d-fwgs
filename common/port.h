@@ -45,6 +45,9 @@ GNU General Public License for more details.
 			#define VRTLD_LIBDL_COMPAT
 			#include <vrtld.h>
 			#define O_BINARY 0
+		#elif XASH_WII
+			#include <platform/wii/dll_wii.h> // include the references for RTLD_NOW
+			#define O_BINARY 0
 		#else
 			#include <dlfcn.h>
 			#define HAVE_DUP

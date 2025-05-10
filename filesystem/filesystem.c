@@ -49,6 +49,8 @@ GNU General Public License for more details.
 #include "common/protocol.h"
 
 #define FILE_COPY_SIZE		(1024 * 1024)
+
+#define FILE_COPY_SIZE		(1024 * 1024)
 #define SAVE_AGED_COUNT 2 // the default count of quick and auto saves
 
 fs_globals_t FI;

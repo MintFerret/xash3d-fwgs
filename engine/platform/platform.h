@@ -108,6 +108,11 @@ void Linux_SetTimer( float time );
 int Linux_GetProcessID( void );
 #endif
 
+#if XASH_WII
+void Wii_Init( void );
+void Wii_Shutdown( void );
+#endif
+
 static inline void Platform_Init( qboolean con_showalways, const char *basedir )
 {
 #if XASH_POSIX
@@ -146,6 +151,8 @@ static inline void Platform_Shutdown( void )
 	Win32_Shutdown( );
 #elif XASH_LINUX
 	Linux_Shutdown( );
+#elif XASH_WII
+	Wii_Shutdown();
 #endif
 
 #if XASH_SDL

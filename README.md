@@ -1,11 +1,18 @@
-# Xash3D FWGS Engine <img align="right" width="128" height="128" src="https://github.com/FWGS/xash3d-fwgs/raw/master/game_launch/icon-xash-material.png" alt="Xash3D FWGS icon" />
+# Xash3D FWGS Engine (Unfinished Wii Port)<img align="right" width="128" height="128" src="https://github.com/FWGS/xash3d-fwgs/raw/master/game_launch/icon-xash-material.png" alt="Xash3D FWGS icon" />
 [![GitHub Actions Status](https://github.com/FWGS/xash3d-fwgs/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/FWGS/xash3d-fwgs/actions/workflows/c-cpp.yml) [![FreeBSD Build Status](https://img.shields.io/cirrus/github/FWGS/xash3d-fwgs?label=freebsd%20build)](https://cirrus-ci.com/github/FWGS/xash3d-fwgs) \
 [![Discord Server](https://img.shields.io/discord/355697768582610945?logo=Discord&label=International%20Discord%20chat)](http://fwgsdiscord.mentality.rip/) [![Russian speakers Telegram Chat](https://img.shields.io/badge/Russian_speakers_Telegram_chat-gray?logo=Telegram)](https://t.me/flyingwithgauss) \
 [![Download Daily Build](https://img.shields.io/badge/downloads-testing-orange)](https://github.com/FWGS/xash3d-fwgs/releases/tag/continuous)
 
-Xash3D ([pronounced](https://ipa-reader.com/?text=ks%C9%91%CA%82) `[ksɑʂ]`) FWGS is a game engine, aimed to provide compatibility with Half-Life Engine and extend it, as well as to give game developers well known workflow.
+Xash3D ([pronounced](https://ipa-reader.com/?text=ks%C9%91%CA%82) `[ksɑʂ]`) FWGS is a game engine, aimed to provide compatibility with Half-Life Engine and extend it, as well as to give game developers well known workflow. This fork is an attempt to port the new engine to the Nintendo Wii using [SDL2](https://github.com/devkitPro/SDL) and [OpenGX](https://github.com/devkitpro/opengx). This build doesn't compile (yet) but I'll try to document as much as I can for anyone who wants to try.
 
 Xash3D FWGS is a heavily modified fork of an original [Xash3D Engine](https://www.moddb.com/engines/xash3d-engine) by Unkle Mike.
+
+## To-do list
+
+- figure out how to statically compile *some* stuff, starting with filesystem_studio
+- dynamic library loading on the wii
+- big endian port
+- mainui port
 
 ## Donate
 [![Donate to FWGS button](https://img.shields.io/badge/Donate_to_FWGS-%3C3-magenta)](Documentation/donate.md) \
@@ -52,6 +59,26 @@ Even if Xash3D FWGS does support targetting 64-bit, you can't load games without
 
 If your CPU is NOT x86 compatible or you decided build 64-bit version of engine, you may want to compile [Half-Life SDK](https://github.com/FWGS/hlsdk-portable).
 This repository contains our fork of HLSDK and restored source code for Half-Life expansions and some mods.
+#### Wii
+1) Install [Devkitpro](https://devkitpro.org/wiki/Getting_Started)
+2) Install Python (needed for waf)
+3) Install the following packages
+```
+(sudo) dkp-pacman -S wii-dev wii-sdl2 wii-opengx ppc-libvobris ppc-libpng ppc-libogg ppc-libopus
+```
+4) Clone this repo
+5) Configure Waf
+```
+waf configure -T release --wii--enable-static-binary
+```
+6) Compile
+```
+waf build
+```
+7) Go to build file and convert to dol (untested)
+```
+elf2dol xash xash.dol
+```
 
 #### Windows (Visual Studio)
 * Install Visual Studio.
