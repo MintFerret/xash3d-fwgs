@@ -425,7 +425,7 @@ static void SV_ConnectClient( netadr_t from )
 	newcl->edict = EDICT_NUM(( newcl - svs.clients ) + 1 );
 	newcl->frames = frames;
 	newcl->userid = g_userid++;	// create unique userid
-	newcl->state = cs_connected;
+	newcl->state = cs_connected;	// now expect "spawn" command
 	newcl->extensions = FBitSet( extensions, NET_EXT_SPLITSIZE );
 	Q_strncpy( newcl->useragent, protinfo, sizeof( newcl->useragent ));
 
@@ -2139,6 +2139,8 @@ static qboolean SV_Spawn_f( sv_client_t *cl )
 
 	SV_PutClientInServer( cl );
 
+	cl->state = cs_spawning;
+
 	// if we are paused, tell the clients
 	if( sv.paused )
 	{
@@ -2156,7 +2158,8 @@ SV_Begin_f
 */
 static qboolean SV_Begin_f( sv_client_t *cl )
 {
-	if( cl->state != cs_connected )
+	// make sure client has passed connection process correctly
+	if( cl->state != cs_spawning )
 		return false;
 
 	// now client is spawned
@@ -2173,6 +2176,9 @@ SV_SendBuildInfo_f
 */
 static qboolean SV_SendBuildInfo_f( sv_client_t *cl )
 {
+	if( cl->state != cs_spawned )
+		return false;
+
 	SV_ClientPrintf( cl, "Server running " XASH_ENGINE_NAME " " XASH_VERSION " (build %i-%s, %s-%s)\n",
 		Q_buildnum(), g_buildcommit, Q_buildos(), Q_buildarch() );
 	return true;
@@ -2188,6 +2194,9 @@ static qboolean SV_ClientStatus_f( sv_client_t *cl )
 	netadr_t ip4, ip6;
 	vec3_t origin = { 0 };
 	int clients, bots, i;
+
+	if( cl->state != cs_connected )
+		return false;
 
 	NET_GetLocalAddress( &ip4, &ip6 );
 	if( cl->edict )
@@ -3078,41 +3087,37 @@ static void SV_ExecuteClientCommand( sv_client_t *cl, const char *s )
 
 	for( i = 0; i < ARRAYSIZE( ucmds ); i++ )
 	{
-		const ucmd_t *u = &ucmds[i];
-		if( !Q_strcmp( Cmd_Argv( 0 ), u->name ))
+		if( !Q_strcmp( Cmd_Argv( 0 ), ucmds[i].name ))
 		{
-			if( !u->func( cl ))
-				Con_Printf( "'%s' is not valid from the console\n", u->name );
+			if( !ucmds[i].func( cl ))
+				Con_Printf( "'%s' is not valid from the console\n", ucmds[i].name );
 			else
-				Con_Reportf( "ucmd->%s()\n", u->name );
+				Con_Reportf( "ucmd->%s()\n", ucmds[i].name );
 
 			return;
 		}
 	}
 
-	if( sv_enttools_enable.value > 0.0f && !sv.background )
-	{
-		for( i = 0; i < ARRAYSIZE( enttoolscmds ); i++ )
-		{
-			const ucmd_t *u = &enttoolscmds[i];
-
-			if( !Q_strcmp( Cmd_Argv( 0 ), u->name ))
-			{
-				Con_Reportf( "enttools->%s(): %s\n", u->name, s );
-				Log_Printf( "\"%s<%i><%s><>\" performed: %s\n", Info_ValueForKey( cl->userinfo, "name" ),
-							cl->userid, SV_GetClientIDString( cl ), s );
-
-				if( u->func )
-					u->func( cl );
-
-				return;
-			}
-		}
-	}
-
 	if( sv.state == ss_active )
 	{
-		qboolean fullupdate = !Q_strcmp( Cmd_Argv( 0 ), "fullupdate" );
+		qboolean fullupdate;
+
+		if( cl->state == cs_spawned && sv_enttools_enable.value > 0.0f && !sv.background )
+		{
+			for( i = 0; i < ARRAYSIZE( enttoolscmds ); i++ )
+			{
+				if( !Q_strcmp( Cmd_Argv( 0 ), enttoolscmds[i].name ))
+				{
+					Con_Reportf( "enttools->%s(): %s\n", enttoolscmds[i].name, s );
+					Log_Printf( "\"%s<%i><%s><>\" performed: %s\n", Info_ValueForKey( cl->userinfo, "name" ),
+						cl->userid, SV_GetClientIDString( cl ), s );
+					enttoolscmds[i].func( cl );
+					return;
+				}
+			}
+		}
+
+		fullupdate = !Q_strcmp( Cmd_Argv( 0 ), "fullupdate" );
 
 		if( fullupdate )
 		{
@@ -3542,7 +3547,7 @@ static void SV_ParseVoiceData( sv_client_t *cl, sizebuf_t *msg )
 
 	MSG_ReadBytes( msg, received, size );
 
-	if( !sv_voiceenable.value || svs.maxclients <= 1 )
+	if( !sv_voiceenable.value || svs.maxclients <= 1 || cl->state != cs_spawned )
 		return;
 
 	for( i = 0, cur = svs.clients; i < svs.maxclients; i++, cur++ )
