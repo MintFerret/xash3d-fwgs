@@ -1,5 +1,5 @@
 /*
-sys_win.c - platform dependent code
+sys_win.c - platform dependent code (which haven't moved to platform dir yet)
 Copyright (C) 2011 Uncle Mike
 
 This program is free software: you can redistribute it and/or modify
@@ -23,8 +23,10 @@ GNU General Public License for more details.
 #include <intrin.h>
 #endif
 
-#ifdef XASH_SDL
+#if XASH_SDL == 2
 #include <SDL.h>
+#elif XASH_SDL == 3
+#include <SDL3/SDL.h>
 #endif
 
 #if XASH_POSIX
@@ -77,17 +79,16 @@ Sys_DebugBreak
 */
 void Sys_DebugBreak( void )
 {
-#if XASH_SDL
-	int was_grabbed = host.hWnd != NULL && SDL_GetWindowGrab( host.hWnd );
-#endif
+	qboolean was_grabbed = false;
 
 	if( !Sys_DebuggerPresent( ))
 		return;
 
-#if XASH_SDL
-	if( was_grabbed ) // so annoying...
-		SDL_SetWindowGrab( host.hWnd, SDL_FALSE );
-#endif // XASH_SDL
+	if( host.hWnd ) // so annoying
+	{
+		was_grabbed = Platform_GetMouseGrab();
+		Platform_SetMouseGrab( false );
+	}
 
 #if _MSC_VER
 	__debugbreak();
@@ -96,10 +97,8 @@ void Sys_DebugBreak( void )
 	INLINE_NANOSLEEP1(); // sometimes signal comes with delay, let it interrupt nanosleep
 #endif // !_MSC_VER
 
-#if XASH_SDL
 	if( was_grabbed )
-		SDL_SetWindowGrab( host.hWnd, SDL_TRUE );
-#endif
+		Platform_SetMouseGrab( true );
 }
 
 #if !XASH_DEDICATED
@@ -409,7 +408,7 @@ void Sys_Error( const char *error, ... )
 
 	if( !Host_IsDedicated() )
 	{
-#if XASH_SDL == 2
+#if XASH_SDL >= 2
 		if( host.hWnd ) SDL_HideWindow( host.hWnd );
 #endif
 #if XASH_WIN32

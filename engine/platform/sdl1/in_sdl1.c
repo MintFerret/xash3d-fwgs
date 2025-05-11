@@ -96,17 +96,6 @@ void Platform_SetClipboardText( const char *buffer )
 }
 
 /*
-=============
-Platform_EnableTextInput
-
-=============
-*/
-void Platform_EnableTextInput( qboolean enable )
-{
-}
-
-
-/*
 ========================
 Platform_SetCursorType
 
@@ -146,11 +135,20 @@ void Platform_SetCursorType( VGUI_DefaultCursor type )
 
 /*
 ========================
-Platform_GetKeyModifiers
-
+Platform_GetMouseGrab
 ========================
 */
-key_modifier_t Platform_GetKeyModifiers( void )
+qboolean Platform_GetMouseGrab( void )
 {
-	return KeyModifier_None;
+	return SDL_WM_GrabInput( SDL_GRAB_QUERY ) != SDL_GRAB_OFF;
+}
+
+/*
+========================
+Platform_SetMouseGrab
+========================
+*/
+void Platform_SetMouseGrab( qboolean enable )
+{
+	SDL_WM_GrabInput( enable ? SDL_GRAB_ON : SDL_GRAB_OFF );
 }
