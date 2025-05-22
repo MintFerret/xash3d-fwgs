@@ -69,7 +69,7 @@ This repository contains our fork of HLSDK and restored source code for Half-Lif
 4) Clone this repo
 5) Configure Waf
 ```
-waf configure -T release --wii--enable-static-binary
+waf configure -T release --wii --enable-static-binary --enable-static-gl
 ```
 6) Compile
 ```
