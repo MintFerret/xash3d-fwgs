@@ -39,9 +39,6 @@ def build(bld):
 	if bld.env.DEST_OS != 'psvita':
 		libs += [ 'public', 'ANDROID' ]
 
-	if bld.env.DEST_OS == 'wii':
-		libs += ['public']
-
 	bld.shlib(target = 'filesystem_stdio',
 		features = 'seq',
 		source = bld.path.ant_glob(['*.c', '*.cpp']),

@@ -259,12 +259,12 @@ def configure(conf):
 		conf.options.GL               = True
 		conf.options.USE_STBTT        = True
 	elif conf.env.DEST_OS == 'wii':
+		conf.options.STATIC_LINKING   = True
 		conf.options.NO_VGUI          = True
 		conf.options.GL               = True
 		conf.options.LOW_MEMORY       = 1
 		conf.options.NO_ASYNC_RESOLVE = True
 		conf.options.USE_STBTT        = False
-		enforce_pic                   = False
 	elif conf.env.DEST_OS == 'psvita':
 		conf.options.NO_VGUI          = True
 		conf.options.GL               = True

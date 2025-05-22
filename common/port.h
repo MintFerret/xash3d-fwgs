@@ -46,7 +46,7 @@ GNU General Public License for more details.
 			#include <vrtld.h>
 			#define O_BINARY 0
 		#elif XASH_WII
-			#include <platform/wii/dll_wii.h> // include the references for RTLD_NOW
+			//#include <platform/wii/dll_wii.h> //This is borrowed from the other wii port
 			#define O_BINARY 0
 		#else
 			#include <dlfcn.h>
