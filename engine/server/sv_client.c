@@ -2195,7 +2195,7 @@ static qboolean SV_ClientStatus_f( sv_client_t *cl )
 	vec3_t origin = { 0 };
 	int clients, bots, i;
 
-	if( cl->state != cs_connected )
+	if( cl->state != cs_spawned )
 		return false;
 
 	NET_GetLocalAddress( &ip4, &ip6 );
@@ -2212,7 +2212,7 @@ static qboolean SV_ClientStatus_f( sv_client_t *cl )
 	if( ip4.type == NA_IP )
 		SV_ClientPrintf( cl, "tcp/ip: %s\n", NET_AdrToString( ip4 ));
 	if( ip6.type == NA_IP6 )
-		SV_ClientPrintf( cl, "tcp/ipv6: %s\n", NET_AdrToString( ip4 ));
+		SV_ClientPrintf( cl, "tcp/ipv6: %s\n", NET_AdrToString( ip6 ));
 
 	SV_ClientPrintf( cl,
 		"map:\t%s at %d x, %d y, %d z\n"

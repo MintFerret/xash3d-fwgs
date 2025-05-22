@@ -1,6 +1,7 @@
 /*
-joy_sdl1.c - SDL gamepads
-Copyright (C) 2018-2025 a1batross
+platform_sdl3.h - SDL3 platform definitions
+Copyright (C) 2025 Er2off
+Copyright (C) 2025 Alibek Omarov
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -12,25 +13,16 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
-#include "platform.h"
+#ifndef PLATFORM_SDL3_H
+#define PLATFORM_SDL3_H
 
-void Platform_CalibrateGamepadGyro( void )
-{
-}
+#include <SDL3/SDL.h>
+#include "platform/platform.h"
 
-void Platform_Vibrate2( float time, int val1, int val2, uint flags )
-{
-}
+//
+// in_sdl3.c
+//
+void SDLash_InitCursors( void );
+void SDLash_FreeCursors( void );
 
-void Platform_Vibrate( float time, char flags )
-{
-}
-
-int Platform_JoyInit( void )
-{
-	return 0;
-}
-
-void Platform_JoyShutdown( void )
-{
-}
+#endif // PLATFORM_SDL3_H
