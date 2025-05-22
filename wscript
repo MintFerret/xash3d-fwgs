@@ -84,9 +84,9 @@ SUBDIRS = [
 	Subproject('filesystem'),
 	Subproject('stub/server'),
 	Subproject('dllemu'),
+	Subproject('3rdparty/libbacktrace'),
 
 	# disable only by engine feature, makes no sense to even parse subprojects in dedicated mode
-	Subproject('3rdparty/libbacktrace', lambda x: x.env.DEST_OS != 'wii'),
 	Subproject('3rdparty/extras',       lambda x: x.env.CLIENT and x.env.DEST_OS != 'android'),
 	Subproject('3rdparty/nanogl',       lambda x: x.env.CLIENT and x.env.NANOGL),
 	Subproject('3rdparty/gl-wes-v2',    lambda x: x.env.CLIENT and x.env.GLWES),
