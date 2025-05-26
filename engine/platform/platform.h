@@ -321,6 +321,8 @@ typedef enum
 
 struct vidmode_s;
 typedef enum window_mode_e window_mode_t;
+typedef enum ref_window_type_e ref_window_type_t;
+
 // Window
 qboolean  R_Init_Video( const int type );
 void      R_Free_Video( void );
@@ -337,6 +339,7 @@ void *SW_LockBuffer( void );
 void SW_UnlockBuffer( void );
 qboolean SW_CreateBuffer( int width, int height, uint *stride, uint *bpp, uint *r, uint *g, uint *b );
 void Platform_Minimize_f( void );
+ref_window_type_t R_GetWindowHandle( void **handle, ref_window_type_t type );
 
 //
 // in_evdev.c

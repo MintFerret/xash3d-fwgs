@@ -513,6 +513,11 @@ qboolean VID_SetMode( void )
 	return true;
 }
 
+ref_window_type_t R_GetWindowHandle( void **handle, ref_window_type_t type )
+{
+	return REF_WINDOW_TYPE_NULL;
+}
+
 /*
 ==================
 R_Free_Video
