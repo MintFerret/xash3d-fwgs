@@ -149,6 +149,8 @@ static inline void Platform_Init( qboolean con_showalways )
 	Win32_Init( con_showalways );
 #elif XASH_LINUX
 	Linux_Init( );
+#elif XASH_OGC
+	OGC_Init( );
 #endif
 }
 
@@ -164,6 +166,8 @@ static inline void Platform_Shutdown( void )
 	Win32_Shutdown( );
 #elif XASH_LINUX
 	Linux_Shutdown( );
+#elif XASH_OGC
+	OGC_Shutdown( );
 #endif
 
 #if XASH_SDL
