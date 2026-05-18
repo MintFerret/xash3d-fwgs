@@ -159,7 +159,7 @@ Default build-depended cvar and constant values
 	#define DEFAULT_MODE_HEIGHT  480
 	#define DEFAULT_M_IGNORE     "1"
 	#define DEFAULT_ALLOWCONSOLE  1
-	#define XASH_NO_NETWORK       1
+	//#define XASH_NO_NETWORK       1
 #elif XASH_ANDROID
 	#define DEFAULT_TOUCH_ENABLE "1"
 #elif XASH_MOBILE_PLATFORM

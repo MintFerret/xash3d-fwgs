@@ -19,12 +19,11 @@ GNU General Public License for more details.
 #elif XASH_WIN32
 #include "platform/win32/net.h"
 #elif XASH_PSVITA
-#include "platform/psvita/net_psvita.h"
 static const struct in6_addr in6addr_any;
+#include "platform/psvita/net_psvita.h"
 #else
 #include "platform/posix/net.h"
 #endif
-
 
 //
 // net_ws.c
