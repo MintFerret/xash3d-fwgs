@@ -22,8 +22,11 @@ GNU General Public License for more details.
 #include <fcntl.h>
 #include <fat.h>
 #include <SDL.h>
+#include <gccore.h>
+#include <ogcsys.h>
 
-#include <network.h>
+
+#include <wiisocket.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -116,4 +119,4 @@ int getnameinfo(const struct sockaddr *sa, socklen_t sl,
 }
 int gethostname(char *n,size_t l)      { if(n&&l>0)n[0]='\0'; return 0; }
 
-const struct in6_addr in6addr_any = {{ 0 }};
+//const struct in6_addr in6addr_any = {{ 0 }};
