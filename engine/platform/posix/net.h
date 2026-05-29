@@ -82,7 +82,7 @@ GNU General Public License for more details.
 
 #if XASH_OGC
 #define ioctlsocket net_ioctl
-#define select      net_select
+// #define select      net_select
 #endif
 
 #define closesocket close

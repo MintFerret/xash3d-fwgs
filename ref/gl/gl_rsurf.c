@@ -2129,6 +2129,7 @@ Allocate memory for arrays, fill it with vertex attribs and upload to GPU
 */
 void R_GenerateVBO( void )
 {
+	#if !XASH_OGC
 	model_t *world = WORLDMODEL;
 	const int numlightmaps = gl_lms.current_lightmap_texture;
 	int len = 0;
@@ -2331,6 +2332,7 @@ void R_GenerateVBO( void )
 	double t3 = gEngfuncs.pfnTime();
 
 	gEngfuncs.Con_Reportf( S_NOTE "%s: uploaded VBOs in %.3g seconds, %.3g seconds total\n", __func__, t3 - t2, t3 - t1 );
+	#endif
 }
 
 /*
@@ -2342,7 +2344,13 @@ generate decal mesh and put it to array
 */
 void R_AddDecalVBO( decal_t *pdecal, msurface_t *surf )
 {
+<<<<<<< HEAD
 	int numVerts;
+=======
+	#if !XASH_OGC
+	int numVerts, i;
+	float *v;
+>>>>>>> 6b9200c6 (ref_gl: removed glgx)
 	int decalindex = pdecal - &gDecalPool[0];
 
 	if( !vbos.decaldata )
@@ -2365,6 +2373,7 @@ void R_AddDecalVBO( decal_t *pdecal, msurface_t *surf )
 	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
 
 	vbos.decaldata->decals[decalindex].numVerts = numVerts;
+	#endif
 }
 
 /*
@@ -2376,7 +2385,14 @@ free all vbo data
 */
 void R_ClearVBO( void )
 {
+<<<<<<< HEAD
 	for( vboarray_t *vbo = vbos.arraylist; vbo; vbo = vbo->next )
+=======
+	#if !XASH_OGC
+	vboarray_t *vbo;
+
+	for( vbo = vbos.arraylist; vbo; vbo = vbo->next )
+>>>>>>> 6b9200c6 (ref_gl: removed glgx)
 		pglDeleteBuffersARB( 1, &vbo->glindex );
 
 	vbos.arraylist = NULL;
@@ -2393,6 +2409,7 @@ void R_ClearVBO( void )
 
 	vbos.decaldata = NULL;
 	Mem_FreePool( &vbos.mempool );
+	#endif
 }
 
 
@@ -2553,6 +2570,7 @@ static texture_t *R_SetupVBOTexture( texture_t *tex, int number )
 
 static void R_SetupVBOArrayStatic( vboarray_t *vbo, qboolean drawlightmap, qboolean drawtextures )
 {
+#if !XASH_OGC
 	if( vboarray.astate != VBO_ARRAY_STATIC )
 	{
 		// bind array
@@ -2591,10 +2609,12 @@ static void R_SetupVBOArrayStatic( vboarray_t *vbo, qboolean drawlightmap, qbool
 		vboarray.astate = VBO_ARRAY_STATIC;
 		R_SetDecalMode( false );
 	}
+#endif
 }
 
 static void R_SetupVBOArrayDlight( vboarray_t *vbo, texture_t *texture )
 {
+#if !XASH_OGC
 	if( vboarray.astate != VBO_ARRAY_DLIGHT )
 	{
 		if( vboarray.astate == VBO_ARRAY_DECAL_DLIGHT )
@@ -2622,12 +2642,14 @@ static void R_SetupVBOArrayDlight( vboarray_t *vbo, texture_t *texture )
 
 		vboarray.astate = VBO_ARRAY_DLIGHT;
 	}
+#endif
 }
 
 #define SPARSE_DECALS_UPLOAD 0
 
 static void R_SetupVBOArrayDecalDlight( int decalcount )
 {
+	#if !XASH_OGC
 	if( vbos.decal_dlight_vbo )
 	{
 		pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vbos.decal_dlight_vbo );
@@ -2660,6 +2682,7 @@ static void R_SetupVBOArrayDecalDlight( int decalcount )
 	vboarray.astate = VBO_ARRAY_DECAL_DLIGHT;
 	vboarray.tstate = VBO_TEXTURE_DECAL;
 	vboarray.lstate = VBO_LIGHTMAP_DYNAMIC;
+	#endif
 }
 
 /*
@@ -2671,6 +2694,7 @@ draw details when not enough tmus
 */
 static void R_AdditionalPasses( vboarray_t *vbo, int indexlen, void *indexarray, texture_t *tex, qboolean resetvbo, size_t offset )
 {
+#if !XASH_OGC
 	if( !indexlen )
 		return;
 
@@ -2727,6 +2751,7 @@ static void R_AdditionalPasses( vboarray_t *vbo, int indexlen, void *indexarray,
 		else
 			R_SetupVBOArrayStatic( vbo, true, true );
 	}
+	#endif
 }
 
 #define MINIMIZE_UPLOAD
@@ -2797,11 +2822,12 @@ static void R_DrawDlightedDecals( vboarray_t *vbo, msurface_t *newsurf, msurface
 
 static void R_FlushDlights( vboarray_t *vbo, int min_index, int max_index, int dlightindex, vboindex_t *dlightarray )
 {
+	#if !XASH_OGC //let's see what happens first
 	if( max_index == 0 )
 		return;
 	if( vbos.dlight_vbo )
 	{
-#ifndef MINIMIZE_UPLOAD
+#ifndef MINIMIZE_UPLOAD && !defined XASH_OGC
 		pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vbos.dlight_vbo );
 		pglBufferDataARB( GL_ARRAY_BUFFER_ARB, sizeof( vec2_t )* (max_index - min_index), vbos.dlight_tc + min_index, GL_STREAM_DRAW_ARB );
 #endif
@@ -2822,12 +2848,13 @@ static void R_FlushDlights( vboarray_t *vbo, int min_index, int max_index, int d
 	pglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, BLOCK_SIZE, BLOCK_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0 );
 #endif
 	LM_UploadDynamicBlock();
-#if !defined XASH_NANOGL || defined XASH_WES && XASH_EMSCRIPTEN // WebGL need to know array sizes
+#if !defined XASH_NANOGL && !defined XASH_OGC || defined XASH_WES && XASH_EMSCRIPTEN // WebGL need to know array sizes
 	if( pglDrawRangeElements )
 		pglDrawRangeElements( GL_TRIANGLES, min_index, max_index, dlightindex, GL_VBOINDEX_TYPE, dlightarray );
 	else
 #endif
 	pglDrawElements( GL_TRIANGLES, dlightindex, GL_VBOINDEX_TYPE, dlightarray );
+#endif
 }
 
 static void R_AddSurfaceDecalsDlight( msurface_t *surf, int *pdecalcount )
@@ -2888,6 +2915,7 @@ static void R_AddSurfaceDecalsDlight( msurface_t *surf, int *pdecalcount )
 
 static void R_DrawVBODlights( vboarray_t *vbo, vbotexture_t *vbotex, texture_t *texture, int lightmap )
 {
+	#if !XASH_OGC
 	// draw dlights and dlighted decals
 	if( vbotex->dlightchain )
 	{
@@ -3045,6 +3073,7 @@ static void R_DrawVBODlights( vboarray_t *vbo, vbotexture_t *vbotex, texture_t *
 		// prepare to next frame
 		vbotex->dlightchain = NULL;
 	}
+#endif //XASH_OGC
 }
 
 
@@ -3058,6 +3087,7 @@ Draw array for given vbotexture_t. build and draw dynamic lightmaps if present
 */
 static void R_DrawLightmappedVBO( vboarray_t *vbo, vbotexture_t *vbotex, texture_t *texture, int lightmap, qboolean skiplighting )
 {
+	#if !XASH_OGC
 	if( vbotex->curindex )
 	{
 #if !defined XASH_NANOGL || defined XASH_WES && XASH_EMSCRIPTEN // WebGL need to know array sizes
@@ -3102,10 +3132,12 @@ static void R_DrawLightmappedVBO( vboarray_t *vbo, vbotexture_t *vbotex, texture
 	R_AdditionalPasses( vbo, vbotex->curindex, vbotex->indexarray, texture, false, 0 );
 	// prepare to next frame
 	vbotex->curindex = 0;
+	#endif
 }
 
 static void R_SetupVBOArrayDecal( qboolean drawlightmap )
 {
+	#if !XASH_OGC
 	// prepare for decal draw
 	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vbos.decaldata->decalvbo );
 	// Set pointers to vbodecaldata->decalvbo
@@ -3125,10 +3157,12 @@ static void R_SetupVBOArrayDecal( qboolean drawlightmap )
 	vboarray.astate = VBO_ARRAY_DECAL;
 	vboarray.tstate = VBO_TEXTURE_DECAL;
 
+#endif
 }
 
 static void R_SetupVBOArrayDecalDyn( qboolean drawlightmap, float *v )
 {
+#if !XASH_OGC
 	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
 	pglVertexPointer( 3, GL_FLOAT, VERTEXSIZE * 4, v );
 	pglTexCoordPointer( 2, GL_FLOAT, VERTEXSIZE * 4, v + 3 );
@@ -3141,6 +3175,7 @@ static void R_SetupVBOArrayDecalDyn( qboolean drawlightmap, float *v )
 	vboarray.astate = VBO_ARRAY_DECAL;
 	vboarray.tstate = VBO_TEXTURE_DECAL;
 
+#endif
 }
 
 static void R_DrawStaticDecals( vboarray_t *vbo, qboolean drawlightmap, int ilightmap )
@@ -3241,7 +3276,9 @@ static void R_ClearVBOState( qboolean drawlightmap, qboolean drawtextures )
 
 
 	pglDisableClientState( GL_VERTEX_ARRAY );
+	#if !XASH_OGC
 	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
+	#endif
 
 	vboarray.astate = VBO_ARRAY_NONE;
 	vboarray.tstate = VBO_TEXTURE_NONE;
@@ -3969,4 +4006,3 @@ void GL_BuildLightmaps( void )
 		gEngfuncs.drawFuncs->GL_BuildLightmaps( );
 	}
 }
-

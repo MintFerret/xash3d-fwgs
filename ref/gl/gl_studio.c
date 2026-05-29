@@ -1879,6 +1879,7 @@ static void R_StudioBuildArrayChromeMesh( short *ptricmds, vec3_t *pstudionorms,
 
 static void R_StudioDrawArrays( uint startverts, uint startelems )
 {
+	#if !XASH_OGC
 	pglEnableClientState( GL_VERTEX_ARRAY );
 	pglVertexPointer( 3, GL_FLOAT, 12, g_studio.arrayverts );
 
@@ -1902,6 +1903,7 @@ static void R_StudioDrawArrays( uint startverts, uint startelems )
 	pglDisableClientState( GL_TEXTURE_COORD_ARRAY );
 	if( !( g_nForceFaceFlags & STUDIO_NF_CHROME ) )
 		pglDisableClientState( GL_COLOR_ARRAY );
+	#endif
 }
 
 /*

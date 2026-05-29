@@ -84,13 +84,17 @@ void _Mem_Free( void *data, const char *filename, int fileline )
 static void FS_InitMemory( void );
 static void FS_Purge( file_t* file );
 
+<<<<<<< HEAD
 static void _Mem_Free( void *data, const char *filename, int fileline )
 >>>>>>> 0a74e7e4 (network: added macros to disable iPv6 calls)
+=======
+void FS_Mem_Free( void *data, const char *filename, int fileline )
+>>>>>>> 6b9200c6 (ref_gl: removed glgx)
 {
-	g_engfuncs._Mem_Free( data, filename, fileline );
+	g_engfuncs.FS_Mem_Free( data, filename, fileline );
 }
 
-static void *_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )
+ void *_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )
 {
 	return g_engfuncs._Mem_Alloc( poolptr, size, clear, filename, fileline );
 }

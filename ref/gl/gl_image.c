@@ -868,24 +868,27 @@ static void GL_TextureImageRAW( gl_texture_t *tex, GLint side, GLint level, GLin
 	else
 		dataType = GL_UNSIGNED_BYTE;
 
-	if( tex->target == GL_TEXTURE_1D )
-	{
-		if( subImage ) pglTexSubImage1D( tex->target, level, 0, width, inFormat, dataType, data );
-		else pglTexImage1D( tex->target, level, tex->format, width, 0, inFormat, dataType, data );
-	}
-	else if( tex->target == GL_TEXTURE_CUBE_MAP_ARB )
+	#if XASH_OGC
+	if( tex->target == GL_TEXTURE_CUBE_MAP_ARB )
 	{
 		if( subImage ) pglTexSubImage2D( cubeTarget + side, level, 0, 0, width, height, inFormat, dataType, data );
 		else pglTexImage2D( cubeTarget + side, level, tex->format, width, height, 0, inFormat, dataType, data );
+	}
+	#else
+	else if( tex->target == GL_TEXTURE_1D )
+	{
+		if( subImage ) pglTexSubImage1D( tex->target, level, 0, width, inFormat, dataType, data );
+		else pglTexImage1D( tex->target, level, tex->format, width, 0, inFormat, dataType, data );
 	}
 	else if( tex->target == GL_TEXTURE_3D || tex->target == GL_TEXTURE_2D_ARRAY_EXT )
 	{
 		if( subImage ) pglTexSubImage3D( tex->target, level, 0, 0, 0, width, height, depth, inFormat, dataType, data );
 		else pglTexImage3D( tex->target, level, tex->format, width, height, depth, 0, inFormat, dataType, data );
 	}
+	#endif
 	else if( tex->target == GL_TEXTURE_2D_MULTISAMPLE )
 	{
-#if !defined( XASH_GL_STATIC ) || (!defined( XASH_GLES ) && !defined( XASH_GL4ES ))
+#if !defined( XASH_GL_STATIC ) || (!defined( XASH_GLES ) && !defined( XASH_GL4ES )) && !defined( XASH_OGC )
 		GLsizei	samplesCount = (GLsizei)gEngfuncs.pfnGetCvarFloat( "gl_msaa_samples" );
 		switch( samplesCount )
 		{
@@ -916,7 +919,7 @@ static void GL_TextureImageCompressed( gl_texture_t *tex, GLint side, GLint leve
 
 	Assert( tex != NULL );
 
-#if !XASH_GLES
+#if !XASH_GLES && !XASH_OGC
 	if( tex->target == GL_TEXTURE_1D )
 	{
 		if( subImage ) pglCompressedTexSubImage1DARB( tex->target, level, 0, width, tex->format, size, data );
@@ -2188,13 +2191,19 @@ void R_ShowTextures( void )
 				empty_page = false;
 				break;
 			}
+<<<<<<< HEAD
 
 			const gl_texture_t *image = R_GetTexture( i );
+=======
+		#if !XASH_OGC
+			image = R_GetTexture( i );
+>>>>>>> 6b9200c6 (ref_gl: removed glgx)
 			if( pglIsTexture( image->texnum ))
 			{
 				empty_page = false;
 				break;
 			}
+		#endif
 		}
 
 		if( empty_page )
@@ -2218,9 +2227,15 @@ void R_ShowTextures( void )
 		if ( i >= MAX_TEXTURES )
 			break;
 
+<<<<<<< HEAD
 		const gl_texture_t *image = R_GetTexture( i );
+=======
+		#if !XASH_OGC
+		image = R_GetTexture( i );
+>>>>>>> 6b9200c6 (ref_gl: removed glgx)
 		if( !pglIsTexture( image->texnum ))
 			continue;
+		#endif
 
 		float x = k % base_w * gpGlobals->width / base_w;
 		float y = k / base_w * gpGlobals->height / base_h;

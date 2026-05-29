@@ -420,7 +420,7 @@ void Mod_StudioUnloadTextures( void *data );
 //
 // gl_alias.c
 //
-void Mod_LoadAliasModel( model_t *mod, const void *buffer, qboolean *loaded );
+void R_Mod_LoadAliasModel( model_t *mod, const void *buffer, qboolean *loaded );
 void R_DrawAliasModel( cl_entity_t *e );
 void R_AliasInit( void );
 
@@ -441,8 +441,13 @@ qboolean R_UploadRipples( texture_t *image );
 //
 // renderer exports
 //
+#if XASH_OGC
+qboolean GX_R_Init( void );
+void GX_R_Shutdown( void );
+#else
 qboolean R_Init( void );
 void R_Shutdown( void );
+#endif
 void GL_SetupAttributes( int safegl );
 void GL_OnContextCreated( void );
 void GL_InitExtensions( void );
@@ -484,6 +489,25 @@ const char *GL_ErrorString( int err ) RETURNS_NONNULL;
 //
 // gl_triapi.c
 //
+#if XASH_OGC
+#define TriRenderMode GX_TriRenderMode
+#define TriBegin GX_TriBegin
+#define TriEnd GX_TriEnd
+#define TriTexCoord2f GX_TriTexCoord2f
+#define TriVertex3fv GX_TriVertex3fv
+#define TriVertex3f GX_TriVertex3f
+#define _TriColor4f GX__TriColor4f
+#define _TriColor4ub GX__TriColor4ub
+#define TriColor4f GX_TriColor4f
+#define TriColor4ub GX_TriColor4ub
+#define TriBrightness GX_TriBrightness
+#define TriWorldToScreen GX_TriWorldToScreen
+#define TriSpriteTexture GX_TriSpriteTexture
+#define TriFog GX_TriFog
+#define TriGetMatrix GX_TriGetMatrix
+#define TriFogParams GX_TriFogParams
+#define TriCullFace GX_TriCullFace
+#endif
 void TriRenderMode( int mode );
 void TriBegin( int mode );
 void TriEnd( void );

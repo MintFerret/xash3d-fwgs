@@ -44,7 +44,11 @@ CVAR_DEFINE_AUTO( r_large_lightmaps, "0", FCVAR_GLCONFIG|FCVAR_LATCH, "enable la
 gl_globals_t	tr;
 glconfig_t	glConfig;
 glstate_t	glState;
+#if XASH_OGC
+glwstate_t	gx_glw_state;
+#else
 glwstate_t	glw_state;
+#endif
 
 #if XASH_GL_STATIC
 	#define GL_CALL( x ) #x, NULL
@@ -143,7 +147,9 @@ static const dllfunc_t opengl_110funcs[] =
 { GL_CALL( glClearStencil ) },
 { GL_CALL( glIsEnabled ) },
 { GL_CALL( glIsList ) },
+#if XASH_OGC
 { GL_CALL( glIsTexture ) },
+#endif
 { GL_CALL( glTexEnvf ) },
 { GL_CALL( glTexEnvfv ) },
 { GL_CALL( glTexEnvi ) },
@@ -578,8 +584,13 @@ GL_GetProcAddress
 defined just for nanogl/glwes, so it don't link to SDL2 directly, nor use dlsym
 ==============
 */
-void GAME_EXPORT *GL_GetProcAddress( const char *name ); // keep defined for nanogl/wes
-void GAME_EXPORT *GL_GetProcAddress( const char *name )
+#if XASH_OGC
+static void GAME_EXPORT *OGC_GL_GetProcAddress( const char *name ); // keep defined for nanogl/wes
+static void GAME_EXPORT *OGC_GL_GetProcAddress( const char *name )
+#else
+static void GAME_EXPORT *GL_GetProcAddress( const char *name ); // keep defined for nanogl/wes
+static void GAME_EXPORT *GL_GetProcAddress( const char *name )
+#endif
 {
 	return gEngfuncs.GL_GetProcAddress( name );
 }
@@ -1079,7 +1090,7 @@ void GL_InitExtensions( void )
 	pglGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.max_2d_texture_size );
 	if( glConfig.max_2d_texture_size <= 0 ) glConfig.max_2d_texture_size = 256;
 
-#if !XASH_GL4ES // GL4ES doesn't provide glDebugMessage functions, even as stubs
+#if !XASH_GL4ES && !XASH_OGC// GL4ES doesn't provide glDebugMessage functions, even as stubs
 	// enable gldebug if allowed
 	if( GL_Support( GL_DEBUG_OUTPUT ))
 	{
@@ -1240,7 +1251,11 @@ static void GL_RemoveCommands( void )
 R_Init
 ===============
 */
+#if XASH_OGC
+qboolean GX_R_Init( void )
+#else
 qboolean R_Init( void )
+#endif
 {
 	if( glw_state.initialized )
 		return true;
@@ -1289,7 +1304,11 @@ qboolean R_Init( void )
 R_Shutdown
 ===============
 */
+#if XASH_OGC
+void GX_R_Shutdown( void )
+#else
 void R_Shutdown( void )
+#endif
 {
 	if( !glw_state.initialized )
 		return;
