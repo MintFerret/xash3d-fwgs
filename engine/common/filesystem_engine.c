@@ -38,11 +38,7 @@ static CVAR_DEFINE_AUTO( fs_mount_l10n, "0", FCVAR_PRIVILEGED, "mount localizati
 static CVAR_DEFINE_AUTO( ui_language, "english", FCVAR_PRIVILEGED, "selected game language" );
 
 fs_api_t g_fsapi;
-#if XASH_OGC
-extern fs_globals_t *FI;
-#else
 fs_globals_t *FI;
-#endif
 
 static pfnCreateInterface_t fs_pfnCreateInterface;
 static HINSTANCE fs_hInstance;
