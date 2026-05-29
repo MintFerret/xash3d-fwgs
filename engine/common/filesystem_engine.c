@@ -159,7 +159,7 @@ void FS_SaveVFSConfig( void )
 	ClearBits( ui_language.flags, FCVAR_CHANGED );
 }
 
-void FS_LoadGameInfo( void )
+void COM_FS_LoadGameInfo( void )
 {
 	FS_LoadVFSConfig( g_fsapi.Gamedir( ));
 

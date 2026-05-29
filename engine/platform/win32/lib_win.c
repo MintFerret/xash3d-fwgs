@@ -383,7 +383,7 @@ static void ListMissingModules( dll_user_t *hInst )
 
 qboolean COM_CheckLibraryDirectDependency( const char *name, const char *depname, qboolean directpath )
 {
-	dll_user_t *hInst = FS_FindLibrary( name, directpath );
+	dll_user_t *hInst = COM_FindLibrary( name, directpath );
 	if ( !hInst ) return FALSE;
 
 	byte *data = FS_LoadFile( name, NULL, false );
@@ -432,7 +432,7 @@ void *COM_LoadLibrary( const char *dllname, int build_ordinals_table, qboolean d
 
 	COM_ResetLibraryError();
 
-	dll_user_t *hInst = FS_FindLibrary( dllname, directpath );
+	dll_user_t *hInst = COM_FindLibrary( dllname, directpath );
 	if( !hInst )
 	{
 		Q_snprintf( buf, sizeof( buf ), "Failed to find library %s", dllname );
