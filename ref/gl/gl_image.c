@@ -2191,13 +2191,8 @@ void R_ShowTextures( void )
 				empty_page = false;
 				break;
 			}
-<<<<<<< HEAD
-
-			const gl_texture_t *image = R_GetTexture( i );
-=======
 		#if !XASH_OGC
-			image = R_GetTexture( i );
->>>>>>> 6b9200c6 (ref_gl: removed glgx)
+			const gl_texture_t *image = R_GetTexture( i );
 			if( pglIsTexture( image->texnum ))
 			{
 				empty_page = false;
@@ -2227,12 +2222,8 @@ void R_ShowTextures( void )
 		if ( i >= MAX_TEXTURES )
 			break;
 
-<<<<<<< HEAD
 		const gl_texture_t *image = R_GetTexture( i );
-=======
 		#if !XASH_OGC
-		image = R_GetTexture( i );
->>>>>>> 6b9200c6 (ref_gl: removed glgx)
 		if( !pglIsTexture( image->texnum ))
 			continue;
 		#endif

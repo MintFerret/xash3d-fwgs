@@ -2344,13 +2344,9 @@ generate decal mesh and put it to array
 */
 void R_AddDecalVBO( decal_t *pdecal, msurface_t *surf )
 {
-<<<<<<< HEAD
-	int numVerts;
-=======
 	#if !XASH_OGC
-	int numVerts, i;
+	int numVerts;
 	float *v;
->>>>>>> 6b9200c6 (ref_gl: removed glgx)
 	int decalindex = pdecal - &gDecalPool[0];
 
 	if( !vbos.decaldata )
@@ -2385,14 +2381,10 @@ free all vbo data
 */
 void R_ClearVBO( void )
 {
-<<<<<<< HEAD
-	for( vboarray_t *vbo = vbos.arraylist; vbo; vbo = vbo->next )
-=======
 	#if !XASH_OGC
 	vboarray_t *vbo;
 
-	for( vbo = vbos.arraylist; vbo; vbo = vbo->next )
->>>>>>> 6b9200c6 (ref_gl: removed glgx)
+	for( vboarray_t *vbo = vbos.arraylist; vbo; vbo = vbo->next )
 		pglDeleteBuffersARB( 1, &vbo->glindex );
 
 	vbos.arraylist = NULL;
