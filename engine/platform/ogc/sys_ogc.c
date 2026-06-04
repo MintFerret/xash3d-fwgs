@@ -25,8 +25,10 @@ GNU General Public License for more details.
 #include <gccore.h>
 #include <ogcsys.h>
 
-
+//comment <network.h> these if compiling with libogc2
 #include <wiisocket.h>
+//#include <network.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>

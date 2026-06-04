@@ -676,17 +676,17 @@ typedef int (*REFAPI)( int version, ref_interface_t *pFunctionTable, ref_api_t* 
 	ENGINE_SHARED_CVAR_NAME( f, vid_brightness, brightness ) \
 	ENGINE_SHARED_CVAR_NAME( f, v_lightgamma, lightgamma ) \
 	ENGINE_SHARED_CVAR_NAME( f, v_direct, direct ) \
-	ENGINE_SHARED_CVAR( f, r_showtextures ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_r_showtextures, r_showtextures ) \
 	ENGINE_SHARED_CVAR( f, r_speeds ) \
 	ENGINE_SHARED_CVAR( f, r_fullbright ) \
 	ENGINE_SHARED_CVAR( f, r_norefresh ) \
 	ENGINE_SHARED_CVAR( f, r_lightmap ) \
 	ENGINE_SHARED_CVAR( f, r_dynamic ) \
 	ENGINE_SHARED_CVAR( f, r_drawentities ) \
-	ENGINE_SHARED_CVAR( f, r_decals ) \
-	ENGINE_SHARED_CVAR( f, r_showhull ) \
-	ENGINE_SHARED_CVAR( f, gl_vsync ) \
-	ENGINE_SHARED_CVAR( f, gl_clear ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_r_decals, r_decals ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_r_showhull, r_showhull ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_gl_vsync, gl_vsync ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_gl_clear, gl_clear ) \
 	ENGINE_SHARED_CVAR( f, cl_himodels ) \
 	ENGINE_SHARED_CVAR( f, cl_lightstyle_lerping ) \
 	ENGINE_SHARED_CVAR( f, tracerred ) \
@@ -697,7 +697,7 @@ typedef int (*REFAPI)( int version, ref_interface_t *pFunctionTable, ref_api_t* 
 	ENGINE_SHARED_CVAR( f, r_sprite_lighting ) \
 	ENGINE_SHARED_CVAR( f, r_drawviewmodel ) \
 	ENGINE_SHARED_CVAR( f, r_glowshellfreq ) \
-	ENGINE_SHARED_CVAR( f, host_allow_materials ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_host_allow_materials, host_allow_materials ) \
 	ENGINE_SHARED_CVAR( f, r_pvs_radius ) \
 
 #define DECLARE_ENGINE_SHARED_CVAR_LIST() \

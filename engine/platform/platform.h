@@ -239,7 +239,7 @@ static inline qboolean Platform_LibraryExists( const char *name, qboolean gamedi
 	if( !COM_StringEmptyOrNULL( getenv( "XASH3D_GAMELIBDIR" )))
 		return true;
 #endif
-	// FIXME: use FS_FindLibrary
+	// FIXME: use COM_FindLibrary
 	return g_fsapi.FileExists( name, gamedironly );
 }
 

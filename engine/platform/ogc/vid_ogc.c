@@ -206,6 +206,8 @@ qboolean R_Init_Video( ref_graphic_apis_t type ){
 		return retval;
 	}
 
+	ogx_initialize();
+
 	ref.dllFuncs.GL_InitExtensions();
 
 	host.renderinfo_changed = false;

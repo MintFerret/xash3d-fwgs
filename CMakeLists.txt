@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 project(xash3d C CXX)
 
+#redefine default OGC linker flags
+set(OGC_ARCH_SETTINGS "-m${OGC_MACHINE} -mcpu=750 -meabi -msdata=eabi -mhard-float")
+
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
-add_compile_options(-G0)
+#add_compile_options(-G0)
+# add_compile_options(-mno-sdata)
 
 find_package(PkgConfig REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -27,6 +31,7 @@ add_definitions(
 
 file(GLOB PUBLIC_SOURCES public/*)
 list(REMOVE_ITEM PUBLIC_SOURCES "public/build_vcs.c")
+list(REMOVE_ITEM PUBLIC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/public/build_vcs.c")
 add_library(public STATIC ${PUBLIC_SOURCES})
 target_include_directories(public PUBLIC 3rdparty/library_suffix/include common engine public)
 
@@ -67,28 +72,25 @@ target_include_directories(filesystem_stdio PUBLIC
 )
 target_compile_definitions(filesystem_stdio PRIVATE
 	-DXASH_STATIC_LIBS=1
-	-D_Mem_Free=FS_Mem_Free
-	-D_Mem_Alloc=FS_Mem_Alloc
 )
 target_compile_options(filesystem_stdio PRIVATE
 -MMD
 -MP
 -fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
 -fno-exceptions -fpermissive
--fno-PIC
--mno-sdata
--G0
+#-mno-sdata
+#-G0
 )
 target_link_libraries(filesystem_stdio public library_suffix)
 
 #cl_dll, dlls, menu goes here
 include(makelibrary.txt)
 
-file(GLOB REF_GLGX_SOURCES
+file(GLOB REF_GL_SOURCES
 	ref/common/*
 	ref/gl/*
 	)
-add_library(ref_gl STATIC ${REF_GLGX_SOURCES})
+add_library(ref_gl STATIC ${REF_GL_SOURCES})
 target_include_directories(ref_gl PUBLIC
  	3rdparty/library_suffix/include
  	ref/common
@@ -107,7 +109,8 @@ target_include_directories(ref_gl PUBLIC
  	-DREF_DLL=1
  	-DXASH_GL_STATIC=1
  	)
- target_compile_options(ref_gl PRIVATE -fpermissive -fno-exceptions -mno-sdata -G0)
+ target_compile_options(ref_gl PRIVATE -fpermissive -fno-exceptions) #-msdata=eabi -mno-sdata -G0
+ # target_link_options(ref_gl PRIVATE -Wl,-msdata-eabi)
  target_link_libraries(ref_gl public)
 
  file(GLOB ENGINE_SOURCES
@@ -134,13 +137,6 @@ target_include_directories(ref_gl PUBLIC
      engine/platform/stub/*
      engine/platform/misc/lib_static.c
      )
-
-list(REMOVE_ITEM ENGINE_SOURCES
-	"engine/client/cl_steam.c"
-	"engine/client/input/in_touch.c"
-)
-#include(enginesources.txt)
-#set(ENGINE_SOURCES ${XASH_CLIENT_SOURCES} ${XASH_SOURCES} ${XASH_SERVER_SOURCES} ${XASH_PLATFORM_SOURCES})
 
 add_executable(xash ${ENGINE_SOURCES}
 engine/platform/posix/sys_posix.c
@@ -193,6 +189,8 @@ target_include_directories(xash PUBLIC
     3rdparty/library_suffix/include
     3rdparty/MultiEmulator/include
     3rdparty/opus/opus/include
+
+    /opt/devkitpro/portlibs/wii/include/GL
 	)
 
 
@@ -202,43 +200,37 @@ target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_gl menu
 SDL2::SDL2main Opus::opus
 library_suffix pthread bz2 ${DEPS_LIBRARIES}
 MultiEmulator
-opengx
 PkgConfig::OPENGL
+opengx
+#GLU
+#glut
 wiisocket
 )
 dkp_target_generate_symbol_list(xash)
 ogc_create_dol(xash)
 
 target_compile_options(xash PUBLIC
-	-mno-sdata
 	-std=gnu11
-#	-Os
-	-fno-unwind-tables
-	-fno-asynchronous-unwind-tables
+	-Os
 	-fno-omit-frame-pointer
 	-fno-strict-aliasing
 	-fno-stack-protector
 	-ffunction-sections
-#	-fdata-sections
+	-fdata-sections
 	-fno-exceptions
-	-freorder-blocks-algorithm=simple
-	#-freorder-blocks
-#	-fvisibility=hidden
-	#-flto=auto
+	-freorder-blocks
+	-fvisibility=hidden
+	-flto=auto
 	-Wno-implicit-function-declaration
 	-Wno-int-conversion
 	-Wno-unused-function
+
+	-fno-unwind-tables
+	-fno-asynchronous-unwind-tables
 	#-fwhole-program
-#	-fno‑data‑sections
-	-fno-PIC
-	-G0
 )
 target_link_options(xash PUBLIC
-#	-fcommon
-#	 -Wl,--allow-multiple-definition
-	#-fno-inline
 	-Wl,--gc-sections
-#	-fwhole-program
+	-fwhole-program
 	-Wl,--build-id=none
-
 )

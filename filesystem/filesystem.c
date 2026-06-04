@@ -87,7 +87,7 @@ void FS_Purge( file_t* file );
 
 void FS_Mem_Free( void *data, const char *filename, int fileline )
 {
-	g_engfuncs.FS_Mem_Free( data, filename, fileline );
+	g_engfuncs._Mem_Free( data, filename, fileline );
 }
 
 void *FS_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )

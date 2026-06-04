@@ -127,13 +127,12 @@ extern searchpath_t *fs_writepath, *fs_searchpaths;
 extern poolhandle_t fs_mempool;
 extern fs_interface_t g_engfuncs;
 extern const fs_api_t g_api;
-#if !XASH_OGC
-extern fs_globals_t FI;
-#endif
 
 #if XASH_OGC
 extern fs_globals_t fs_globalvars;
 #define FI fs_globalvars
+#else
+extern fs_globals_t FI;
 #endif
 
 #define GI FI.GameInfo

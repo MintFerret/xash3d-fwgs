@@ -55,7 +55,7 @@ target_compile_definitions(cl_dll PRIVATE
 target_compile_options(cl_dll PRIVATE
 -fno-exceptions -fpermissive -MMD -MP -fno-lto
 -fomit-frame-pointer -ffunction-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
--G0
+#-G0
 )
 
 target_include_directories(cl_dll PUBLIC
@@ -184,7 +184,7 @@ target_compile_options(hl PRIVATE -fpermissive -fno-exceptions -MMD -MP -fno-thr
 -fno-rtti
 -fno-lto
 -fno-unwind-tables -fno-asynchronous-unwind-tables
--G0
+# -G0
 )
 set_target_properties(hl PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
@@ -252,5 +252,5 @@ target_compile_options(menu PRIVATE
 #-fno‑data‑sections
 -Wall -Wno-unused-parameter -Wno-unused-variable
 -fpermissive -fno-exceptions -MMD -MP -fno-threadsafe-statics -fno-lto
--G0
+# -G0
 )
