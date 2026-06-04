@@ -81,8 +81,8 @@ GNU General Public License for more details.
 #endif // !XASH_PSVITA && !XASH_OGC
 
 #if XASH_OGC
-//#define ioctlsocket net_ioctl
-//#define select      net_select
+#define ioctlsocket net_ioctl
+#define select      net_select
 #endif
 
 #define closesocket close

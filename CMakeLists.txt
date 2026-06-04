@@ -204,7 +204,7 @@ PkgConfig::OPENGL
 opengx
 #GLU
 #glut
-wiisocket
+# wiisocket
 )
 dkp_target_generate_symbol_list(xash)
 ogc_create_dol(xash)
