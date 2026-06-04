@@ -2104,8 +2104,13 @@ void R_ShutdownImages( void )
 
 void R_TextureReplacementReport( const char *modelname, int gl_texturenum, const char *foundpath )
 {
+	#if XASH_OGC
+	if( ref_host_allow_materials->value != 2.0f )
+		return;
+	#else
 	if( host_allow_materials->value != 2.0f )
 		return;
+	#endif
 
 	if( gl_texturenum > 0 )
 		gEngfuncs.Con_Printf( "Looking for %s tex replacement..." S_GREEN "OK (%s)\n", modelname, foundpath );
@@ -2147,8 +2152,13 @@ void R_ShowTextures( void )
 {
 	static qboolean showHelp = true;
 
+	#if XASH_OGC
+	if( !ref_r_showtextures->value )
+		return;
+	#else
 	if( !r_showtextures->value )
 		return;
+	#endif
 
 	if( showHelp )
 	{
@@ -2175,7 +2185,11 @@ void R_ShowTextures( void )
 	int base_w = gpGlobals->width / w;
 	int base_h = gpGlobals->height / ( h + charHeight * 2 );
 	int per_page = base_w * base_h;
+	#if XASH_OGC
+	int start = per_page * ( ref_r_showtextures->value - 1 ) + 1; // skip empty null texture
+	#else
 	int start = per_page * ( r_showtextures->value - 1 ) + 1; // skip empty null texture
+	#endif
 
 	GL_SetRenderMode( kRenderTransTexture );	// nc changed from normal to trans, Con_DrawString does this anyway
 

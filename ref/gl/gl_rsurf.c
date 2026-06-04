@@ -1933,7 +1933,11 @@ void R_DrawBrushModel( cl_entity_t *e )
 	pglDisable( GL_BLEND );
 	pglDepthMask( GL_TRUE );
 
+	#if XASH_OGC
+	if( ref_r_showhull->value > 0.0f )
+	#else
 	if( r_showhull->value > 0.0f )
+	#endif
 	{
 		GL_PushPolygonOffset( 1.0f, 2.0f );
 		gEngfuncs.R_DrawModelHull( clmodel );	// draw before restore

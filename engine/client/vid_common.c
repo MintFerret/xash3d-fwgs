@@ -31,7 +31,7 @@ CVAR_DEFINE( window_height, "height", "0", FCVAR_RENDERINFO|FCVAR_VIDRESTART, "s
 CVAR_DEFINE( vid_width, "vid_width", "0", FCVAR_READ_ONLY, "actual window viewport size" );
 CVAR_DEFINE( vid_height, "vid_height", "0", FCVAR_READ_ONLY, "actual window viewport size" );
 
-glwstate_t	glw_state;
+extern glwstate_t	glw_state;
 
 /*
 =================
@@ -64,7 +64,7 @@ void R_SaveVideoMode( int w, int h, int render_w, int render_h, qboolean maximiz
 	Cvar_FullSet( "vid_height", temp, vid_width.flags  );
 
 	Cvar_DirectSet( &vid_maximized, maximized ? "1" : "0" );
-	
+
 	// immediately drop changed state or we may trigger
 	// video subsystem to reapply settings
 	host.renderinfo_changed = false;

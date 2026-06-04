@@ -44,11 +44,11 @@ CVAR_DEFINE_AUTO( r_large_lightmaps, "0", FCVAR_GLCONFIG|FCVAR_LATCH, "enable la
 gl_globals_t	tr;
 glconfig_t	glConfig;
 glstate_t	glState;
-#if XASH_OGC
-glwstate_t	gx_glw_state;
-#else
+// #if XASH_OGC
+// extern glwstate_t glw_state;
+// #else
 glwstate_t	glw_state;
-#endif
+// #endif
 
 #if XASH_GL_STATIC
 	#define GL_CALL( x ) #x, NULL
@@ -728,8 +728,13 @@ static void R_RenderInfo( qboolean startup )
 	gEngfuncs.Con_Printf( "\n" );
 	gEngfuncs.Con_Printf( "MODE: %ix%i\n", gpGlobals->width, gpGlobals->height );
 	gEngfuncs.Con_Printf( "\n" );
+	#if XASH_OGC
+	if( !startup )
+		gEngfuncs.Con_Printf( "VERTICAL SYNC: %s\n", ref_gl_vsync->value ? "enabled" : "disabled" );
+	#else
 	if( !startup )
 		gEngfuncs.Con_Printf( "VERTICAL SYNC: %s\n", gl_vsync->value ? "enabled" : "disabled" );
+	#endif
 	gEngfuncs.Con_Printf( "Color %d bits, Alpha %d bits, Depth %d bits, Stencil %d bits\n", glConfig.color_bits,
 		glConfig.alpha_bits, glConfig.depth_bits, glConfig.stencil_bits );
 }
@@ -1192,7 +1197,11 @@ static void GL_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset_bmodels );
 
 	// make sure gl_vsync is checked after vid_restart
+	#if XASH_OGC
+	SetBits( ref_gl_vsync->flags, FCVAR_CHANGED );
+	#else
 	SetBits( gl_vsync->flags, FCVAR_CHANGED );
+	#endif
 
 	gEngfuncs.Cmd_AddCommand( "r_info", R_RenderInfo_f, "display renderer info" );
 	gEngfuncs.Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
