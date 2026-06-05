@@ -24,6 +24,9 @@ int r_cnumsurfs;
 
 ref_instance_t RI;
 
+#if XASH_OGC //Need glw_state regardless if using ref_soft
+mbstate_t	glw_state;
+#endif
 
 // quake defines. will be refactored
 
@@ -1319,8 +1322,11 @@ static void R_InitTurb( void )
 }
 
 
-
+#if XASH_OGC
+qboolean GAME_EXPORT GX_R_Init( void )
+#else
 qboolean GAME_EXPORT R_Init( void )
+#endif
 {
 	qboolean glblit = false;
 
@@ -1390,7 +1396,11 @@ qboolean GAME_EXPORT R_Init( void )
 	return true;
 }
 
+#if XASH_OGC
+void GAME_EXPORT GX_R_Shutdown( void )
+#else
 void GAME_EXPORT R_Shutdown( void )
+#endif
 {
 	R_ShutdownImages();
 	gEngfuncs.R_Free_Video();

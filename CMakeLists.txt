@@ -86,15 +86,15 @@ target_link_libraries(filesystem_stdio public library_suffix)
 #cl_dll, dlls, menu goes here
 include(makelibrary.txt)
 
-file(GLOB REF_GL_SOURCES
+file(GLOB REF_SOFT_SOURCES
 	ref/common/*
-	ref/gl/*
+	ref/soft/*
 	)
-add_library(ref_gl STATIC ${REF_GL_SOURCES})
-target_include_directories(ref_gl PUBLIC
+add_library(ref_soft STATIC ${REF_SOFT_SOURCES})
+target_include_directories(ref_soft PUBLIC
  	3rdparty/library_suffix/include
  	ref/common
- 	ref/gl
+ 	ref/soft
  	common
  	engine
  	engine/common
@@ -103,15 +103,15 @@ target_include_directories(ref_gl PUBLIC
  	pm_shared
  	filesystem
  	)
- target_compile_definitions(ref_gl PRIVATE
+ target_compile_definitions(ref_soft PRIVATE
  	-DXASH_LOW_MEMORY=2
  	-DXASH_STATIC_LIBS=1
  	-DREF_DLL=1
- 	-DXASH_GL_STATIC=1
+ 	# -DXASH_GL_STATIC=1
  	)
- target_compile_options(ref_gl PRIVATE -fpermissive -fno-exceptions) #-msdata=eabi -mno-sdata -G0
+ target_compile_options(ref_soft PRIVATE -fpermissive -fno-exceptions) #-msdata=eabi -mno-sdata -G0
  # target_link_options(ref_gl PRIVATE -Wl,-msdata-eabi)
- target_link_libraries(ref_gl public)
+ target_link_libraries(ref_soft public)
 
  file(GLOB ENGINE_SOURCES
      engine/client/vgui/*
@@ -153,10 +153,10 @@ target_compile_definitions(xash PUBLIC
 	-DHAVE_OPUS=1
 	-DXASH_LOW_MEMORY=2
 	-DXASH_SDL=2
-	-DHAVE_GL=1
+	# -DHAVE_GL=1
 	-DGL_STATIC=1
 	-DXASH_NO_LIBDL=1
-	-DXASH_REF_GL_ENABLED=1
+	-DXASH_REF_SOFT_ENABLED=1
 	-DSTATIC_LINKING=1
 	-DXASH_STATIC_LIBS=1
 	-DNO_VGUI=1
@@ -164,9 +164,13 @@ target_compile_definitions(xash PUBLIC
 	-DXASH_ENABLE_MAIN=1
 	-DFRAME_POINTERS=1
 	-DBIGENDIAN=1
+
+	-D_EXI_DEBUG=1
+	-D_DEBUG=1
+	-DDEBUG=1
 	)
 
-pkg_check_modules(DEPS REQUIRED sdl2 opusfile vorbis vorbisfile opengl) #bzip2 #freetype2 #zlib
+pkg_check_modules(DEPS REQUIRED sdl2 opusfile vorbis vorbisfile) #opengl bzip2 #freetype2 #zlib
 
 target_include_directories(xash PUBLIC
 	${DEPS_INCLUDE_DIRS}
@@ -190,18 +194,18 @@ target_include_directories(xash PUBLIC
     3rdparty/MultiEmulator/include
     3rdparty/opus/opus/include
 
-    /opt/devkitpro/portlibs/wii/include/GL
+    # /opt/devkitpro/portlibs/wii/include/GL
 	)
 
 
-#add_custom_command(TARGET xash PRE_LINK COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/public/*.o")
+add_custom_command(TARGET xash PRE_LINK COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/public/*.o")
 
-target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_gl menu
+target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_soft menu
 SDL2::SDL2main Opus::opus
 library_suffix pthread bz2 ${DEPS_LIBRARIES}
 MultiEmulator
-PkgConfig::OPENGL
-opengx
+# PkgConfig::OPENGL
+# opengx
 #GLU
 #glut
 # wiisocket
@@ -211,7 +215,7 @@ ogc_create_dol(xash)
 
 target_compile_options(xash PUBLIC
 	-std=gnu11
-	-Os
+	-Og
 	-fno-omit-frame-pointer
 	-fno-strict-aliasing
 	-fno-stack-protector
@@ -224,9 +228,6 @@ target_compile_options(xash PUBLIC
 	-Wno-implicit-function-declaration
 	-Wno-int-conversion
 	-Wno-unused-function
-
-	-fno-unwind-tables
-	-fno-asynchronous-unwind-tables
 	#-fwhole-program
 )
 target_link_options(xash PUBLIC

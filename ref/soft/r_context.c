@@ -429,8 +429,13 @@ static void R_FillTriAPI( triangleapi_t *api )
 
 const ref_interface_t gReffuncs =
 {
+	#if XASH_OGC
+	GX_R_Init,
+	GX_R_Shutdown,
+	#else
 	R_Init,
 	R_Shutdown,
+	#endif
 	R_GetConfigName,
 	R_SetDisplayTransform,
 
