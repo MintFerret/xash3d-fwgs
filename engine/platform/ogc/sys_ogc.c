@@ -43,6 +43,9 @@ void Platform_ShellExecute( const char *path, const char *parms )
 void OGC_Init( void )
 {
 	SYS_STDIO_Report(true);
+	WPAD_Init();
+	KEYBOARD_Init(NULL);
+	MOUSE_Init(NULL);
 	printf( "%s\n", __func__ );
 }
 
