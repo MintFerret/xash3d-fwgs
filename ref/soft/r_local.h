@@ -477,23 +477,13 @@ void R_NewMap( void );
 // gl_triapi.c
 //
 #if XASH_OGC
-#define TriRenderMode GX_TriRenderMode
-#define TriBegin GX_TriBegin
-#define TriEnd GX_TriEnd
-#define TriTexCoord2f GX_TriTexCoord2f
-#define TriVertex3fv GX_TriVertex3fv
-#define TriVertex3f GX_TriVertex3f
-#define _TriColor4f GX__TriColor4f
-#define _TriColor4ub GX__TriColor4ub
-#define TriColor4f GX_TriColor4f
-#define TriColor4ub GX_TriColor4ub
-#define TriBrightness GX_TriBrightness
-#define TriWorldToScreen GX_TriWorldToScreen
-#define TriSpriteTexture GX_TriSpriteTexture
-#define TriFog GX_TriFog
-#define TriGetMatrix GX_TriGetMatrix
-#define TriFogParams GX_TriFogParams
-#define TriCullFace GX_TriCullFace
+#define TriRenderMode R_TriRenderMode
+#define TriColor4f R_TriColor4f
+#define TriColor4ub R_TriColor4ub
+#define TriBrightness R_TriBrightness
+#define TriWorldToScreen R_TriWorldToScreen
+#define TriSpriteTexture R_TriSpriteTexture
+#define TriCullFace R_TriCullFace
 #endif
 void TriRenderMode( int mode );
 void TriBegin( int mode );
