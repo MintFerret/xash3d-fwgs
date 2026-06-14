@@ -71,17 +71,22 @@ target_include_directories(filesystem_stdio PUBLIC
 	filesystem
 )
 target_compile_definitions(filesystem_stdio PRIVATE
+	-DXASH_GAMEDIR="valve"
+	-DXASH_LOW_MEMORY=2
+	-DSTDINT_H=<stdint.h>
+	-DHAVE_STRNICMP=0
+	-DHAVE_STRICMP=0
 	-DXASH_STATIC_LIBS=1
 )
-target_compile_options(filesystem_stdio PRIVATE
--MMD
--MP
--fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
--fno-exceptions -fpermissive
-#-mno-sdata
-#-G0
-)
-target_link_libraries(filesystem_stdio public library_suffix)
+# target_compile_options(filesystem_stdio PRIVATE
+# -fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
+# -fno-exceptions -fpermissive
+# -Og
+# #-mno-sdata
+# #-G0
+# )
+
+#target_link_libraries(filesystem_stdio public library_suffix)
 
 #cl_dll, dlls, menu goes here
 include(makelibrary.txt)
@@ -164,7 +169,10 @@ target_compile_definitions(xash PUBLIC
 	-DXASH_ENABLE_MAIN=1
 	-DFRAME_POINTERS=1
 	-DBIGENDIAN=1
+	-DUSE_FS_SEARCH_FOR_LOOKUPS=0
 
+
+	-DDEBUG_LOOKUPS_COUNT=1
 	-D_EXI_DEBUG=1
 	-D_DEBUG=1
 	-DDEBUG=1
@@ -216,6 +224,7 @@ ogc_create_dol(xash)
 target_compile_options(xash PUBLIC
 	-std=gnu11
 	-Og
+	-g
 	-fno-omit-frame-pointer
 	-fno-strict-aliasing
 	-fno-stack-protector
@@ -224,7 +233,7 @@ target_compile_options(xash PUBLIC
 	-fno-exceptions
 	-freorder-blocks
 	-fvisibility=hidden
-	-flto=auto
+	#-flto=auto
 	-Wno-implicit-function-declaration
 	-Wno-int-conversion
 	-Wno-unused-function

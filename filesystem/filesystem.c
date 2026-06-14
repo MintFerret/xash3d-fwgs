@@ -29,9 +29,10 @@ GNU General Public License for more details.
 
 #if XASH_OGC
 fs_globals_t fs_globalvars;
+#else
+fs_globals_t  FI;
 #endif
 
-fs_globals_t  FI;
 poolhandle_t  fs_mempool;
 char          fs_rootdir[MAX_SYSPATH];
 searchpath_t *fs_writepath;
