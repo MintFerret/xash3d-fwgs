@@ -78,13 +78,14 @@ target_compile_definitions(filesystem_stdio PRIVATE
 	-DHAVE_STRICMP=0
 	-DXASH_STATIC_LIBS=1
 )
-# target_compile_options(filesystem_stdio PRIVATE
-# -fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
-# -fno-exceptions -fpermissive
-# -Og
-# #-mno-sdata
-# #-G0
-# )
+target_compile_options(filesystem_stdio PRIVATE
+ -fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
+ -fno-exceptions -fpermissive
+ -Og
+ -g3
+ #-mno-sdata
+ #-G0
+)
 
 #target_link_libraries(filesystem_stdio public library_suffix)
 
@@ -169,7 +170,7 @@ target_compile_definitions(xash PUBLIC
 	-DXASH_ENABLE_MAIN=1
 	-DFRAME_POINTERS=1
 	-DBIGENDIAN=1
-	-DUSE_FS_SEARCH_FOR_LOOKUPS=0
+	#-DUSE_FS_SEARCH_FOR_LOOKUPS=0
 
 
 	-DDEBUG_LOOKUPS_COUNT=1
@@ -224,7 +225,7 @@ ogc_create_dol(xash)
 target_compile_options(xash PUBLIC
 	-std=gnu11
 	-Og
-	-g
+	-g3
 	-fno-omit-frame-pointer
 	-fno-strict-aliasing
 	-fno-stack-protector
