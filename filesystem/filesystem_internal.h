@@ -125,13 +125,15 @@ typedef searchpath_t *(*FS_ADDARCHIVE_FULLPATH)( const char *path, int flags );
 extern char fs_rootdir[MAX_SYSPATH], fs_basedir[MAX_SYSPATH], fs_rodir[MAX_SYSPATH];
 extern searchpath_t *fs_writepath, *fs_searchpaths;
 extern poolhandle_t fs_mempool;
-extern fs_interface_t g_engfuncs;
 extern const fs_api_t g_api;
 
 #if XASH_OGC
+extern fs_interface_t fs_gEngfuncs;
 extern fs_globals_t fs_globalvars;
+#define g_engfuncs fs_gEngfuncs
 #define FI fs_globalvars
 #else
+extern fs_interface_t g_engfuncs;
 extern fs_globals_t FI;
 #endif
 

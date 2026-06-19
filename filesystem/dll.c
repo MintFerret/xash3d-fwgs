@@ -89,8 +89,11 @@ static void *Sys_GetNativeObjectStub( const char *object )
 	return NULL;
 }
 
-#if !XASH_OGC
+#if XASH_OGC
+fs_interface_t fs_gEngfuncs =
+#else
 fs_interface_t g_engfuncs =
+#endif
 {
 	Con_PrintfStub,
 	Con_PrintfStub,
@@ -103,7 +106,6 @@ fs_interface_t g_engfuncs =
 	Mem_FreeStub,
 	Sys_GetNativeObjectStub,
 };
-#endif
 
 static qboolean FS_InitInterface( int version, const fs_interface_t *engfuncs )
 {
