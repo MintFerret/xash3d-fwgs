@@ -28,22 +28,6 @@ dlight_t      *gp_dlights;
 int            g_lightstylevalue[MAX_LIGHTSTYLES];
 poolhandle_t   r_temppool;
 
-#if XASH_OGC
-void GX_Mem_Free( void *data, const char *filename, int fileline )
-{
-	gEngfuncs._Mem_Free( data, filename, fileline );
-}
-
-void *GX_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )
-{
-	return gEngfuncs._Mem_Alloc( poolptr, size, clear, filename, fileline );
-}
-
-void *GX_Mem_Realloc( poolhandle_t poolptr, void *memptr, size_t size, qboolean clear, const char *filename, int fileline )
-{
-	return gEngfuncs._Mem_Realloc( poolptr, memptr, size, clear, filename, fileline );
-}
-#else
 void _Mem_Free( void *data, const char *filename, int fileline )
 {
 	gEngfuncs._Mem_Free( data, filename, fileline );
@@ -58,7 +42,7 @@ void *_Mem_Realloc( poolhandle_t poolptr, void *memptr, size_t size, qboolean cl
 {
 	return gEngfuncs._Mem_Realloc( poolptr, memptr, size, clear, filename, fileline );
 }
-#endif
+
 void GL_InitRandomTable( void )
 {
 	for( int tu = 0; tu < MOD_FRAMES; tu++ )

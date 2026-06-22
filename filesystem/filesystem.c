@@ -83,15 +83,23 @@ void FS_EnsureOpenFile( file_t *file ) {}
 void FS_BackupFileName( file_t *file, const char *path, uint options ) {}
 #endif
 
+<<<<<<< HEAD
 void FS_InitMemory( void );
 void FS_Purge( file_t* file );
 
 void FS_Mem_Free( void *data, const char *filename, int fileline )
+=======
+void _Mem_Free( void *data, const char *filename, int fileline )
+>>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)
 {
 	g_engfuncs._Mem_Free( data, filename, fileline );
 }
 
+<<<<<<< HEAD
 void *FS_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )
+=======
+void *_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )
+>>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)
 {
 	return g_engfuncs._Mem_Alloc( poolptr, size, clear, filename, fileline );
 }

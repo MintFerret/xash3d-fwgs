@@ -92,10 +92,8 @@ static inline socklen_t NET_SockAddrLen( const struct sockaddr_storage *addr )
 	{
 	case AF_INET:
 		return sizeof( struct sockaddr_in );
-	#if !XASH_NO_IPV6_RESOLVE
 	case AF_INET6:
 		return sizeof( struct sockaddr_in6 );
-	#endif
 	default:
 		return sizeof( *addr ); // what the fuck is this?
 	}

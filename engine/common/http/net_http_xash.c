@@ -292,11 +292,9 @@ static int HTTP_FileResolveNS( httpfile_t *file )
 	case AF_INET:
 		((struct sockaddr_in *)&file->addr)->sin_port = MSG_BigShort( file->server->port );
 		break;
-	#if !XASH_NO_IPV6_RESOLVE
 	case AF_INET6:
 		((struct sockaddr_in6 *)&file->addr)->sin6_port = MSG_BigShort( file->server->port );
 		break;
-	#endif
 	}
 
 	if( res == NET_EAI_AGAIN )

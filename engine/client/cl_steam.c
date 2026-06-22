@@ -117,12 +117,10 @@ static qboolean SteamBroker_ConnectImpl( void )
 	{
 		addr_family = AF_INET;
 	}
-	#if !XASH_NO_IPV6_RESOLVE
 	else if( NET_NetadrType( &broker.adr ) == NA_IP6 )
 	{
 		addr_family = AF_INET6;
 	}
-	#endif
 	else
 	{
 		Con_Printf( S_ERROR "%s: unsupported broker address type for %s\n", __func__, cl_steam_broker_addr.string );
