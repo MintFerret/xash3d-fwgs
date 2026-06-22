@@ -52,24 +52,10 @@ void *_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char 
 	ALLOC_CHECK( 2 ) MALLOC_LIKE( _Mem_Free, 1 ) WARN_UNUSED_RESULT;
 void *_Mem_Realloc( poolhandle_t poolptr, void *memptr, size_t size, qboolean clear, const char *filename, int fileline )
 	ALLOC_CHECK( 3 ) WARN_UNUSED_RESULT;
-
-<<<<<<< HEAD
-#if XASH_OGC
-#define Mem_Malloc( pool, size )       GX_Mem_Alloc( pool, size, false, __FILE__, __LINE__ )
-#define Mem_Calloc( pool, size )       GX_Mem_Alloc( pool, size, true, __FILE__, __LINE__ )
-#define Mem_Free( mem )                GX_Mem_Free( mem, __FILE__, __LINE__ )
-#else
 #define Mem_Malloc( pool, size )       _Mem_Alloc( pool, size, false, __FILE__, __LINE__ )
 #define Mem_Calloc( pool, size )       _Mem_Alloc( pool, size, true, __FILE__, __LINE__ )
 #define Mem_Free( mem )                _Mem_Free( mem, __FILE__, __LINE__ )
-#endif
 #define Mem_Realloc( pool, ptr, size ) _Mem_Realloc( pool, ptr, size, true, __FILE__, __LINE__ )
-=======
-#define Mem_Malloc( pool, size )       _Mem_Alloc( pool, size, false, __FILE__, __LINE__ )
-#define Mem_Calloc( pool, size )       _Mem_Alloc( pool, size, true, __FILE__, __LINE__ )
-#define Mem_Realloc( pool, ptr, size ) _Mem_Realloc( pool, ptr, size, true, __FILE__, __LINE__ )
-#define Mem_Free( mem )                _Mem_Free( mem, __FILE__, __LINE__ )
->>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)
 #define Mem_AllocPool( name )          gEngfuncs._Mem_AllocPool( name, 0, __FILE__, __LINE__ )
 #define Mem_AllocPoolExt( name, flags ) gEngfuncs._Mem_AllocPool( name, flags, __FILE__, __LINE__ )
 #define Mem_FreePool( pool )           gEngfuncs._Mem_FreePool( pool, __FILE__, __LINE__ )
