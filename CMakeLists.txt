@@ -4,12 +4,11 @@ project(xash3d C CXX)
 #redefine default OGC linker flags
 set(OGC_ARCH_SETTINGS "-m${OGC_MACHINE} -mcpu=750 -meabi -msdata=eabi -mhard-float")
 
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
-#add_compile_options(-G0)
-# add_compile_options(-mno-sdata)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 find_package(PkgConfig REQUIRED)
 find_package(SDL2 REQUIRED)
+find_package(BZip2 REQUIRED)
 pkg_check_modules(SDL2 IMPORTED_TARGET sdl2)
 pkg_check_modules(OPENGL IMPORTED_TARGET opengl)
 
@@ -30,19 +29,13 @@ add_definitions(
 )
 
 file(GLOB PUBLIC_SOURCES public/*)
-list(REMOVE_ITEM PUBLIC_SOURCES "public/build_vcs.c")
 list(REMOVE_ITEM PUBLIC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/public/build_vcs.c")
 add_library(public STATIC ${PUBLIC_SOURCES})
 target_include_directories(public PUBLIC 3rdparty/library_suffix/include common engine public)
 
-#add_library(build_vcs STATIC public/build_vcs.c)
+add_subdirectory(3rdparty/opus/opus)
 
 add_subdirectory(3rdparty/library_suffix)
-
-set(OPUS_CUSTOM_MODES ON CACHE BOOL "" FORCE)
-set(OPUS_FLOAT_APPROX ON CACHE BOOL "" FORCE)
-set(OPUS_HARDENING ON CACHE BOOL "" FORCE)
-add_subdirectory(3rdparty/opus/opus)
 
 file(GLOB MULTIEMU_SOURCES 3rdparty/MultiEmulator/src/*)
 add_library(MultiEmulator STATIC ${MULTIEMU_SOURCES})
@@ -86,8 +79,6 @@ target_compile_options(filesystem_stdio PRIVATE
  #-mno-sdata
  #-G0
 )
-
-#target_link_libraries(filesystem_stdio public library_suffix)
 
 #cl_dll, dlls, menu goes here
 include(makelibrary.txt)
@@ -144,6 +135,13 @@ target_include_directories(ref_soft PUBLIC
      engine/platform/misc/lib_static.c
      )
 
+# Exclude opus
+list(REMOVE_ITEM ENGINE_SOURCES
+"${CMAKE_CURRENT_SOURCE_DIR}/engine/client/soundlib/snd_ogg_vorbis.c"
+"${CMAKE_CURRENT_SOURCE_DIR}/engine/client/soundlib/snd_ogg_opus.c"
+"${CMAKE_CURRENT_SOURCE_DIR}/engine/client/soundlib/ogg_filestream.c"
+)
+
 add_executable(xash ${ENGINE_SOURCES}
 engine/platform/posix/sys_posix.c
 engine/common/http/net_http_xash.c
@@ -151,11 +149,11 @@ engine/common/http/net_http_xash.c
 target_compile_definitions(xash PUBLIC
 #	-DXASH_DEDICATED=1
 	-DXASH_GAMEDIR="valve"
-	-DHAVE_LARGEFILE=1
-	-DHAVE_OGG=1
-	-DHAVE_OPUSFILE=1
-	-DHAVE_VORBIS=1
-	-DHAVE_VORBISFILE=1
+	-DXASH_NO_OGG_CONTAINER=1
+	-DHAVE_OGG=0
+	-DHAVE_OPUSFILE=0
+	-DHAVE_VORBIS=0
+	-DHAVE_VORBISFILE=0
 	-DHAVE_OPUS=1
 	-DXASH_LOW_MEMORY=2
 	-DXASH_SDL=2
@@ -179,7 +177,7 @@ target_compile_definitions(xash PUBLIC
 	-DDEBUG=1
 	)
 
-pkg_check_modules(DEPS REQUIRED sdl2 opusfile vorbis vorbisfile) #opengl bzip2 #freetype2 #zlib
+pkg_check_modules(DEPS REQUIRED sdl2 zlib) #opengl bzip2 #freetype2 #zlib
 
 target_include_directories(xash PUBLIC
 	${DEPS_INCLUDE_DIRS}
@@ -206,12 +204,9 @@ target_include_directories(xash PUBLIC
     # /opt/devkitpro/portlibs/wii/include/GL
 	)
 
-
-add_custom_command(TARGET xash PRE_LINK COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/public/*.o")
-
 target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_soft menu
-SDL2::SDL2main Opus::opus
-library_suffix pthread bz2 ${DEPS_LIBRARIES}
+SDL2::SDL2main BZip2::BZip2 Opus::opus
+library_suffix pthread ${DEPS_LIBRARIES}
 MultiEmulator
 # PkgConfig::OPENGL
 # opengx
