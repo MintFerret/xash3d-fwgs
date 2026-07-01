@@ -86,6 +86,17 @@ void FS_BackupFileName( file_t *file, const char *path, uint options ) {}
 void FS_InitMemory( void );
 void FS_Purge( file_t* file );
 
+#if !XASH_OGC
+void _Mem_Free( void *data, const char *filename, int fileline )
+{
+	g_engfuncs._Mem_Free( data, filename, fileline );
+}
+
+void *_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const char *filename, int fileline )
+{
+	return g_engfuncs._Mem_Alloc( poolptr, size, clear, filename, fileline );
+}
+#else
 void FS_Mem_Free( void *data, const char *filename, int fileline )
 {
 	g_engfuncs._Mem_Free( data, filename, fileline );
@@ -95,6 +106,7 @@ void *FS_Mem_Alloc( poolhandle_t poolptr, size_t size, qboolean clear, const cha
 {
 	return g_engfuncs._Mem_Alloc( poolptr, size, clear, filename, fileline );
 }
+#endif
 
 void FS_InitMemory( void )
 {

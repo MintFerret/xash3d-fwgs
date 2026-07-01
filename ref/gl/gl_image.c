@@ -875,6 +875,11 @@ static void GL_TextureImageRAW( gl_texture_t *tex, GLint side, GLint level, GLin
 		else pglTexImage2D( cubeTarget + side, level, tex->format, width, height, 0, inFormat, dataType, data );
 	}
 	#else
+	if( tex->target == GL_TEXTURE_CUBE_MAP_ARB )
+	{
+		if( subImage ) pglTexSubImage2D( cubeTarget + side, level, 0, 0, width, height, inFormat, dataType, data );
+		else pglTexImage2D( cubeTarget + side, level, tex->format, width, height, 0, inFormat, dataType, data );
+	}
 	else if( tex->target == GL_TEXTURE_1D )
 	{
 		if( subImage ) pglTexSubImage1D( tex->target, level, 0, width, inFormat, dataType, data );

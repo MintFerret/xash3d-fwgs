@@ -31,7 +31,11 @@ CVAR_DEFINE( window_height, "height", "0", FCVAR_RENDERINFO|FCVAR_VIDRESTART, "s
 CVAR_DEFINE( vid_width, "vid_width", "0", FCVAR_READ_ONLY, "actual window viewport size" );
 CVAR_DEFINE( vid_height, "vid_height", "0", FCVAR_READ_ONLY, "actual window viewport size" );
 
+#if XASH_OGC
 extern glwstate_t	glw_state;
+#else
+glwstate_t	glw_state;
+#endif
 
 /*
 =================

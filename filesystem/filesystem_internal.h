@@ -139,8 +139,13 @@ extern fs_globals_t FI;
 
 #define GI FI.GameInfo
 
+#if XASH_OGC
+#define Mem_Malloc( pool, size ) g_engfuncs._Mem_Alloc( pool, size, false, __FILE__, __LINE__ )
+#define Mem_Calloc( pool, size ) g_engfuncs._Mem_Alloc( pool, size, true, __FILE__, __LINE__ )
+#else
 #define Mem_Malloc( pool, size ) _Mem_Alloc( pool, size, false, __FILE__, __LINE__ )
 #define Mem_Calloc( pool, size ) _Mem_Alloc( pool, size, true, __FILE__, __LINE__ )
+#endif
 #define Mem_Realloc( pool, ptr, size ) g_engfuncs._Mem_Realloc( pool, ptr, size, true, __FILE__, __LINE__ )
 #define Mem_Free( mem ) _Mem_Free( mem, __FILE__, __LINE__ )
 #define Mem_AllocPool( name ) g_engfuncs._Mem_AllocPool( name, 0, __FILE__, __LINE__ )

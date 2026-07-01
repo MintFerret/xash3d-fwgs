@@ -2350,7 +2350,6 @@ void R_AddDecalVBO( decal_t *pdecal, msurface_t *surf )
 {
 	#if !XASH_OGC
 	int numVerts;
-	float *v;
 	int decalindex = pdecal - &gDecalPool[0];
 
 	if( !vbos.decaldata )
@@ -2386,7 +2385,6 @@ free all vbo data
 void R_ClearVBO( void )
 {
 	#if !XASH_OGC
-	vboarray_t *vbo;
 
 	for( vboarray_t *vbo = vbos.arraylist; vbo; vbo = vbo->next )
 		pglDeleteBuffersARB( 1, &vbo->glindex );
@@ -2823,7 +2821,7 @@ static void R_FlushDlights( vboarray_t *vbo, int min_index, int max_index, int d
 		return;
 	if( vbos.dlight_vbo )
 	{
-#ifndef MINIMIZE_UPLOAD && !defined XASH_OGC
+#if !defined MINIMIZE_UPLOAD && !defined XASH_OGC
 		pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vbos.dlight_vbo );
 		pglBufferDataARB( GL_ARRAY_BUFFER_ARB, sizeof( vec2_t )* (max_index - min_index), vbos.dlight_tc + min_index, GL_STREAM_DRAW_ARB );
 #endif
