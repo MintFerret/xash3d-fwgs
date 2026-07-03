@@ -86,9 +86,15 @@ static const dllfunc_t cdll_exports[] =
 { "CL_IsThirdPerson", (void **)&clgame.dllFuncs.CL_IsThirdPerson },
 { "CL_CameraOffset", (void **)&clgame.dllFuncs.CL_CameraOffset },	// unused callback. Now camera code is completely moved to the user area
 { "CL_CreateMove", (void **)&clgame.dllFuncs.CL_CreateMove },
+#if XASH_OGC
 { "IN__ActivateMouse", (void **)&clgame.dllFuncs.IN_ActivateMouse },
 { "IN__DeactivateMouse", (void **)&clgame.dllFuncs.IN_DeactivateMouse },
 { "IN__MouseEvent", (void **)&clgame.dllFuncs.IN_MouseEvent },
+#else
+{ "IN_ActivateMouse", (void **)&clgame.dllFuncs.IN_ActivateMouse },
+{ "IN_DeactivateMouse", (void **)&clgame.dllFuncs.IN_DeactivateMouse },
+{ "IN_MouseEvent", (void **)&clgame.dllFuncs.IN_MouseEvent },
+#endif
 { "IN_Accumulate", (void **)&clgame.dllFuncs.IN_Accumulate },
 { "IN_ClearStates", (void **)&clgame.dllFuncs.IN_ClearStates },
 { "V_CalcRefdef", (void **)&clgame.dllFuncs.pfnCalcRefdef },
@@ -995,7 +1001,7 @@ void CL_InitEdicts( int maxclients )
 	Assert( clgame.entities == NULL );
 
 	if( !clgame.mempool ) return; // Host_Error without client
-#if XASH_LOW_MEMORY != 2
+#if XASH_LOW_MEMORY != 2 && !XASH_OGC
 	CL_UPDATE_BACKUP = ( maxclients <= 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
 #endif
 	cls.num_client_entities = CL_UPDATE_BACKUP * NUM_PACKET_ENTITIES;

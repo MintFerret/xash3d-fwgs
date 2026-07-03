@@ -53,16 +53,11 @@ target_compile_definitions(cl_dll PRIVATE
 -DXASH_OGC -DCLIENT_DLL -DNO_VOICEGAMEMGR -Dstricmp=strcasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf -D_vsnprintf=vsnprintf
 )
 target_compile_options(cl_dll PRIVATE
-<<<<<<< HEAD
 -fno-exceptions -fpermissive -MMD -MP
 -fomit-frame-pointer -ffunction-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
 #-G0
 #-fno-lto
 )
-=======
--fno-exceptions -fpermissive -MMD -MP -fno-lto
--fomit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables)
->>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)
 
 target_include_directories(cl_dll PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/../hlsdk-portable/cl_dll
@@ -185,18 +180,12 @@ add_library(hl STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/../hlsdk-portable/public/safe_snprintf.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../hlsdk-portable/dlls/link_helper.cpp
 )
-<<<<<<< HEAD
 target_compile_definitions(hl PRIVATE -DXASH_OGC -Dstricmp=strcasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf  -DNO_VOICEGAMEMGR)
 target_compile_options(hl PRIVATE -fpermissive -fno-exceptions -MMD -MP -fno-threadsafe-statics -Wno-invalid-offsetof -fvisibility=hidden
 -fno-rtti
 #-fno-lto
 -fno-unwind-tables -fno-asynchronous-unwind-tables
 # -G0
-=======
-target_compile_definitions(hl PRIVATE -DXASH_WII -Dstricmp=strcasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf  -DNO_VOICEGAMEMGR)
-target_compile_options(hl PRIVATE -fpermissive -fno-exceptions -MMD -MP -fno-threadsafe-statics
--fno-lto
->>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)
 )
 set_target_properties(hl PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
@@ -238,13 +227,9 @@ target_compile_definitions(menu PRIVATE
 
 -DSTDINT_H=<cstdint>
 -Dstricmp=strcasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf -D_vsnprintf=vsnprintf
-<<<<<<< HEAD
 -DMAINUI_USE_FREETYPE=1S
 -DMAINUI_FONT_SCALE=1
 #-DXASH_OGC=1
-=======
--DMAINUI_USE_FREETYPE=1
->>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)
 )
 
 find_package(PkgConfig)
@@ -264,7 +249,6 @@ target_include_directories(menu PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../mainui_cpp/sdk_includes/public
     ${CMAKE_CURRENT_SOURCE_DIR}/../mainui_cpp/sdk_includes/pm_shared
 )
-<<<<<<< HEAD
 # target_compile_options(menu PRIVATE
 # -std=gnu++11
 # # -Wextra
@@ -274,11 +258,3 @@ target_include_directories(menu PRIVATE
 # -fpermissive -fno-exceptions -MMD -MP -fno-threadsafe-statics #-fno-lto
 # # -G0
 # )
-=======
-target_compile_options(menu PRIVATE
--std=gnu++11
-#-Wextra
--Wall -Wno-unused-parameter -Wno-unused-variable
--fpermissive -fno-exceptions -MMD -MP -fno-threadsafe-statics -fno-lto
-)
->>>>>>> parent of b33cd849 (network: added macros to disable iPv6 calls)

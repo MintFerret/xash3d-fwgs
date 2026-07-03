@@ -2130,7 +2130,7 @@ void Con_RunConsole( void )
 	{
 		if( con_fontscale.value < 1.0f )
 			Cvar_DirectSet( &con_fontscale, "1" );
-		
+
 		// update codepage parameters
 		if( !Q_stricmp( con_charset.string, "cp1251" ))
 		{
@@ -2244,7 +2244,7 @@ void Con_VidInit( void )
 	Con_LoadConchars();
 	Con_CheckResize();
 
-#if XASH_LOW_MEMORY
+#if XASH_LOW_MEMORY && !XASH_OGC
 	con.background = R_GetBuiltinTexture( REF_GRAY_TEXTURE );
 #else
 	// loading console image

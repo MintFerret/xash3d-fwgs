@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(xash3d C CXX)
 
-#redefine default OGC linker flags
-set(OGC_ARCH_SETTINGS "-m${OGC_MACHINE} -mcpu=750 -meabi -msdata=eabi -mhard-float")
-
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 find_package(PkgConfig REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -26,8 +22,9 @@ add_definitions(
     -DHAVE_STRLCPY=1
     -DHAVE_STRLCAT=1
     -DHAVE_STRNLEN=1
+    -DCUSTOM_MODES=1
+    -DDEFAULT_DEV=2
 )
-
 file(GLOB PUBLIC_SOURCES public/*)
 list(REMOVE_ITEM PUBLIC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/public/build_vcs.c")
 add_library(public STATIC ${PUBLIC_SOURCES})
@@ -74,8 +71,6 @@ target_compile_definitions(filesystem_stdio PRIVATE
 target_compile_options(filesystem_stdio PRIVATE
  -fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
  -fno-exceptions -fpermissive
- -Og
- -g3
  #-mno-sdata
  #-G0
 )
@@ -212,7 +207,6 @@ MultiEmulator
 # opengx
 #GLU
 #glut
-# wiisocket
 )
 dkp_target_generate_symbol_list(xash)
 ogc_create_dol(xash)
