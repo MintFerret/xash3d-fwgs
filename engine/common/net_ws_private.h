@@ -21,6 +21,9 @@ GNU General Public License for more details.
 #elif XASH_PSVITA
 static const struct in6_addr in6addr_any;
 #include "platform/psvita/net_psvita.h"
+#elif XASH_OGC
+static const struct in6_addr in6addr_any;
+#include "platform/ogc/net_ogc.h"
 #else
 #include "platform/posix/net.h"
 #endif

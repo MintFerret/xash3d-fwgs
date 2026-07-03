@@ -76,14 +76,9 @@ GNU General Public License for more details.
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 
-#if !XASH_PSVITA && !XASH_OGC
+#if !XASH_PSVITA
 #define ioctlsocket ioctl
-#endif // !XASH_PSVITA && !XASH_OGC
-
-#if XASH_OGC
-#define ioctlsocket net_ioctl
-#define select      net_select
-#endif
+#endif // !XASH_PSVITA
 
 #define closesocket close
 #endif
