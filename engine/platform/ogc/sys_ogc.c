@@ -34,6 +34,9 @@ GNU General Public License for more details.
 
 #define BASE_PATH "/xash3d"
 
+// Let MEM2 handle the heap
+u32 MALLOC_MEM2 = 1;
+
 void Platform_ShellExecute( const char *path, const char *parms )
 {
 	Con_Reportf( S_WARN "Tried to shell execute ;%s; -- not supported\n", path );
