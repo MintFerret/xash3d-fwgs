@@ -57,7 +57,15 @@ void VGL_ShimEndFrame( void );
 
 #define BLOCK_SIZE		tr.block_size	// lightmap blocksize
 #define BLOCK_SIZE_DEFAULT	128		// for keep backward compatibility
+#if XASH_OGC
+// The lightmap scratch buffers are sized statically from this. At 1024 that is
+// a 12MB r_blocklights plus a 4MB lightmap_buffer sitting in .bss - more than
+// the Wii's entire 24MB of MEM1, so the .dol wouldn't even load. GX caps
+// textures at 1024 anyway and lightmap atlases this large buy nothing here.
+#define BLOCK_SIZE_MAX	256
+#else
 #define BLOCK_SIZE_MAX	1024
+#endif
 
 #define MAX_TEXTURES            8192	// a1ba: increased by users request
 #define MAX_DETAIL_TEXTURES	256
