@@ -68,10 +68,11 @@ void VGL_ShimEndFrame( void );
 #endif
 
 #if XASH_OGC
-// gl_textures is allocated on the heap (MEM2) rather than living in .bss, so
-// this costs MEM2 rather than the MEM1 the GPU draws from. 4096 matches what
-// ref_soft needs for the later chapters; 8192 would just waste MEM2.
-#define MAX_TEXTURES            4096
+// opengx keeps its texture objects in a fixed array of _MAX_GL_TEX (2048)
+// indexed directly by GL name, so a name past that cannot exist: glGenTextures
+// will not return one and glBindTexture silently does nothing when handed one.
+// There is no point carrying more slots than the library can name.
+#define MAX_TEXTURES            2048
 #else
 #define MAX_TEXTURES            8192	// a1ba: increased by users request
 #endif
@@ -101,15 +102,15 @@ void VGL_ShimEndFrame( void );
 
 #if XASH_OGC
 // The skybox sides get handed fixed texture names starting at this base
-// instead of generated ones. That only works while the base is inside
-// MAX_TEXTURES: past it, every sky side fails the range test in
-// GL_AllocTexture and falls through to the "find a free slot" search, which
-// happily hands out slot 0 - the entry R_InitImages reserves as "*unused*"
-// and that GL_Bind substitutes for any invalid handle. A sky face then sits
-// where blank textures are expected, which is how the console font ended up
-// drawing a desert. This table is smaller here than upstream's 8192, so put
-// the base inside it rather than grow the table by ten megabytes.
-#define SKYBOX_BASE_NUM ( MAX_TEXTURES - 16 )
+// instead of generated ones, and the base has to stay inside opengx's texture
+// array. Past it two things go wrong. GL_AllocTexture's range test fails and
+// the side falls through to the "find a free slot" search, which hands out
+// slot 0 - the entry R_InitImages reserves as "*unused*" and that GL_Bind
+// substitutes for any invalid handle. Worse, opengx's glBindTexture bounds
+// checks the name and simply returns, so the bind never happens and the sky's
+// glTexImage2D uploads its pixels into whatever texture was bound before it.
+// That is how the console font came to be drawing a desert.
+#define SKYBOX_BASE_NUM ( MAX_TEXTURES - 16 )	// 2032, inside opengx's table
 #else
 #define SKYBOX_BASE_NUM 5800 // set skybox base (to let some mods load hi-res skyboxes)
 #endif

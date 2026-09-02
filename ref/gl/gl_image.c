@@ -684,7 +684,17 @@ static void GL_SetTextureFormat( gl_texture_t *tex, pixformat_t format, int chan
 				tex->format = GL_INTENSITY8;
 			else tex->format = GL_LUMINANCE8;
 			break;
-		case 2: tex->format = GL_LUMINANCE8_ALPHA8; break;
+		case 2:
+#if XASH_OGC
+			// Two bytes per pixel asked for, four handed over: opengx walks
+			// the data by the internal format, so the console font came out
+			// opaque with the glyph alpha lost. Only a handful of textures
+			// are greyscale plus alpha, so this costs almost nothing.
+			tex->format = GL_RGBA8;
+#else
+			tex->format = GL_LUMINANCE8_ALPHA8;
+#endif
+			break;
 		case 3:
 #if XASH_OGC
 			// opengx walks the pixel data using the internal format rather
