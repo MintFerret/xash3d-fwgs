@@ -420,6 +420,21 @@ static int GL_CalcMipmapCount( gl_texture_t *tex, qboolean haveBuffer )
 
 	// mip-maps can't exceeds 16
 	int mipcount;
+
+#if XASH_OGC
+	// opengx overruns the buffer it uploads from on every mip level past the
+	// first. The write lands in whichever allocation follows on the heap, so
+	// nothing faults and the damage surfaces much later somewhere unrelated -
+	// a command argument that cannot be freed, a connection refused because
+	// the protocol byte read back as zero. Confirmed by walking the engine's
+	// pool sentinels after each level upload: level 0 is always clean, and
+	// the first level past it trashes a neighbour.
+	//
+	// Until that is fixed in opengx, ship without mip levels. The software
+	// renderer has none either, so this costs nothing that players had.
+	return 1;
+#endif
+
 	for( mipcount = 0; mipcount < 16; mipcount++ )
 	{
 		int width = Q_max( 1, ( tex->width >> mipcount ));
@@ -980,6 +995,7 @@ GL_UploadTexture
 upload texture into video memory
 ===============
 */
+
 static qboolean GL_UploadTexture( gl_texture_t *tex, rgbdata_t *pic )
 {
 	// dedicated server
