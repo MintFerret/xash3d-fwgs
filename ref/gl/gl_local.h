@@ -69,7 +69,6 @@ void VGL_ShimEndFrame( void );
 
 #if XASH_OGC
 // gl_textures is allocated on the heap (MEM2) rather than living in .bss, so
-// this costs MEM2 rather than the MEM1 the GPU draws from. A map plus the
 // this costs MEM2 rather than the MEM1 the GPU draws from. 4096 matches what
 // ref_soft needs for the later chapters; 8192 would just waste MEM2.
 #define MAX_TEXTURES            4096
@@ -100,7 +99,20 @@ void VGL_ShimEndFrame( void );
 
 #define HACKS_RELATED_HLMODS		// some HL-mods works differently under Xash and can't be fixed without some hacks at least at current time
 
+#if XASH_OGC
+// The skybox sides get handed fixed texture names starting at this base
+// instead of generated ones. That only works while the base is inside
+// MAX_TEXTURES: past it, every sky side fails the range test in
+// GL_AllocTexture and falls through to the "find a free slot" search, which
+// happily hands out slot 0 - the entry R_InitImages reserves as "*unused*"
+// and that GL_Bind substitutes for any invalid handle. A sky face then sits
+// where blank textures are expected, which is how the console font ended up
+// drawing a desert. This table is smaller here than upstream's 8192, so put
+// the base inside it rather than grow the table by ten megabytes.
+#define SKYBOX_BASE_NUM ( MAX_TEXTURES - 16 )
+#else
 #define SKYBOX_BASE_NUM 5800 // set skybox base (to let some mods load hi-res skyboxes)
+#endif
 
 typedef struct gltexture_s
 {

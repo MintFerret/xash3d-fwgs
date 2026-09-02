@@ -210,6 +210,7 @@ MultiEmulator
 #GLU
 #glut
 )
+
 dkp_target_generate_symbol_list(xash)
 ogc_create_dol(xash)
 

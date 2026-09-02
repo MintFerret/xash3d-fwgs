@@ -1309,6 +1309,21 @@ static gl_texture_t *GL_AllocTexture( const char *name, texFlags_t flags )
 	tex->texnum = texnum;
 	tex->flags = flags;
 
+#ifdef XASH_OGC_SLOTWATCH
+	{
+		// is this GL name already held by another live texture?
+		for( uint k = 0; k < MAX_TEXTURES; k++ )
+		{
+			if( &gl_textures[k] == tex || gl_textures[k].texnum != texnum )
+				continue;
+
+			gEngfuncs.Con_Printf( "[ALIAS] glname=%u now on slot %d (%s) but slot %d (%s) still holds it\n",
+				(unsigned)texnum, (int)( tex - gl_textures ), name, (int)k, gl_textures[k].name );
+			break;
+		}
+	}
+#endif
+
 	// increase counter
 	gl_numTextures = Q_max(( tex - gl_textures ) + 1, gl_numTextures );
 	if( skyboxhack )
@@ -1780,6 +1795,13 @@ GL_FreeTexture
 */
 void GL_FreeTexture( unsigned int texnum )
 {
+#ifdef XASH_OGC_SLOTWATCH
+	if( texnum == XASH_OGC_SLOTWATCH )
+	{
+		const gl_texture_t *t = &gl_textures[texnum];
+		gEngfuncs.Con_Printf( "[SLOT] free %d (%s)\n", texnum, t->name );
+	}
+#endif
 	// number 0 it's already freed
 	if( texnum == 0 || texnum >= MAX_TEXTURES )
 		return;

@@ -1756,6 +1756,16 @@ void Con_DrawDebug( void )
 {
 	static double	timeStart;
 
+#ifdef XASH_OGC_FONTDUMP
+	// Blit the whole console font atlas over the screen so what the GPU is
+	// actually sampling can be seen, rather than inferred from garbled glyphs.
+	if( con.curFont && con.curFont->hFontTexture )
+	{
+		ref.dllFuncs.R_DrawStretchPic( 0, 0, 512, 256, 0, 0, 1, 1,
+			con.curFont->hFontTexture );
+	}
+#endif
+
 	if( scr_download.value != -1.0f )
 	{
 		string dlstring;
