@@ -67,7 +67,14 @@ void VGL_ShimEndFrame( void );
 #define BLOCK_SIZE_MAX	1024
 #endif
 
+#if XASH_OGC
+// gl_textures is allocated on the heap (MEM2) rather than living in .bss, so
+// this costs MEM2 rather than the MEM1 the GPU draws from. 4096 matches what
+// ref_soft needs for the later chapters; 8192 would just waste MEM2.
+#define MAX_TEXTURES            4096
+#else
 #define MAX_TEXTURES            8192	// a1ba: increased by users request
+#endif
 #define MAX_DETAIL_TEXTURES	256
 #define MAX_LIGHTMAPS	256
 #define SUBDIVIDE_SIZE	64

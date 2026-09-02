@@ -15,11 +15,19 @@ GNU General Public License for more details.
 
 #include <stdarg.h>
 #include "gl_local.h"
+#if defined( XASH_OGC_TEXTRACE ) || defined( XASH_OGC_TEXDELAY )
+#include <ogc/system.h>
+#include <unistd.h>
+#endif
 #include "crclib.h"
 
 #define TEXTURES_HASH_SIZE	(MAX_TEXTURES >> 2)
 
-static gl_texture_t		gl_textures[MAX_TEXTURES];
+// MAX_TEXTURES entries is a couple of megabytes. As .bss that lands in MEM1
+// on the Wii, which is the same 24MB the GPU has to draw out of; on the heap
+// it lands in MEM2 instead. Kept as a pointer so every gl_textures[i] below
+// still reads the same.
+static gl_texture_t		*gl_textures;
 static gl_texture_t*	gl_texturesHashTable[TEXTURES_HASH_SIZE];
 static uint		gl_numTextures;
 
@@ -2070,7 +2078,14 @@ R_InitImages
 */
 void R_InitImages( void )
 {
-	memset( gl_textures, 0, sizeof( gl_textures ));
+	if( !gl_textures )
+	{
+		gl_textures = calloc( MAX_TEXTURES, sizeof( *gl_textures ));
+		if( !gl_textures )
+			gEngfuncs.Host_Error( "%s: failed to allocate %d textures\n", __func__, MAX_TEXTURES );
+	}
+
+	memset( gl_textures, 0, MAX_TEXTURES * sizeof( *gl_textures ));
 	memset( gl_texturesHashTable, 0, sizeof( gl_texturesHashTable ));
 	gl_numTextures = 0;
 
@@ -2103,7 +2118,7 @@ void R_ShutdownImages( void )
 
 	memset( tr.lightmapTextures, 0, sizeof( tr.lightmapTextures ));
 	memset( gl_texturesHashTable, 0, sizeof( gl_texturesHashTable ));
-	memset( gl_textures, 0, sizeof( gl_textures ));
+	memset( gl_textures, 0, MAX_TEXTURES * sizeof( *gl_textures ));
 	gl_numTextures = 0;
 }
 

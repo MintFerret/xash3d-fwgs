@@ -26,9 +26,12 @@ Assume input buffer is RGBA
 byte *GL_ResampleTexture( const byte *source, int inWidth, int inHeight, int outWidth, int outHeight, qboolean isNormalMap )
 {
 	static byte	*scaledImage = NULL;	// pointer to a scaled image
-	uint		p1[0x1000], p2[0x1000];
+	// 32KB of stack in one frame is a lot for a console, and having it there
+	// was accidentally scrubbing stale stack for whatever ran next.
+	static uint	p1[0x1000], p2[0x1000];
 
 	if( !source ) return NULL;
+
 
 	scaledImage = Mem_Realloc( r_temppool, scaledImage, outWidth * outHeight * 4 );
 	const uint fracStep = inWidth * 0x10000 / outWidth;
