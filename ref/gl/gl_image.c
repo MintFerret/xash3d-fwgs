@@ -675,12 +675,27 @@ static void GL_SetTextureFormat( gl_texture_t *tex, pixformat_t format, int chan
 			break;
 		case 2: tex->format = GL_LUMINANCE8_ALPHA8; break;
 		case 3:
+#if XASH_OGC
+			// opengx walks the pixel data using the internal format rather
+			// than the format the data is actually in, so the two have to
+			// agree on bytes per pixel. The engine hands over RGBA here even
+			// when the image carries no alpha, so asking for RGB made it step
+			// three bytes at a time and the channels rotated from one pixel
+			// to the next - the whole menu came out in vertical stripes.
+			//
+			// Only this case is wrong. The luminance formats below are
+			// narrower still but come out correct, and widening them costs
+			// four times the texture memory across Black Mesa's grey
+			// corridors, which runs the heap out during a map load.
+			tex->format = GL_RGBA8;
+#else
 			switch( bits )
 			{
 			case 16: tex->format = GL_RGB5; break;
 			case 32: tex->format = GL_RGB8; break;
 			default: tex->format = GL_RGB; break;
 			}
+#endif
 			break;
 		case 4:
 		default:

@@ -69,6 +69,7 @@ void VGL_ShimEndFrame( void );
 
 #if XASH_OGC
 // gl_textures is allocated on the heap (MEM2) rather than living in .bss, so
+// this costs MEM2 rather than the MEM1 the GPU draws from. A map plus the
 // this costs MEM2 rather than the MEM1 the GPU draws from. 4096 matches what
 // ref_soft needs for the later chapters; 8192 would just waste MEM2.
 #define MAX_TEXTURES            4096
