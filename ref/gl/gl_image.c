@@ -669,6 +669,17 @@ static void GL_SetTextureFormat( gl_texture_t *tex, pixformat_t format, int chan
 		switch( GL_CalcTextureSamples( channelMask ))
 		{
 		case 1:
+#if XASH_OGC
+			// opengx's single channel path leaves banding across large
+			// images. Interface artwork goes to RGB565 instead, which is two
+			// bytes a pixel rather than one but half of RGBA, and takes the
+			// same block path as the formats that come out clean. World
+			// textures stay single channel: they are every grey corridor in
+			// Black Mesa and anything wider runs the heap out on a map load.
+			if( !FBitSet( tex->flags, TF_ALPHACONTRAST ))
+				tex->format = GL_RGB;
+			else
+#endif
 			if( FBitSet( tex->flags, TF_ALPHACONTRAST ))
 				tex->format = GL_INTENSITY8;
 			else tex->format = GL_LUMINANCE8;
@@ -905,6 +916,84 @@ static void GL_TextureImageRAW( gl_texture_t *tex, GLint side, GLint level, GLin
 		dataType = GL_FLOAT;
 	else
 		dataType = GL_UNSIGNED_BYTE;
+
+#if XASH_OGC
+	// opengx reads the pixels at the stride the internal format implies. The
+	// single channel formats are the one case that cannot be fixed by
+	// widening the format instead: single channel covers every grey corridor
+	// texture in Black Mesa, and making those RGBA runs the heap out during a
+	// map load. So narrow the data to match the format rather than the other
+	// way round. The image is greyscale by the engine's own reckoning, which
+	// is why it picked this format, so one channel loses nothing - and it
+	// uploads a quarter of the bytes.
+	if(( tex->format == GL_LUMINANCE8 || tex->format == GL_INTENSITY8 )
+		&& ( inFormat == GL_RGBA || inFormat == GL_BGRA ) && data != NULL )
+	{
+		static byte *lum;
+		static size_t lumsize;
+		size_t need = (size_t)width * height * depth;
+
+		if( need > lumsize )
+		{
+			byte *grown = realloc( lum, need );
+
+			if( grown )
+			{
+				lum = grown;
+				lumsize = need;
+			}
+		}
+
+		if( lum && need <= lumsize )
+		{
+			const byte *src = data;
+			size_t i;
+
+			for( i = 0; i < need; i++ )
+				lum[i] = src[i * 4];
+
+			data = lum;
+			inFormat = GL_LUMINANCE;
+		}
+	}
+
+	// RGB565 wants three byte pixels handed to it, same reasoning: the data
+	// arrives as RGBA and opengx reads at the width the format implies.
+	if( tex->format == GL_RGB && ( inFormat == GL_RGBA || inFormat == GL_BGRA ) && data != NULL )
+	{
+		static byte *rgb;
+		static size_t rgbsize;
+		size_t px = (size_t)width * height * depth;
+		size_t need = px * 3;
+
+		if( need > rgbsize )
+		{
+			byte *grown = realloc( rgb, need );
+
+			if( grown )
+			{
+				rgb = grown;
+				rgbsize = need;
+			}
+		}
+
+		if( rgb && need <= rgbsize )
+		{
+			const byte *src = data;
+			size_t i;
+
+			for( i = 0; i < px; i++ )
+			{
+				rgb[i * 3 + 0] = src[i * 4 + 0];
+				rgb[i * 3 + 1] = src[i * 4 + 1];
+				rgb[i * 3 + 2] = src[i * 4 + 2];
+			}
+
+			data = rgb;
+			inFormat = GL_RGB;
+		}
+	}
+#endif
 
 	#if XASH_OGC
 	if( tex->target == GL_TEXTURE_CUBE_MAP_ARB )
