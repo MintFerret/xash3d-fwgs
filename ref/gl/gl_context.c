@@ -435,6 +435,13 @@ static void R_NewMap( void )
 
 	if( gEngfuncs.drawFuncs->R_NewMap != NULL )
 		gEngfuncs.drawFuncs->R_NewMap();
+
+#if XASH_OGC && defined( XASH_OGC_HEAPPROBE )
+	{
+		extern void GL_ReportTextureMemory( const char *when );
+		GL_ReportTextureMemory( "after map load" );
+	}
+#endif
 }
 
 static void R_FillRenderAPI( render_api_t *api )

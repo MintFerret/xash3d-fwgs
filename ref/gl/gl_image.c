@@ -694,11 +694,14 @@ static void GL_SetTextureFormat( gl_texture_t *tex, pixformat_t format, int chan
 			// three bytes at a time and the channels rotated from one pixel
 			// to the next - the whole menu came out in vertical stripes.
 			//
-			// Only this case is wrong. The luminance formats below are
-			// narrower still but come out correct, and widening them costs
-			// four times the texture memory across Black Mesa's grey
-			// corridors, which runs the heap out during a map load.
-			tex->format = GL_RGBA8;
+			// So narrow the data to match instead of widening the format:
+			// GL_TextureImageRAW rewrites RGBA to three bytes a pixel
+			// whenever the format is GL_RGB, which is the same path the
+			// single channel case above already takes. GX stores it as
+			// RGB565, two bytes a pixel against RGBA8's four, and these are
+			// most of the textures a map loads. On c4a3 that is the
+			// difference between having room for a save and not.
+			tex->format = GL_RGB;
 #else
 			switch( bits )
 			{
@@ -1514,6 +1517,98 @@ void GL_UpdateTexSize( int texnum, int width, int height, int depth )
 		}
 	}
 }
+
+#if XASH_OGC && defined( XASH_OGC_HEAPPROBE )
+#include <malloc.h>
+// how much of the console's memory the loaded texture set is holding.
+// opengx keeps every texture resident in main RAM for the GPU to read, so
+// this is real memory, not a video-only budget.
+void GL_ReportTextureMemory( const char *when )
+{
+	size_t total = 0, over256 = 0, biggest = 0;
+	int used = 0, countOver = 0;
+
+	for( int i = 0; i < MAX_TEXTURES; i++ )
+	{
+		gl_texture_t *tex = &gl_textures[i];
+
+		if( !tex->texnum || !tex->name[0] )
+			continue;
+
+		used++;
+		total += tex->size;
+
+		if( tex->size > biggest )
+			biggest = tex->size;
+
+		if( tex->width > 256 || tex->height > 256 )
+		{
+			countOver++;
+			over256 += tex->size;
+		}
+	}
+
+	size_t byFormat[6] = { 0 };
+	int    numFormat[6] = { 0 };
+
+	for( int i = 0; i < MAX_TEXTURES; i++ )
+	{
+		gl_texture_t *tex = &gl_textures[i];
+		int slot;
+
+		if( !tex->texnum || !tex->name[0] )
+			continue;
+
+		switch( tex->format )
+		{
+		case GL_RGBA8: case GL_RGBA: slot = 0; break;
+		case GL_RGB8: case GL_RGB: slot = 1; break;
+		case GL_LUMINANCE8: slot = 2; break;
+		case GL_INTENSITY8: slot = 3; break;
+		case GL_LUMINANCE8_ALPHA8: slot = 4; break;
+		default: slot = 5; break;
+		}
+
+		byFormat[slot] += tex->size;
+		numFormat[slot]++;
+	}
+
+	{
+		extern void *SYS_GetArena1Lo( void ), *SYS_GetArena1Hi( void );
+		extern void *SYS_GetArena2Lo( void ), *SYS_GetArena2Hi( void );
+
+		struct mallinfo mi = mallinfo();
+
+		// arena2 is only what malloc has not claimed yet. Once it sbrks a
+		// block, freeing puts it on malloc's own free list rather than back
+		// in the arena, so arena2 alone reads like a leak when nothing has
+		// leaked. What is actually left is arena2 plus that free list.
+		gEngfuncs.Con_Printf( "[TEX] %s: arena1 %i KB, arena2 %i KB, malloc free %i KB, TOTAL FREE %i KB\n", when,
+			(int)(((char *)SYS_GetArena1Hi() - (char *)SYS_GetArena1Lo() ) / 1024 ),
+			(int)(((char *)SYS_GetArena2Hi() - (char *)SYS_GetArena2Lo() ) / 1024 ),
+			(int)( mi.fordblks / 1024 ),
+			(int)(((( char *)SYS_GetArena2Hi() - (char *)SYS_GetArena2Lo() ) + mi.fordblks ) / 1024 ));
+	}
+
+	gEngfuncs.Con_Printf( "[TEX] %s: %i textures, %i.%02i MB total; %i over 256px holding %i.%02i MB; biggest %i KB\n",
+		when, used, (int)( total >> 20 ), (int)((( total & 0xFFFFF ) * 100 ) >> 20 ),
+		countOver, (int)( over256 >> 20 ), (int)((( over256 & 0xFFFFF ) * 100 ) >> 20 ),
+		(int)( biggest >> 10 ));
+
+	{
+		static const char *const names[6] = { "RGBA8", "RGB", "LUM8", "INT8", "LUMA8", "other" };
+
+		for( int i = 0; i < 6; i++ )
+		{
+			if( !numFormat[i] )
+				continue;
+
+			gEngfuncs.Con_Printf( "[TEX]   %-6s %4i textures  %i.%02i MB\n", names[i], numFormat[i],
+				(int)( byFormat[i] >> 20 ), (int)((( byFormat[i] & 0xFFFFF ) * 100 ) >> 20 ));
+		}
+	}
+}
+#endif
 
 /*
 ================
