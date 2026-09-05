@@ -8,10 +8,12 @@ find_package(BZip2 REQUIRED)
 pkg_check_modules(SDL2 IMPORTED_TARGET sdl2)
 pkg_check_modules(OPENGL IMPORTED_TARGET opengl)
 
+string(TIMESTAMP BUILD_DATE "%Y-%m-%d")
+
 add_definitions(
     -DXASH_BUILD_COMMIT="1242"
     -DXASH_BUILD_BRANCH="ogc"
-    -DXASH_BUILD_COMMIT_DATE="2026-05-12"
+    -DXASH_BUILD_COMMIT_DATE="${BUILD_DATE}"
     -D_GNU_SOURCE=1
     -DALLOCA_H=<alloca.h>
     -DHAVE_TGMATH_H=1
@@ -233,4 +235,5 @@ target_link_options(xash PUBLIC
 	-Wl,--gc-sections
 	-fwhole-program
 	-Wl,--build-id=none
+	-Wl,--wrap=KEYBOARD_GetEvent
 )

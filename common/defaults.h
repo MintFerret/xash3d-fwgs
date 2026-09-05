@@ -157,7 +157,6 @@ Default build-depended cvar and constant values
 #elif XASH_OGC
 	#define DEFAULT_MODE_WIDTH   640
 	#define DEFAULT_MODE_HEIGHT  480
-	#define DEFAULT_M_IGNORE     "1"
 	#define DEFAULT_ALLOWCONSOLE  1
 	#define XASH_NO_IPV6_RESOLVE  1
 #elif XASH_ANDROID
