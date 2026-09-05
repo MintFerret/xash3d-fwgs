@@ -281,10 +281,8 @@ static qboolean FS_DetermineRootDirectory( char *out, size_t size )
 	Sys_Error( "couldn't find %s data directory", XASH_ENGINE_NAME );
 	return false;
 #elif XASH_OGC
-	if (fatInitDefault()) {
-		Q_strncpy( out, "sd:/xash3d", size);
-			return true;
-		}
+	if ( OGC_GetBasePath( out, size ) )
+		return true;
 	Sys_Error( "couldn't find %s data directory", XASH_ENGINE_NAME );
 	return false;
 #elif ( XASH_SDL >= 2 ) && !XASH_NSWITCH // GetBasePath not impl'd in switch-sdl2

@@ -1,5 +1,5 @@
 /*
-sys_wii.c - misc wii stubs
+sys_ogc.c - misc wii stubs
 Copyright (C) 2026 mintferret
 
 This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@ GNU General Public License for more details.
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <fat.h>
 #include <SDL.h>
 #include <gccore.h>
@@ -31,6 +32,8 @@ GNU General Public License for more details.
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#define BASE_PATH "/xash3d"
+
 void Platform_ShellExecute( const char *path, const char *parms )
 {
 	Con_Reportf( S_WARN "Tried to shell execute ;%s; -- not supported\n", path );
@@ -40,7 +43,10 @@ void OGC_Init( void )
 {
 	SYS_STDIO_Report(true);
 	WPAD_Init();
+	fatInitDefault();
+
 	KEYBOARD_Init(NULL);
+
 	MOUSE_Init(NULL);
 	printf( "%s\n", __func__ );
 }
@@ -48,6 +54,22 @@ void OGC_Init( void )
 void OGC_Shutdown( void )
 {
 	printf( "%s\n", __func__ );
+}
+
+// Check if there's a xash folder inside each directory, sd goes first
+qboolean OGC_GetBasePath( char *buf, const size_t buflen )
+{
+	static const char *drives[] = { "sd", "usb" };
+	for ( size_t i = 0; i < sizeof( drives ) / sizeof( *drives ); i++ )
+	{
+		Q_snprintf( buf, buflen, "%s:" BASE_PATH, drives[i] );
+		DIR* dir = opendir( buf );
+		if ( dir )
+		{
+			closedir( dir );
+			return true;
+		}
+	}
 }
 
 //const struct in6_addr in6addr_any = {{ 0 }};
