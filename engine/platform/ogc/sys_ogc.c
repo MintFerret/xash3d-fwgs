@@ -45,7 +45,9 @@ void OGC_Init( void )
 	WPAD_Init();
 	fatInitDefault();
 
+	// Needs to be enabled to disable it
 	KEYBOARD_Init(NULL);
+	KEYBOARD_Deinit();
 
 	MOUSE_Init(NULL);
 	printf( "%s\n", __func__ );
