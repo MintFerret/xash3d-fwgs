@@ -2379,9 +2379,9 @@ int GAME_EXPORT SV_GetSaveComment( const char *savename, char *comment )
 	else pTokenList = NULL;
 
 	// short, short (size, index of field name)
-	nFieldSize = *(short *)pData;
+	nFieldSize = LittleShort( *(short *)pData );
 	pData += sizeof( short );
-	pFieldName = pTokenList[*(short *)pData];
+	pFieldName = pTokenList[LittleShort( *(short *)pData )];
 
 	if( Q_stricmp( pFieldName, "GameHeader" ))
 	{
@@ -2405,10 +2405,10 @@ int GAME_EXPORT SV_GetSaveComment( const char *savename, char *comment )
 		// Size
 		// szName
 		// Actual Data
-		nFieldSize = *(short *)pData;
+		nFieldSize = LittleShort( *(short *)pData );
 		pData += sizeof( short );
 
-		pFieldName = pTokenList[*(short *)pData];
+		pFieldName = pTokenList[ LittleShort( *(short *)pData )];
 		pData += sizeof( short );
 
 		size = Q_min( nFieldSize, MAX_STRING );
