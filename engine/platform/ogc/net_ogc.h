@@ -40,40 +40,46 @@ static inline int ogc_net_gethostname( char *name, size_t len )
 }
 
 //net_socket is already defined
-static inline int ogc_net_socket(int d, int t, int p)
+static inline int ogc_net_socket( int d, int t, int p )
 {
-    return net_socket(d, t, 0);
+
+    int ret = net_socket( d, t, 0 );
+	if ( ret < 0 )
+	{
+		return -1;
+	}
+	return ret;
 }
 
 
  //Note: below here is stuff adapted from the quake3 port
 
 //build 8-byte POSIX addr for IOS (no sin_len prefix, tolen=8)
-static inline int ogc_net_sendto(int s, const void *b, int l, int f, const struct sockaddr *a, int al)
+static inline int ogc_net_sendto( int s, const void *b, int l, int f, const struct sockaddr *a, int al )
 {
 	uint8_t ios_addr[8];
 	const struct sockaddr *send_a  = a;
 
-	if (a && a->sa_family == AF_INET) {
-		const struct sockaddr_in *sin4 = (const struct sockaddr_in *)a;
-		uint16_t fam = (uint16_t)AF_INET;
-		memcpy(ios_addr + 0, &fam,            2);
-		memcpy(ios_addr + 2, &sin4->sin_port, 2);
-		memcpy(ios_addr + 4, &sin4->sin_addr, 4);
-		send_a  = (const struct sockaddr *)ios_addr;
+	if ( a && a->sa_family == AF_INET ) {
+		const struct sockaddr_in *sin4 = ( const struct sockaddr_in * ) a;
+		uint16_t fam = ( uint16_t )AF_INET;
+		memcpy( ios_addr + 0, &fam,            2 );
+		memcpy( ios_addr + 2, &sin4->sin_port, 2 );
+		memcpy( ios_addr + 4, &sin4->sin_addr, 4 );
+		send_a  = ( const struct sockaddr * )ios_addr;
 	}
 
-    return net_sendto(s, (void *)b, l, f, (struct sockaddr *)send_a, 8);
+    return net_sendto( s, (void *)b, l, f, ( struct sockaddr * )send_a, 8 );
 }
 
-//recvfrom: normalize IOS error codes to -1 + errno=EAGAIN
-static inline int ogc_net_recvfrom(int s, void *b, int l, int f, struct sockaddr *a, socklen_t *al)
+//recvfrom: normalize IOS error codes to -1
+static inline int ogc_net_recvfrom( int s, void *b, int l, int f, struct sockaddr *a, socklen_t *al )
 {
-    int ret = net_recvfrom(s, b, l, f, a, al);
-    if (ret >= 0)
+    int ret = net_recvfrom( s, b, l, f, a, al );
+    if ( ret >= 0 )
 		return ret;
 
-    errno = EAGAIN;
+	errno = EAGAIN;
     return -1;
 }
 

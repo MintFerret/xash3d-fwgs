@@ -1001,7 +1001,7 @@ void CL_InitEdicts( int maxclients )
 	Assert( clgame.entities == NULL );
 
 	if( !clgame.mempool ) return; // Host_Error without client
-#if XASH_LOW_MEMORY != 2 && !XASH_OGC
+#if XASH_LOW_MEMORY != 2 || XASH_OGC
 	CL_UPDATE_BACKUP = ( maxclients <= 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
 #endif
 	cls.num_client_entities = CL_UPDATE_BACKUP * NUM_PACKET_ENTITIES;
