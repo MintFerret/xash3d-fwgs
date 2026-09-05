@@ -72,10 +72,11 @@ class Subproject:
 		return True
 
 class RefDll:
-	def __init__(self, name, default, key = None):
+	def __init__(self, name, default, key = None, all_renderers = True):
 		self.name = name
 		self.default = default
 		self.dest = key if key else name.upper()
+		self.all_renderers = all_renderers
 
 	def register_option(self, opt):
 		kw = dict()
@@ -95,7 +96,7 @@ class RefDll:
 		opt.add_option(key, **kw)
 
 	def register_env(self, env, opts, force):
-		env[self.dest] = force or opts.__dict__[self.dest]
+		env[self.dest] = (force and self.all_renderers) or opts.__dict__[self.dest]
 
 	def register_define(self, conf):
 		conf.define_cond('XASH_REF_%s_ENABLED' % self.dest, conf.env[self.dest])
@@ -144,7 +145,7 @@ SUBDIRS = [
 ]
 
 REFDLLS = [
-	RefDll('soft', True),
+	RefDll('soft', False, all_renderers = False),
 	RefDll('gl', True),
 	RefDll('gles1', False, 'NANOGL'),
 	RefDll('gles2', False, 'GLWES'),
@@ -365,6 +366,7 @@ def configure(conf):
 			'-Werror=duplicated-cond',
 			'-Werror=format=2',
 			'-Werror=free-nonheap-object',
+			'-Werror=init-self',
 			'-Werror=implicit-fallthrough=2',
 			'-Werror=logical-op',
 			'-Werror=nonnull',
@@ -385,7 +387,6 @@ def configure(conf):
 
 			# unstable diagnostics, may cause false positives
 			'-Walloc-zero',
-			'-Winit-self',
 			'-Wmisleading-indentation',
 			'-Wmismatched-dealloc',
 			'-Wstringop-overflow',
@@ -491,6 +492,12 @@ def configure(conf):
 			conf.check_cc(lib='m')
 		# otherwise LIB_M is defined by xcompile (as it might be libm_hard, depending on NDK configuration)
 	elif conf.env.DEST_OS == 'win32':
+		# MinGW defaults to msvcrt stdio, which lacks C99 conversions like %zu
+		# this also switches GCC format checking from ms_printf to gnu_printf
+		if conf.env.COMPILER_CC != 'msvc':
+			conf.env.append_unique('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
+			conf.env.append_unique('CXXFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
+
 		# Common Win32 libraries
 		# Don't check them more than once, to save time
 		# Usually, they are always available

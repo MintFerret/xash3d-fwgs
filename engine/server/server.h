@@ -47,7 +47,8 @@ extern int SV_UPDATE_BACKUP;
 #define MAP_HAS_LANDMARK    BIT( 2 )
 #define MAP_INVALID_VERSION BIT( 3 )
 
-#define SV_SPAWN_TIME	0.1
+#define SV_SPAWN_TIME    0.1
+#define SV_SPAWN_TIME_MP 0.8
 
 // group flags
 #define GROUP_OP_AND	0
@@ -542,6 +543,8 @@ void SV_UpdateServerInfo( void );
 void SV_EndRedirect( host_redirect_t *rd );
 void SV_RejectConnection( netadr_t from, const char *fmt, ... ) FORMAT_CHECK( 2 );
 void SV_GetPlayerCount( int *clients, int *bots );
+int SV_CreateChallenge( netadr_t from, qboolean *error );
+qboolean SV_ValidateChallenge( netadr_t from, int challenge );
 
 static inline qboolean SV_HavePassword( void )
 {
@@ -701,6 +704,25 @@ int SV_LightForEntity( edict_t *pEdict );
 //
 // sv_query.c
 //
-void SV_SourceQuery_HandleConnnectionlessPacket( const char *c, netadr_t from );
+void SV_SourceQuery_HandleConnnectionlessPacket( const char *c, netadr_t from, sizebuf_t *msg );
+
+static inline qboolean SV_CheckGroupOp( int op, int groupinfo, int mask )
+{
+	if( op == GROUP_OP_AND && !FBitSet( groupinfo, mask ))
+		return false;
+
+	if( op == GROUP_OP_NAND && FBitSet( groupinfo, mask ))
+		return false;
+
+	return true;
+}
+
+static inline qboolean SV_CheckGroupTrace( const edict_t *e1, const edict_t *e2 )
+{
+	if( e1->v.groupinfo && e2->v.groupinfo )
+		return SV_CheckGroupOp( svs.groupop, e1->v.groupinfo, e2->v.groupinfo );
+
+	return true;
+}
 
 #endif//SERVER_H

@@ -18,7 +18,6 @@ GNU General Public License for more details.
 #include "const.h"
 #include "server.h"
 #include "net_encode.h"
-#include "net_api.h"
 
 // challenges are valid for two consecutive windows of this size (max lifetime ~10s).
 #define CHALLENGE_WINDOW_SECONDS 5
@@ -110,11 +109,43 @@ static int SV_GetChallenge( netadr_t from, uint32_t time_window, qboolean *error
 	return digest[0] | digest[1] << 8 | digest[2] << 16 | digest[3] << 24;
 }
 
-static void SV_SendChallenge( netadr_t from, qboolean skip_bandwidth_test )
+/*
+=================
+SV_CreateChallenge
+=================
+*/
+int SV_CreateChallenge( netadr_t from, qboolean *error )
+{
+	uint32_t time_window = (uint32_t)( host.realtime / CHALLENGE_WINDOW_SECONDS );
+
+	return SV_GetChallenge( from, time_window, error );
+}
+
+/*
+=================
+SV_ValidateChallenge
+=================
+*/
+qboolean SV_ValidateChallenge( netadr_t from, int challenge )
 {
 	qboolean error = false;
 	uint32_t time_window = (uint32_t)( host.realtime / CHALLENGE_WINDOW_SECONDS );
-	int challenge = SV_GetChallenge( from, time_window, &error );
+
+	// accept the current window and the previous one so challenges issued just
+	// before a window boundary remain valid for the full expected lifetime
+	if( SV_GetChallenge( from, time_window, &error ) == challenge && !error )
+		return true;
+
+	if( SV_GetChallenge( from, time_window - 1, &error ) == challenge && !error )
+		return true;
+
+	return false;
+}
+
+static void SV_SendChallenge( netadr_t from, qboolean skip_bandwidth_test )
+{
+	qboolean error = false;
+	int challenge = SV_CreateChallenge( from, &error );
 
 	if( error )
 		return;
@@ -214,15 +245,7 @@ Make sure connecting client is not spoofing
 */
 static int SV_CheckChallenge( netadr_t from, int challenge )
 {
-	qboolean error = false;
-	uint32_t time_window = (uint32_t)( host.realtime / CHALLENGE_WINDOW_SECONDS );
-
-	// accept the current window and the previous one so challenges issued just
-	// before a window boundary remain valid for the full expected lifetime
-	if( SV_GetChallenge( from, time_window, &error ) == challenge && !error )
-		return true;
-
-	if( SV_GetChallenge( from, time_window - 1, &error ) == challenge && !error )
+	if( SV_ValidateChallenge( from, challenge ))
 		return true;
 
 	SV_RejectConnection( from, "no challenge for your address\n" );
@@ -950,111 +973,6 @@ static void SV_ConnectNatClient( netadr_t from )
 		return;
 
 	SV_Info( to, PROTOCOL_VERSION );
-}
-
-/*
-================
-SV_BuildNetAnswer
-
-Responds with long info for local and broadcast requests
-================
-*/
-static void SV_BuildNetAnswer( netadr_t from )
-{
-	const cvar_t *cv;
-	char string[4096];
-	int  version;
-	int  context;
-	int  type;
-	int  count = 0;
-	int  i;
-
-	// ignore in single player
-	if( svs.maxclients == 1 || !svs.initialized )
-		return;
-
-	version = Q_atoi( Cmd_Argv( 1 ));
-	context = Q_atoi( Cmd_Argv( 2 ));
-	type = Q_atoi( Cmd_Argv( 3 ));
-
-	string[0] = 0;
-
-	if( version != PROTOCOL_VERSION )
-	{
-		// send error unsupported protocol
-		Info_SetValueForKey( string, "neterror", "protocol", sizeof( string ));
-		Netchan_OutOfBandPrint( NS_SERVER, from, A2A_NETINFO" %i %i %s\n", context, type, string );
-		return;
-	}
-
-	switch( type )
-	{
-	case NETAPI_REQUEST_PING:
-		break;
-	case NETAPI_REQUEST_RULES:
-		for( cv = Cvar_GetList( ); cv; cv = cv->next )
-		{
-			if( !FBitSet( cv->flags, FCVAR_SERVER ))
-				continue;
-
-			if( FBitSet( cv->flags, FCVAR_PROTECTED ))
-			{
-				if( !COM_StringEmpty( cv->string ) && Q_stricmp( cv->string, "none" ))
-					Info_SetValueForKey( string, cv->name, "1", sizeof( string ));
-				else Info_SetValueForKey( string, cv->name, "0", sizeof( string ));
-			}
-			else Info_SetValueForKey( string, cv->name, cv->string, sizeof( string ));
-
-			count++;
-		}
-
-		Info_SetValueForKeyf( string, "rules", sizeof( string ), "%i", count );
-		break;
-	case NETAPI_REQUEST_PLAYERS:
-		if( !sv_expose_player_list.value || SV_HavePassword( ))
-		{
-			Info_SetValueForKey( string, "neterror", "forbidden", sizeof( string ));
-		}
-		else
-		{
-			for( i = 0; i < svs.maxclients; i++ )
-			{
-				const sv_client_t *cl = &svs.clients[i];
-
-				if( cl->state < cs_connected )
-					continue;
-
-				Info_SetValueForKey( string, va( "p%iname", count ), cl->name, sizeof( string ));
-				Info_SetValueForKeyf( string, va( "p%ifrags", count ), sizeof( string ), "%i", (int)cl->edict->v.frags );
-				Info_SetValueForKeyf( string, va( "p%itime", count ), sizeof( string ), "%f", host.realtime - cl->connection_started );
-
-				count++;
-			}
-
-			Info_SetValueForKeyf( string, "players", sizeof( string ), "%i", count );
-		}
-		break;
-	case NETAPI_REQUEST_DETAILS:
-		for( i = 0; i < svs.maxclients; i++ )
-		{
-			if( svs.clients[i].state >= cs_connected )
-				count++;
-		}
-
-		// should match SV_SourceQuery_Details
-		Info_SetValueForKey( string, "hostname", hostname.string, sizeof( string ));
-		Info_SetValueForKey( string, "gamedir", GI->gamefolder, sizeof( string ));
-		Info_SetValueForKeyf( string, "current", sizeof( string ), "%i", count );
-		Info_SetValueForKeyf( string, "max", sizeof( string ), "%i", svs.maxclients );
-		Info_SetValueForKey( string, "map", sv.name, sizeof( string ));
-		break;
-	default:
-		// send error undefined request type
-		Info_SetValueForKey( string, "neterror", "undefined", sizeof( string ));
-		break;
-	}
-
-	Netchan_OutOfBandPrint( NS_SERVER, from, A2A_NETINFO" %i %i %s\n", context, type, string );
 }
 
 /*
@@ -2608,7 +2526,7 @@ static qboolean SV_EntFire_f( sv_client_t *cl )
 		return false;
 	}
 
-	if( ( single = Q_isdigit( Cmd_Argv( 1 ) ) ) )
+	if(( single = Q_isdigit( Cmd_Argv( 1 ))))
 	{
 		i = Q_atoi( Cmd_Argv( 1 ) );
 
@@ -2617,7 +2535,7 @@ static qboolean SV_EntFire_f( sv_client_t *cl )
 
 		ent = SV_EdictNum( i );
 	}
-	else if( ( single = !Q_stricmp( Cmd_Argv( 1 ), "!cross" ) ) )
+	else if(( single = !Q_stricmp( Cmd_Argv( 1 ), "!cross" )))
 	{
 		ent = SV_GetCrossEnt( cl->edict );
 
@@ -2626,7 +2544,7 @@ static qboolean SV_EntFire_f( sv_client_t *cl )
 
 		i = NUM_FOR_EDICT( ent );
 	}
-	else if( ( single = ( Cmd_Argv( 1 )[0] == '!') ) ) // check for correct instance with !(num)_(serial)
+	else if(( single = ( Cmd_Argv( 1 )[0] == '!' ))) // check for correct instance with !(num)_(serial)
 	{
 		const char *cmd = Cmd_Argv( 1 ) + 1;
 		i = Q_atoi( cmd );
@@ -3244,11 +3162,7 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	// `pcmd` points only to the first word from the query string.
 	if( !Q_strcmp( args, A2S_GOLDSRC_INFO ) || pcmd[0] == A2S_GOLDSRC_PLAYERS || pcmd[0] == A2S_GOLDSRC_RULES )
 	{
-		SV_SourceQuery_HandleConnnectionlessPacket( args, from );
-	}
-	else if( !Q_strcmp( pcmd, A2A_NETINFO ))
-	{
-		SV_BuildNetAnswer( from );
+		SV_SourceQuery_HandleConnnectionlessPacket( args, from, msg );
 	}
 	else if( !Q_strcmp( pcmd, A2A_INFO ))
 	{

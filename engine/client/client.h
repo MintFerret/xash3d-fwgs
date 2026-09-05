@@ -445,6 +445,7 @@ typedef struct
 	double			timeout;
 	double			timesend;	// time when request was sended
 	int			flags;	// FNETAPI_MULTIPLE_RESPONSE etc
+	int			challenge;	// GoldSrc query challenge, -1 until received
 } net_request_t;
 
 // new versions of client dlls have a single export with all callbacks
@@ -793,6 +794,8 @@ void CL_ClearState( void );
 void CL_SetCheatState( qboolean multiplayer, qboolean allow_cheats );
 void CL_SendGoldSrcConnectPacket( netadr_t adr, int challenge, const void *ticket, size_t ticketlen );
 void CL_NotifyServerListResponse( void );
+qboolean CL_NetRequestSend( net_request_t *nr );
+void CL_Escape_f( void );
 
 //
 // cl_demo.c
@@ -1117,6 +1120,7 @@ void Con_ToggleConsole_f( void );
 void Con_ClearNotify( void );
 void Con_DrawDebug( void );
 void Con_RunConsole( void );
+qboolean Con_GetInputRect( int *x, int *y, int *w, int *h );
 void Con_DrawConsole( void );
 void Con_DrawVersion( void );
 int Con_UtfProcessChar( int in );
@@ -1241,6 +1245,7 @@ const char *Key_KeynumToString( int keynum );
 void Key_EnumCmds_f( void );
 void Key_SetKeyDest( int key_dest );
 void Key_EnableTextInput( qboolean enable, qboolean force );
+void Key_SetTextInputRect( int x, int y, int w, int h );
 int Key_ToUpper( int key );
 qboolean Cmd_GetKeysList( const char *s, char *completedname, int length, qboolean print_suggestions );
 
