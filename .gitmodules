@@ -42,7 +42,7 @@
 	url = https://github.com/FWGS/xash3d-maintui.git
 [submodule "3rdparty/library_suffix"]
 	path = 3rdparty/library_suffix
-	url = https://github.com/FWGS/library-suffix.git
+	url = https://github.com/MintFerret/library-suffix.git
 [submodule "3rdparty/mbedtls/mbedtls"]
 	path = 3rdparty/mbedtls/mbedtls
 	url = https://github.com/FWGS/mbedtls-releases.git
