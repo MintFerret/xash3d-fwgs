@@ -18,9 +18,12 @@ GNU General Public License for more details.
 #include "xash3d_mathlib.h"
 #include <string.h>
 
-static inline GXTexMapID tmu_to_gx_texmap( int tmu )
+// Definición de la variable global (solo estaba declarada en el header)
+float gx_pending_texcoord[MAX_TEXTURE_UNITS][2];
+
+static inline int tmu_to_gx_texmap( int tmu )
 {
-	return (GXTexMapID)( GX_TEXMAP0 + tmu );
+	return ( GX_TEXMAP0 + tmu );
 }
 
 static char r_speeds_msg[MAX_SYSPATH];
@@ -92,9 +95,9 @@ void GX_LoadTexMatrix( int tmu, const float *matrix )
 	Mtx34 gxmtx;
 	for( int r = 0; r < 3; r++ )
 		for( int c = 0; c < 4; c++ )
-			gxmtx[r][c] = matrix[c * 4 + r];
+			gxmtx[r][c] = matrix[c * 4 + r];   // transpuesta respecto a column-major
 
-	GXTexMtx slot = (GXTexMtx)( GX_TEXMTX0 + tmu * 3 );
+	int slot = GX_TEXMTX0 + tmu * 3;
 	GX_LoadTexMtxImm( gxmtx, slot, GX_MTX3x4 );
 
 	glState.texIdentityMatrix[tmu] = false;
@@ -105,7 +108,7 @@ void GX_LoadMatrix( const matrix4x4 source )
 	Mtx gxmtx;
 	for( int r = 0; r < 3; r++ )
 		for( int c = 0; c < 4; c++ )
-			gxmtx[c][r] = source[r][c];
+			gxmtx[c][r] = source[r][c];   // misma transpuesta que en LoadTexMatrix
 
 	GX_LoadPosMtxImm( gxmtx, GX_PNMTX0 );
 }
@@ -117,7 +120,7 @@ void GX_LoadIdentityTexMatrix( void )
 	if( glState.texIdentityMatrix[tmu] )
 		return;
 
-	GX_SetTexCoordGen2( (GXTexCoordID)tmu, GX_TG_MTX2x4, GX_TG_TEX0 + tmu, GX_IDENTITY, GX_FALSE, GX_PTIDENTITY );
+	GX_SetTexCoordGen2( GX_TEXCOORD0 + tmu, GX_TG_MTX2x4, GX_TG_TEX0 + tmu, GX_IDENTITY, GX_FALSE, GX_DTTIDENTITY );
 
 	glState.texIdentityMatrix[tmu] = true;
 }
@@ -155,7 +158,7 @@ void GX_Bind( int tmu, unsigned int texnum )
 	if( glState.currentTexturesIndex[tmu] == (int)texnum )
 		return;
 
-	GXTexMapID texmap = tmu_to_gx_texmap( tmu );
+	int texmap = tmu_to_gx_texmap( tmu );
 	GX_LoadTexObj( (GXTexObj *)&texture->texObj, texmap );
 
 	glState.currentTextures[tmu] = (GXTexObj *)&texture->texObj;
@@ -168,9 +171,9 @@ void GX_EnableTextureUnit( int tmu, qboolean enable )
 	if( tmu < 0 || tmu >= glConfig.max_texture_units )
 		return;
 
-	GXTexCoordID coord = (GXTexCoordID)( GX_TEXCOORD0 + tmu );
-	GXTexMapID   texmap = tmu_to_gx_texmap( tmu );
-	GXTevStageID stage  = (GXTevStageID)( GX_TEVSTAGE0 + tmu );
+	int coord = GX_TEXCOORD0 + tmu;
+	int texmap = tmu_to_gx_texmap( tmu );
+	int stage  = GX_TEVSTAGE0 + tmu;
 
 	if( enable )
 	{
@@ -179,7 +182,7 @@ void GX_EnableTextureUnit( int tmu, qboolean enable )
 	}
 	else
 	{
-		GX_SetTevOrder( stage, GX_TEXCOORD_NULL, GX_TEXMAP_NULL, GX_COLOR0A0 );
+		GX_SetTevOrder( stage, GX_TEXCOORDNULL, GX_TEXMAP_NULL, GX_COLOR0A0 );
 		GX_SetTevOp( stage, GX_PASSCLR );
 	}
 }
@@ -225,7 +228,7 @@ void GX_DisableAllTexGens( void )
 {
 	int tmu = glState.activeTMU;
 
-	GX_SetTexCoordGen2( (GXTexCoordID)tmu, GX_TG_MTX2x4, GX_TG_TEX0 + tmu, GX_IDENTITY, GX_FALSE, GX_PTIDENTITY );
+	GX_SetTexCoordGen2( GX_TEXCOORD0 + tmu, GX_TG_MTX2x4, GX_TG_TEX0 + tmu, GX_IDENTITY, GX_FALSE, GX_DTTIDENTITY );
 
 	glState.genSTEnabled[tmu] = 0;
 }
@@ -238,15 +241,15 @@ void GX_SetTexCoordArrayMode( int tmu, qboolean enable )
 	if( cmode == bit )
 		return;
 
-	GXTexCoordID coord = (GXTexCoordID)( GX_TEXCOORD0 + tmu );
+	int coord = GX_TEXCOORD0 + tmu;
 
 	if( enable )
 	{
-		GX_SetTexCoordGen2( coord, GX_TG_MTX2x4, GX_TG_TEX0 + tmu, GX_IDENTITY, GX_FALSE, GX_PTIDENTITY );
+		GX_SetTexCoordGen2( coord, GX_TG_MTX2x4, GX_TG_TEX0 + tmu, GX_IDENTITY, GX_FALSE, GX_DTTIDENTITY );
 	}
 	else
 	{
-		GX_SetTexCoordGen2( coord, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY, GX_FALSE, GX_PTIDENTITY );
+		GX_SetTexCoordGen2( coord, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY, GX_FALSE, GX_DTTIDENTITY );
 	}
 
 	glState.texCoordArrayMode[tmu] = bit;
