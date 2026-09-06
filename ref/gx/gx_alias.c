@@ -729,7 +729,7 @@ static void R_AliasDrawLightTrace( cl_entity_t *e )
 		vec3_t	origin;
 
 		GX_SetTevOp( GX_TEVSTAGE0, GX_PASSCLR );
-		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD_NULL, GX_TEXMAP_NULL, GX_COLOR0A0 );
+		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORDNULL, GX_TEXMAP_NULL, GX_COLOR0A0 );
 		GX_SetZMode( GX_FALSE, GX_ALWAYS, GX_FALSE );
 		GX_SetupVtxFormatAlias( false, false );
 
@@ -870,11 +870,19 @@ void R_DrawAliasModel( cl_entity_t *e )
 	{
 		hasLuma = true;
 		GX_Bind( XASH_TEXTURE1, m_pAliasHeader->fb_texturenum[skin][anim] );
+
+	
 		GX_SetNumTevStages( 2 );
+
+		
 		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
 		GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
+
 		GX_SetTevOrder( GX_TEVSTAGE1, GX_TEXCOORD0, GX_TEXMAP1, GX_COLOR0A0 );
-		GX_SetTevOp( GX_TEVSTAGE1, GX_ADD );
+		GX_SetTevColorIn( GX_TEVSTAGE1, GX_CC_ZERO, GX_CC_TEXC, GX_CC_CPREV, GX_CC_ZERO );
+		GX_SetTevColorOp( GX_TEVSTAGE1, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV );
+		GX_SetTevAlphaIn( GX_TEVSTAGE1, GX_CA_ZERO, GX_CA_TEXA, GX_CA_APREV, GX_CA_ZERO );
+		GX_SetTevAlphaOp( GX_TEVSTAGE1, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV );
 	}
 	else
 	{
@@ -908,7 +916,7 @@ void R_DrawAliasModel( cl_entity_t *e )
 		R_LoadIdentity();
 
 		GX_SetTevOp( GX_TEVSTAGE0, GX_PASSCLR );
-		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD_NULL, GX_TEXMAP_NULL, GX_COLOR0A0 );
+		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORDNULL, GX_TEXMAP_NULL, GX_COLOR0A0 );
 		GX_SetBlendMode( GX_BM_BLEND, GX_BL_SRCALPHA, GX_BL_INVSRCALPHA, GX_LO_CLEAR );
 		GX_SetZMode( GX_TRUE, GX_LESS, GX_TRUE );
 
