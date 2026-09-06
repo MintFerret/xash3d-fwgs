@@ -22,7 +22,7 @@ GNU General Public License for more details.
 #include "xash3d_types.h"
 #include "cvardef.h"
 #include "protocol.h"
-#include "gl_frustum.h"
+#include "gx_frustum.h" // corregido también 
 #include "ref_params.h"
 #include "enginefeatures.h"
 #include "com_strings.h"
