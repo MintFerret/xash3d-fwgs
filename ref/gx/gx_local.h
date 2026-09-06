@@ -22,7 +22,7 @@ GNU General Public License for more details.
 #include "xash3d_types.h"
 #include "cvardef.h"
 #include "protocol.h"
-#include "gx_frustum.h" // corregido también 
+#include "gx_frustnum.h"   // antes era gl_frustum.h
 #include "ref_params.h"
 #include "enginefeatures.h"
 #include "com_strings.h"
@@ -290,7 +290,7 @@ void GX_BackendStartFrame( void );
 void GX_BackendEndFrame( void );
 void GX_CleanUpTextureUnits( int last );
 void GX_Bind( int tmu, unsigned int texnum );
-void GX_SetTexCoordGen2f( int tmu, u32 src, u32 mtx ); // corregido
+void GX_SetTexCoordGen2f( int tmu, u32 src, u32 mtx ); //GXTexGenSrc y GXTexMtx reemplazados por u32
 void GX_SetTexCoordArrayMode( int tmu, qboolean enable );
 void GX_LoadTexMatrix( int tmu, const float *matrix );
 void GX_LoadMatrix( const matrix4x4 source );
