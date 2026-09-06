@@ -52,6 +52,11 @@ typedef int fixed16_t;
 	#define MAX_DECAL_SURFS 256
 #endif
 
+#if XASH_OGC
+	#undef MAX_TEXTURES
+	#define MAX_TEXTURES 	4096
+#endif
+
 #define MAX_DETAIL_TEXTURES 256
 #define MAX_LIGHTMAPS       256
 #define SUBDIVIDE_SIZE      64
