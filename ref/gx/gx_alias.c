@@ -514,12 +514,12 @@ static void GX_DrawAliasFrame( aliashdr_t *paliashdr )
 
 		if( count < 0 )
 		{
-			GX_Begin( GX_TRIANGLE_FAN, GX_VTXFMT0, (u16)(-count) );
+			GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, (u16)(-count) );
 			count = -count;
 		}
 		else
 		{
-			GX_Begin( GX_TRIANGLE_STRIP, GX_VTXFMT0, (u16)count );
+			GX_Begin( GX_TRIANGLESTRIP, GX_VTXFMT0, (u16)count );
 		}
 
 		do
@@ -580,12 +580,12 @@ static void GX_DrawAliasShadow( aliashdr_t *paliashdr )
 
 		if( count < 0 )
 		{
-			GX_Begin( GX_TRIANGLE_FAN, GX_VTXFMT0, (u16)(-count) );
+			GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, (u16)(-count) );
 			count = -count;
 		}
 		else
 		{
-			GX_Begin( GX_TRIANGLE_STRIP, GX_VTXFMT0, (u16)count );
+			GX_Begin( GX_TRIANGLESTRIP, GX_VTXFMT0, (u16)count );
 		}
 
 		do
