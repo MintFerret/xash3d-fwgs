@@ -290,7 +290,7 @@ void GX_BackendStartFrame( void );
 void GX_BackendEndFrame( void );
 void GX_CleanUpTextureUnits( int last );
 void GX_Bind( int tmu, unsigned int texnum );
-void GX_SetTexCoordGen2f( int tmu, GXTexGenSrc src, GXTexMtx mtx );
+void GX_SetTexCoordGen2f( int tmu, u32 src, u32 mtx ); // corregido
 void GX_SetTexCoordArrayMode( int tmu, qboolean enable );
 void GX_LoadTexMatrix( int tmu, const float *matrix );
 void GX_LoadMatrix( const matrix4x4 source );
