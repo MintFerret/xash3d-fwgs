@@ -115,9 +115,9 @@ The Wii/GC port currently uses cmake to build its binaries. Will integrate it in
 *  Crea una dirección de desarrollo(Ubicada en un almacenamiento el cual no tenga espacios en su nombre, al momento de compilar no se suele encontrar archivos por este problema)
 *  Clona los siguientes repositorios en el mismo directorio.
 ```
-git clone --recursive https://github.com/twixerisss/xash3d-fwgs
-git clone --recursive https://github.com/twixerisss/mainui_cpp
-git clone --recursive https://github.com/twixerisss/hlsdk-portable
+git clone --recursive https://github.com/Gerardo-Hub17/xash3d-fwgs
+git clone --recursive https://github.com/Gerardo-Hub17/mainui_cpp
+git clone --recursive https://github.com/Gerardo-Hub17/hlsdk-portable
 ```
 
 ### Building
