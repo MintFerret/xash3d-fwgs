@@ -11,71 +11,54 @@ Xash3D FWGS is a heavily modified fork of an original [Xash3D Engine](https://ww
 2) Pega tu copia legal `valve` Dentro de la carpeta `xash3d` que deberás crear en la raíz de tu SD.
 3) Ejecútalo por medio de Homebrew Channel.
 
-## Instrucciones de la Build
-La versión para Wii actualmente usa cmake para compilar sus binarios. Se integrará en waf en algún momento.
-**New to this? Read [Documentation/wii-setup.md](Documentation/wii-setup.md)** -
-a step-by-step guide covering the SD card layout, the two things a PC copy of
-Half-Life gets wrong, the controls, and what does and does not work yet. The
-short version follows.
+## Controles
 
-
-0) Rename `xash.dol` to `boot.dol` if it was compiled
-1) Move the `boot.dol` file to some directory inside the `apps` folder
-2) Copy `valve` directory to a folder named `xash3d` in the root of the sd card
-3) Run it via the Homebrew Channel
-
-## Controls
-
-Three controllers are supported. Everything below is rebindable from
-Options -> Controls, where the buttons show up under their engine names.
+La mayoría de controles son soportados.
+Todo lo que aparece a continuación se puede volver a enlazar desde Option-> Controls.
 
 ### Wii remote + nunchuk
 
-A nunchuk is required for this scheme: the stick is how you move.
+El Nunshuck es necesario en este esquema "Debido a que su stick es el que usarás para moverte"
 
-| Button | Action |
+| Botón | Acción |
 | --- | --- |
-| **B** (trigger) | Fire |
-| **A** | Jump |
-| **Nunchuk C** | Use / interact, and reload |
-| **Nunchuk Z** | Crouch |
-| **1** | Flashlight |
-| **2** | Secondary fire |
-| **D-pad up** | Reload |
-| **D-pad down** | Last weapon used |
-| **D-pad left / right** | Previous / next weapon |
-| **-** | Walk (hold) |
-| **+** | Pause |
+| **B** (Activar) | Fuego |
+| **A** | Saltar |
+| **Nunchuk C** | Usar / interactuar, y recargar |
+| **Nunchuk Z** | Agacharse |
+| **1** | Linterna |
+| **2** | Arma secundaria |
+| **D-pad up** | Recargar |
+| **D-pad down** | Última arma usada |
+| **D-pad left / right** | Previo / Siguiente arma|
+| **-** | Caminar (Mantén) |
+| **+** | Pausa |
 | **Home** | Menu |
 
-Aiming uses the remote's pointer. Point near the middle of the screen and only
-the weapon moves, which keeps fine aiming steady; point towards an edge and the
-view turns, faster the further out you go. Shots follow the pointer rather than
-the camera.
+Para apuntar se usa el puntero del mando. Apunta cerca del centro de la pantalla y solo se moverá el arma, lo que mantiene estable el apuntado de precisión; apunta hacia un borde y la vista girará, más rápido cuanto más te alejes. Los disparos siguen al puntero en lugar de a la cámara.
 
 ### Classic controller
 
-| Button | Action |
+| Botón | Acción |
 | --- | --- |
-| **R** | Fire |
-| **ZR** | Secondary fire |
-| **L** | Crouch |
-| **ZL** | Walk (hold) |
-| **a** | Jump |
-| **b** | Use / interact |
-| **x** | Reload |
-| **y** | Flashlight |
-| **D-pad left / right** | Previous / next weapon |
-| **D-pad down** | Last weapon used |
-| **+** | Pause |
+| **R** | Fuego |
+| **ZR** | Fuego secundaria |
+| **L** | Agacharse |
+| **ZL** | Caminar (mantenido) |
+| **a** | Saltado |
+| **b** | Usar / interactuar |
+| **x** | Recargar |
+| **y** | Linterna |
+| **D-pad left / right** | Previo / Siguiente Arma |
+| **D-pad down** | Última arma usada|
+| **+** | Pausa |
 | **Home** | Menu |
 
-Left stick moves, right stick looks. There is no pointer aiming on this
-scheme, so `wii_ir 0` is worth setting if you use it exclusively.
+El stick izquierdo mueve, el stick derecho mira. No hay apuntado por puntero en este esquema, así que `wii_ir 0` Vale la pena configurarlo si lo usas.
 
 ### GameCube controller
 
-| Button | Action |
+| Botón | Acción |
 | --- | --- |
 | **R** | Fire |
 | **Z** | Secondary fire |
