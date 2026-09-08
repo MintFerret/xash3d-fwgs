@@ -60,30 +60,25 @@ El stick izquierdo mueve, el stick derecho mira. No hay apuntado por puntero en 
 
 | Botón | Acción |
 | --- | --- |
-| **R** | Fire |
-| **Z** | Secondary fire |
-| **L** | Crouch |
-| **A** | Jump |
-| **B** | Use / interact |
-| **X** | Reload |
-| **Y** | Flashlight |
-| **D-pad left / right** | Previous / next weapon |
-| **D-pad down** | Last weapon used |
+| **R** | Fuego |
+| **Z** | Fuego secundario |
+| **L** | Agacharse |
+| **A** | Saltar |
+| **B** | Usar / interactuar |
+| **X** | Recargar |
+| **Y** | Linterna |
+| **D-pad left / right** | Previo / Siguiente arma|
+| **D-pad down** | Última arma usada |
 | **Start** | Menu |
 
-Left stick moves, C-stick looks.
+Con el stick izquierdo te mueves, con el C-stick mueves la cámara.
 
-Which scheme is active is decided from what is plugged in, so a classic
-controller and a GameCube pad can both be connected without fighting each
-other. `wii_buttons 0` turns the direct reading off and falls back to whatever
-SDL makes of the controller.
+El esquema que está activo se decide según lo que esté conectado, de modo que un mando clásico y un mando de GameCube pueden estar conectados al mismo tiempo sin presentar conflictos entre sí. `wii_buttons 0` Desactiva la lectura directa y recurre a lo que sea que SDL interprete del mando (o controlador).
 
-The menu plays `media/gamestartup.mp3`. Steam installs ship the soundtrack as
-`media/Half-Life01.mp3` and up, with no `gamestartup.mp3` at all, so the menu
-comes up silent until you copy one of them to that name.
+El menú reproduce media/gamestartup.mp3. Las versiones de Steam incluyen la banda sonora como media/Half-Life01.mp3 en adelante, sin ningún archivo gamestartup.mp3, por lo que el menú se inicia en silencio hasta que copies uno de ellos con ese nombre.
 
-## Build instructions
-The Wii/GC port currently uses cmake to build its binaries. Will integrate it into waf at some point
+## Instrucciones de la Build 
+El puerto de Wii utiliza cmake para compilar sus binarios.
 
 ## De preferencia, compile este motor por medio de una distribución Linux, es más rápido y no presenta problemas de enlace
 
@@ -107,10 +102,7 @@ git clone --recursive https://github.com/Gerardo-Hub17/hlsdk-portable
 1) Configura build `cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE="/opt/devkitpro/cmake/Wii.cmake"`
 2) Compila `make -C build`
 
-Or just `./build_wii.sh`, which wraps both steps and picks up devkitPro from
-`$DEVKITPRO`. On CMake 4 the configure step additionally needs
-`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`, because the vendored opus still declares
-a pre-3.5 minimum; the helper script passes it for you.
+O simplemente ./build_wii.sh, que envuelve ambos pasos y toma devkitPro de $DEVKITPRO. En CMake 4, el paso de configuración necesita adicionalmente -DCMAKE_POLICY_VERSION_MINIMUM=3.5, porque el opus empaquetado (vendored) todavía declara un mínimo anterior a 3.5; el script de ayuda lo pasa por ti.
 
 This will build:
 - the filesystem
@@ -121,8 +113,8 @@ This will build:
 ### Nota: 
 -Este es un proyecto en desarrollo. 
 -Es posible muy probable toparse con errores e inestabilidad 
-### Build options
 
+### Build options
 | option | default | meaning |
 | --- | --- | --- |
 | `XASH_RENDERER` | `soft` | `soft` for the software rasteriser, `gl` for ref_gl on opengx. Only one can be linked - both compile `ref/common` and both export `GetRefAPI`. |
