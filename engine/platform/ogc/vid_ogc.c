@@ -199,7 +199,7 @@ qboolean R_Init_Video( ref_graphic_apis_t type ){
 
 	qboolean retval;
 
-	refState.desktopBitsPixel = 32;
+	refState.desktopBitsPixel = 16;
 
 	if( !(retval = VID_SetMode()) )
 	{
@@ -209,6 +209,8 @@ qboolean R_Init_Video( ref_graphic_apis_t type ){
 	ogx_initialize();
 
 	ref.dllFuncs.GL_InitExtensions();
+
+	glw_state.safe = 0;
 
 	host.renderinfo_changed = false;
 
@@ -240,6 +242,21 @@ int R_MaxVideoModes( void )
 vidmode_t *R_GetVideoMode( int num )
 {
 	return NULL;
+}
+
+qboolean GL_DeleteContext( void )
+{
+	return false;
+}
+
+static qboolean GL_CreateContext( void )
+{
+	return true;
+}
+
+static qboolean GL_UpdateContext( void )
+{
+	return true;
 }
 
 void R_Free_Video( void )

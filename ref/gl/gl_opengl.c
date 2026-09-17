@@ -44,11 +44,7 @@ CVAR_DEFINE_AUTO( r_large_lightmaps, "0", FCVAR_GLCONFIG|FCVAR_LATCH, "enable la
 gl_globals_t	tr;
 glconfig_t	glConfig;
 glstate_t	glState;
-// #if XASH_OGC
-// extern glwstate_t glw_state;
-// #else
 glwstate_t	glw_state;
-// #endif
 
 #if XASH_GL_STATIC
 	#define GL_CALL( x ) #x, NULL

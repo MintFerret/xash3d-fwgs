@@ -665,8 +665,13 @@ typedef struct
 extern glconfig_t		glConfig;
 extern glstate_t		glState;
 
+#if XASH_OGC
+extern glwstate_t		glw_state_gl;
+#define glw_state glw_state_gl
+#else
 // move to engine
 extern glwstate_t		glw_state;
+#endif
 
 //
 // helper funcs

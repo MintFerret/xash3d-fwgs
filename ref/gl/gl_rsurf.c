@@ -2673,7 +2673,6 @@ static void R_SetupVBOArrayDlight( vboarray_t *vbo, texture_t *texture )
 
 static void R_SetupVBOArrayDecalDlight( int decalcount )
 {
-	#if !XASH_OGC
 	if( vbos.decal_dlight_vbo )
 	{
 		pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vbos.decal_dlight_vbo );
@@ -2706,7 +2705,6 @@ static void R_SetupVBOArrayDecalDlight( int decalcount )
 	vboarray.astate = VBO_ARRAY_DECAL_DLIGHT;
 	vboarray.tstate = VBO_TEXTURE_DECAL;
 	vboarray.lstate = VBO_LIGHTMAP_DYNAMIC;
-	#endif
 }
 
 /*
@@ -2838,7 +2836,6 @@ static void R_DrawDlightedDecals( vboarray_t *vbo, msurface_t *newsurf, msurface
 
 static void R_FlushDlights( vboarray_t *vbo, int min_index, int max_index, int dlightindex, vboindex_t *dlightarray )
 {
-	#if !XASH_OGC //let's see what happens first
 	if( max_index == 0 )
 		return;
 	if( vbos.dlight_vbo )
