@@ -295,6 +295,9 @@ static void CL_UpdateLogo( void )
 			Con_Printf( "Unable to create custom decal\n" );
 	}
 
+	if( cl.num_resources == cl.num_sent_resources && !memcmp( cl.sent_resources_hash, cl.resourcelist[0].rgucMD5_hash, sizeof( cl.sent_resources_hash )))
+		return;
+
 	CL_SendResourceList( cl.resourcelist, cl.num_resources );
 }
 
@@ -655,6 +658,10 @@ static qboolean CL_ProcessShowTexturesCmds( usercmd_t *cmd )
 		Cvar_SetValue( "r_showtextures", r_showtextures.value + 1 );
 	if( released & ( IN_LEFT|IN_MOVELEFT ))
 		Cvar_SetValue( "r_showtextures", Q_max( 1, r_showtextures.value - 1 ));
+	if( released & IN_FORWARD )
+		Cvar_SetValue( "r_showtextures_zoom", Q_min( SHOWTEXTURES_ZOOM_MAX, r_showtextures_zoom.value + SHOWTEXTURES_ZOOM_STEP ));
+	if( released & IN_BACK )
+		Cvar_SetValue( "r_showtextures_zoom", Q_max( SHOWTEXTURES_ZOOM_MIN, r_showtextures_zoom.value - SHOWTEXTURES_ZOOM_STEP ));
 	oldbuttons = cmd->buttons;
 
 	return true;
@@ -924,11 +931,7 @@ static void CL_WritePacket( void )
 	// can send this command?
 	pcmd = &cl.commands[cls.netchan.outgoing_sequence & CL_UPDATE_MASK];
 
-	// the loopback connection used to be exempted from cl_cmdrate to keep singleplayer
-	// as responsive as possible, but the cl.maxclients == 1 term below already covers
-	// that. on a listenserver the exemption also applied to the host, sending the game
-	// library several times the command packets it expects
-	if( cl.maxclients == 1 || ( host.realtime >= cls.nextcmdtime && Netchan_CanPacket( &cls.netchan, true )))
+	if( cl.maxclients == 1 || ( NET_IsLocalAddress( cls.netchan.remote_address ) && !host_limitlocal.value ) || ( host.realtime >= cls.nextcmdtime && Netchan_CanPacket( &cls.netchan, true )))
 		pcmd->heldback = false;
 	else pcmd->heldback = true;
 
@@ -1123,7 +1126,27 @@ CL_Quit_f
 void CL_Quit_f( void )
 {
 	CL_Disconnect();
-	Sys_Quit( "command" );
+	Sys_Quit( Cmd_Argc() > 1 ? Cmd_Argv( 1 ) : "command" );
+}
+
+/*
+==================
+CL_RequestQuit
+
+Called when the OS asks the game to quit (window close button, Cmd+Q on macOS...)
+Show the quit confirmation dialog if the menu supports it, so the game can't be closed by an accidental key press, otherwise quit immediately
+==================
+*/
+void CL_RequestQuit( const char *reason )
+{
+	if( Cmd_Exists( "menu_quit" ))
+	{
+		Con_Reportf( "%s: quit requested (%s), passing to the menu\n", __func__, reason );
+		Cbuf_AddText( "menu_quit\n" );
+		return;
+	}
+
+	Sys_Quit( reason );
 }
 
 /*
@@ -3758,9 +3781,9 @@ static void CL_InitLocal( void )
 	Cmd_AddRestrictedCommand( "localservers", CL_LocalServers_f, "collect info about local servers" );
 	Cmd_AddRestrictedCommand( "internetservers", CL_InternetServers_f, "collect info about internet servers" );
 	Cmd_AddRestrictedCommand( "ui_queryserver", CL_QueryServer_f, "query server info from console" );
-	Cmd_AddCommand ("cd", CL_PlayCDTrack_f, "Play cd-track (not real cd-player of course)" );
-	Cmd_AddCommand ("mp3", CL_PlayCDTrack_f, "Play mp3-track (based on virtual cd-player)" );
-	Cmd_AddCommand ("waveplaylen", CL_WavePlayLen_f, "Get approximate length of wave file");
+	Cmd_AddCommand( "cd", CL_CD_f, "Play cd-track (not real cd-player of course)" );
+	Cmd_AddCommand( "mp3", CL_MP3_f, "Play mp3-track (based on virtual cd-player)" );
+	Cmd_AddRestrictedCommand( "waveplaylen", CL_WavePlayLen_f, "Get approximate length of wave file" );
 
 	Cmd_AddRestrictedCommand ("setinfo", CL_SetInfo_f, "examine or change the userinfo string (alias of userinfo)" );
 	Cmd_AddRestrictedCommand ("userinfo", CL_SetInfo_f, "examine or change the userinfo string (alias of setinfo)" );
@@ -4003,9 +4026,7 @@ void CL_Shutdown( void )
 	SteamBroker_Shutdown();
 	cls.initialized = false;
 
-	// for client-side VGUI support we use other order
-	if( FI && FI->GameInfo && !FI->GameInfo->internal_vgui_support )
-		VGui_Shutdown();
+	VGui_Shutdown();
 
 	if( g_fsapi.Delete )
 		g_fsapi.Delete( "demoheader.tmp" ); // remove tmp file

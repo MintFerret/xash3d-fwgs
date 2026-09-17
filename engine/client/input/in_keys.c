@@ -48,6 +48,9 @@ static struct
 	int x, y, w, h;
 } key_textinput_rect;
 
+// real platform text input state, might differ from host.textmode with BUGCOMP_ALWAYS_ENABLE_TEXT_INPUT
+static qboolean key_textinput_enabled;
+
 static const keyname_t keynames[] =
 {
 { "TAB",            K_TAB,                 ""                },
@@ -141,8 +144,8 @@ static const keyname_t keynames[] =
 { "PADDLE3",        K_PADDLE3_BUTTON,      ""                },
 { "PADDLE4",        K_PADDLE4_BUTTON,      ""                },
 { "TOUCHPAD",       K_TOUCHPAD,            ""                },
-{ "AUX26",          K_AUX26,               ""                }, // generic
-{ "AUX27",          K_AUX27,               ""                },
+{ "MISC2_BUTTON",   K_MISC2_BUTTON,        ""                },
+{ "AUX27",          K_AUX27,               ""                }, // generic
 { "AUX28",          K_AUX28,               ""                },
 { "AUX29",          K_AUX29,               ""                },
 { "AUX30",          K_AUX30,               ""                },
@@ -885,7 +888,7 @@ void Key_SetTextInputRect( int x, int y, int w, int h )
 	key_textinput_rect.h = h;
 
 	// text is already edited somewhere else now, let the platform know immediately
-	if( host.textmode && !osk_enable.value )
+	if( key_textinput_enabled && !osk_enable.value )
 	{
 		Key_GetTextInputRect( &x, &y, &w, &h );
 		Platform_EnableTextInput( true, x, y, w, h );
@@ -906,20 +909,30 @@ void Key_EnableTextInput( qboolean enable, qboolean force )
 		return;
 	}
 
-	if( enable && ( !host.textmode || force ))
+	// some mods (like Natural Selection) pull text events out of the platform event queue on their own and expect them to always arrive during the gameplay, like they do in GoldSrc
+	qboolean enable_platform = enable || ( cls.key_dest == key_game && FBitSet( host.bugcomp, BUGCOMP_ALWAYS_ENABLE_TEXT_INPUT ));
+
+	if( !enable && ( host.textmode || force ))
+	{
+		// don't reuse this rect for whoever enables the text input next
+		memset( &key_textinput_rect, 0, sizeof( key_textinput_rect ));
+	}
+
+	// host.textmode is compared against here to pick up the new rect when the engine
+	// leaves the text mode but the platform text input is kept running
+	if( enable_platform && ( !key_textinput_enabled || host.textmode != enable || force ))
 	{
 		int x, y, w, h;
 
 		Key_GetTextInputRect( &x, &y, &w, &h );
 		Platform_EnableTextInput( true, x, y, w, h );
 	}
-	else if( !enable && ( host.textmode || force ))
+	else if( !enable_platform && ( key_textinput_enabled || force ))
 	{
-		// don't reuse this rect for whoever enables the text input next
-		memset( &key_textinput_rect, 0, sizeof( key_textinput_rect ));
 		Platform_EnableTextInput( false, 0, 0, 0, 0 );
 	}
 
+	key_textinput_enabled = enable_platform;
 	host.textmode = enable;
 }
 
@@ -995,9 +1008,6 @@ Normal keyboard characters, already shifted / capslocked / etc
 */
 void CL_CharEvent( int key )
 {
-	// the console key should never be used as a char
-	if( key == '`' || key == '~' ) return;
-
 	if( cls.key_dest == key_console && !Con_Visible( ))
 	{
 		if((char)key == '`' || (char)key == '?' )

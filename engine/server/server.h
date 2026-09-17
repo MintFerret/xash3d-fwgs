@@ -75,6 +75,10 @@ extern int SV_UPDATE_BACKUP;
 #define FCL_SEND_RESOURCES	BIT( 9 )
 #define FCL_FORCE_UNMODIFIED	BIT( 10 )
 #define FCL_EXPECT_RESOURCELIST	BIT( 11 )	// engine sent svc_resourcerequest, expect one clc_resourcelist in response
+#define FCL_HOLD_FIRST_DATAGRAM	BIT( 12 )	// don't send the first datagram until the reliable stream is idle
+
+// engine handled spawnflags
+#define SF_NOT_DEATHMATCH	BIT( 11 )	// special bit to remove entity in deathmatch, Quake leftover
 
 typedef enum
 {
@@ -362,7 +366,7 @@ typedef struct
 	entity_state_t	*baselines;		// [GI->max_edicts]
 	entity_state_t	*static_entities;		// [MAX_STATIC_ENTITIES];
 
-	uint32_t  challenge_salt[16]; // pregenerated random numbers for generating challenged based on IP's MD5 address
+	uint32_t  challenge_salt[4]; // 128-bit SipHash key for address challenges and rate-limit buckets
 
 	sizebuf_t testpacket;         // pregenerataed testpacket, only needs CRC32 patching
 	byte      *testpacket_buf;    // check for NULL if testpacket is available
@@ -452,6 +456,7 @@ extern convar_t		sv_allow_autoaim;
 extern convar_t		sv_aim;
 extern convar_t		sv_allow_testpacket;
 extern convar_t		sv_expose_player_list;
+extern convar_t		sv_query_rate_limit;
 
 //===========================================================
 //
@@ -468,6 +473,7 @@ int SV_GenericIndex( const char *name );
 void SV_InitOperatorCommands( void );
 void SV_KillOperatorCommands( void );
 void SV_RemoteCommand( netadr_t from, sizebuf_t *msg );
+qboolean SV_QueryRateLimited( netadr_t from );
 void SV_SendResource( resource_t *pResource, sizebuf_t *msg );
 void SV_AddToMaster( netadr_t from, sizebuf_t *msg );
 qboolean SV_ProcessUserAgent( netadr_t from, const char *useragent );
