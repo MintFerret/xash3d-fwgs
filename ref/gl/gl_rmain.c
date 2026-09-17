@@ -41,6 +41,7 @@ static int R_RankForRenderMode( int rendermode )
 
 void R_AllowFog( qboolean allowed )
 {
+	#if !XASH_OGC //opengx does NOT disable GL_FOG
 	if( allowed )
 	{
 		if( glState.isFogEnabled && gl_fog.value )
@@ -51,6 +52,7 @@ void R_AllowFog( qboolean allowed )
 		if( glState.isFogEnabled )
 			pglDisable( GL_FOG );
 	}
+	#endif
 }
 
 /*
@@ -779,6 +781,7 @@ R_DrawFog
 */
 void R_DrawFog( void )
 {
+	#if !XASH_OGC
 	if( !RI.fogEnabled || !gl_fog.value )
 		return;
 
@@ -787,6 +790,7 @@ void R_DrawFog( void )
 	pglFogf( GL_FOG_DENSITY, RI.fogDensity );
 	pglFogfv( GL_FOG_COLOR, RI.fogColor );
 	pglHint( GL_FOG_HINT, GL_NICEST );
+	#endif
 }
 
 /*

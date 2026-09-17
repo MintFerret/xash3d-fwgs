@@ -127,10 +127,6 @@ CVAR_DEFINE_AUTO( r_studio_builtin_renderer, "0", 0, "use built-in studio model 
 static cvar_t			*cl_righthand = NULL;
 
 static r_studio_interface_t	*pStudioDraw;
-// 2.4MB of vertex and bone scratch. As .bss it sits in MEM1, which on the Wii
-// is the same pool the GPU draws out of; on the heap it goes to MEM2. It is
-// allocated once in R_StudioInit and never freed, so it must not come from a
-// pool the engine empties between maps.
 static studio_draw_state_t	*g_studio_mem;		// global studio state
 #define g_studio			(*g_studio_mem)
 
@@ -161,7 +157,7 @@ void R_StudioInit( void )
 		memset( g_studio_mem, 0, sizeof( *g_studio_mem ));
 	}
 
-#if XASH_PSVITA
+#if XASH_PSVITA || XASH_OGC
 	// don't do the same array-building work twice since that's what our FFP shim does anyway
 	gEngfuncs.Cvar_FullSet( "r_studio_drawelements", "0", FCVAR_READ_ONLY );
 #endif

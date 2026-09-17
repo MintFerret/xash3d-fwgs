@@ -977,13 +977,6 @@ qboolean SV_SpawnServer( const char *mapname, const char *startspot, qboolean ba
 	if( startspot )
 	{
 		Con_Printf( "Spawn Server: %s [%s]\n", mapname, startspot );
-#if XASH_OGC && defined( XASH_OGC_HEAPPROBE )
-		{ // a landmark means a transition: show what the engine held going in,
-		  // so engine allocations can be told apart from renderer ones
-			void Mem_PrintStats( void );
-			Mem_PrintStats();
-		}
-#endif
 	}
 	else
 	{

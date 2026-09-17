@@ -80,15 +80,15 @@ target_compile_options(filesystem_stdio PRIVATE
 #cl_dll, dlls, menu goes here
 include(makelibrary.txt)
 
-file(GLOB REF_SOFT_SOURCES
+file(GLOB REF_GL_SOURCES
 	ref/common/*
-	ref/soft/*
+	ref/gl/*
 	)
-add_library(ref_soft STATIC ${REF_SOFT_SOURCES})
-target_include_directories(ref_soft PUBLIC
+add_library(ref_gl STATIC ${REF_GL_SOURCES})
+target_include_directories(ref_gl PUBLIC
  	3rdparty/library_suffix/include
  	ref/common
- 	ref/soft
+ 	ref/gl
  	common
  	engine
  	engine/common
@@ -97,15 +97,14 @@ target_include_directories(ref_soft PUBLIC
  	pm_shared
  	filesystem
  	)
- target_compile_definitions(ref_soft PRIVATE
+ target_compile_definitions(ref_gl PRIVATE
  	-DXASH_LOW_MEMORY=2
  	-DXASH_STATIC_LIBS=1
+ 	-DXASH_GL_STATIC=1
  	-DREF_DLL=1
- 	# -DXASH_GL_STATIC=1
  	)
- target_compile_options(ref_soft PRIVATE -fpermissive -fno-exceptions) #-msdata=eabi -mno-sdata -G0
- # target_link_options(ref_gl PRIVATE -Wl,-msdata-eabi)
- target_link_libraries(ref_soft public)
+ target_compile_options(ref_gl PRIVATE -fpermissive -fno-exceptions) #-msdata=eabi -mno-sdata -G0
+ target_link_libraries(ref_gl public)
 
  file(GLOB ENGINE_SOURCES
      engine/client/vgui/*
@@ -154,10 +153,10 @@ target_compile_definitions(xash PUBLIC
 	-DHAVE_OPUS=1
 	-DXASH_LOW_MEMORY=2
 	-DXASH_SDL=2
-	# -DHAVE_GL=1
+	-DHAVE_GL=1
 	-DGL_STATIC=1
 	-DXASH_NO_LIBDL=1
-	-DXASH_REF_SOFT_ENABLED=1
+	-DXASH_REF_GL_ENABLED=1
 	-DSTATIC_LINKING=1
 	-DXASH_STATIC_LIBS=1
 	-DNO_VGUI=1
@@ -174,7 +173,7 @@ target_compile_definitions(xash PUBLIC
 	-DDEBUG=1
 	)
 
-pkg_check_modules(DEPS REQUIRED sdl2 zlib) #opengl bzip2 #freetype2 #zlib
+pkg_check_modules(DEPS REQUIRED sdl2 zlib opengl) # bzip2 #freetype2 #zlib
 
 target_include_directories(xash PUBLIC
 	${DEPS_INCLUDE_DIRS}
@@ -198,15 +197,15 @@ target_include_directories(xash PUBLIC
     3rdparty/MultiEmulator/include
     3rdparty/opus/opus/include
 
-    # /opt/devkitpro/portlibs/wii/include/GL
+	/opt/devkitpro/portlibs/wii/include/GL
 	)
 
-target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_soft menu
-SDL2::SDL2main BZip2::BZip2 Opus::opus
+target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_gl menu
+ BZip2::BZip2 Opus::opus
 library_suffix pthread ${DEPS_LIBRARIES}
 MultiEmulator
 # PkgConfig::OPENGL
-# opengx
+opengx
 #GLU
 #glut
 )

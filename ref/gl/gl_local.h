@@ -57,30 +57,25 @@ void VGL_ShimEndFrame( void );
 
 #define BLOCK_SIZE		tr.block_size	// lightmap blocksize
 #define BLOCK_SIZE_DEFAULT	128		// for keep backward compatibility
-#if XASH_OGC
-// The lightmap scratch buffers are sized statically from this. At 1024 that is
-// a 12MB r_blocklights plus a 4MB lightmap_buffer sitting in .bss - more than
-// the Wii's entire 24MB of MEM1, so the .dol wouldn't even load. GX caps
-// textures at 1024 anyway and lightmap atlases this large buy nothing here.
-#define BLOCK_SIZE_MAX	256
-#else
-#define BLOCK_SIZE_MAX	1024
-#endif
+#define BLOCK_SIZE_MAX 1024
 
-#if XASH_OGC
-// opengx keeps its texture objects in a fixed array of _MAX_GL_TEX (2048)
-// indexed directly by GL name, so a name past that cannot exist: glGenTextures
-// will not return one and glBindTexture silently does nothing when handed one.
-// There is no point carrying more slots than the library can name.
-#define MAX_TEXTURES            2048
-#else
 #define MAX_TEXTURES            8192	// a1ba: increased by users request
-#endif
 #define MAX_DETAIL_TEXTURES	256
 #define MAX_LIGHTMAPS	256
 #define SUBDIVIDE_SIZE	64
 #define MAX_DECAL_SURFS	4096
 #define MAX_DRAW_STACK	2		// normal view and menu view
+
+#if XASH_OGC
+#undef MAX_TEXTURES
+#undef MAX_DETAIL_TEXTURES
+#undef MAX_DECAL_SURFS
+#undef BLOCK_SIZE_MAX
+#define MAX_TEXTURES 2048
+#define MAX_DETAIL_TEXTURES 256
+#define MAX_DECAL_SURFS 256
+#define BLOCK_SIZE_MAX 256
+#endif
 
 #define SHADEDOT_QUANT 	16		// precalculated dot products for quantized angles
 #define SHADE_LAMBERT	1.4953241
@@ -101,15 +96,6 @@ void VGL_ShimEndFrame( void );
 #define HACKS_RELATED_HLMODS		// some HL-mods works differently under Xash and can't be fixed without some hacks at least at current time
 
 #if XASH_OGC
-// The skybox sides get handed fixed texture names starting at this base
-// instead of generated ones, and the base has to stay inside opengx's texture
-// array. Past it two things go wrong. GL_AllocTexture's range test fails and
-// the side falls through to the "find a free slot" search, which hands out
-// slot 0 - the entry R_InitImages reserves as "*unused*" and that GL_Bind
-// substitutes for any invalid handle. Worse, opengx's glBindTexture bounds
-// checks the name and simply returns, so the bind never happens and the sky's
-// glTexImage2D uploads its pixels into whatever texture was bound before it.
-// That is how the console font came to be drawing a desert.
 #define SKYBOX_BASE_NUM ( MAX_TEXTURES - 16 )	// 2032, inside opengx's table
 #else
 #define SKYBOX_BASE_NUM 5800 // set skybox base (to let some mods load hi-res skyboxes)
@@ -678,6 +664,7 @@ typedef struct
 
 extern glconfig_t		glConfig;
 extern glstate_t		glState;
+
 // move to engine
 extern glwstate_t		glw_state;
 
