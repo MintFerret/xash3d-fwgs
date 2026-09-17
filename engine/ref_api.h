@@ -688,6 +688,7 @@ typedef int (*REFAPI)( int version, ref_interface_t *pFunctionTable, ref_api_t* 
 	ENGINE_SHARED_CVAR_NAME( f, v_lightgamma, lightgamma ) \
 	ENGINE_SHARED_CVAR_NAME( f, v_direct, direct ) \
 	ENGINE_SHARED_CVAR_NAME( f, ref_r_showtextures, r_showtextures ) \
+	ENGINE_SHARED_CVAR_NAME( f, ref_r_showtextures_zoom, r_showtextures_zoom ) \
 	ENGINE_SHARED_CVAR( f, r_speeds ) \
 	ENGINE_SHARED_CVAR( f, r_fullbright ) \
 	ENGINE_SHARED_CVAR( f, r_norefresh ) \

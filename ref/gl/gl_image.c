@@ -2291,7 +2291,11 @@ void R_ShowTextures( void )
 	gEngfuncs.Con_DrawStringLen( NULL, NULL, &charHeight );
 
 	// keep a tile square and fitting on screen
+	#if XASH_OGC
+	float zoom = bound( SHOWTEXTURES_ZOOM_MIN, ref_r_showtextures_zoom->value, SHOWTEXTURES_ZOOM_MAX );
+	#else
 	float zoom = bound( SHOWTEXTURES_ZOOM_MIN, r_showtextures_zoom->value, SHOWTEXTURES_ZOOM_MAX );
+	#endif
 	float w = Q_min( 200.0f * zoom, gpGlobals->width );
 	float h = Q_min( 200.0f * zoom, Q_max( 1.0f, gpGlobals->height - charHeight * 2.0f ));
 
