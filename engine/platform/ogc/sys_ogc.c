@@ -46,7 +46,6 @@ void OGC_Init( void )
 {
 	SYS_STDIO_Report(true);
 	WPAD_Init();
-	fatInitDefault();
 
 	// Needs to be enabled to disable it
 	KEYBOARD_Init(NULL);

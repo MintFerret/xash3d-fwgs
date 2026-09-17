@@ -45,6 +45,17 @@ int main( int argc, char **argv )
 	szArgc = argc;
 	szArgv = argv;
 #endif // XASH_PSVITA
+
+#if XASH_OGC
+	char buf[1024];
+
+	dvmInitDefault();
+
+	if ( !OGC_GetBasePath( buf, sizeof(buf) ) )
+		return 1;
+
+	setenv( "XASH3D_BASEDIR", buf, true );
+#endif
 	return Host_Main( szArgc, szArgv, XASH_GAMEDIR, 0, Sys_ChangeGame );
 }
 #endif // XASH_ENABLE_MAIN

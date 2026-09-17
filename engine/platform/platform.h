@@ -125,6 +125,11 @@ void DOS_Init( void );
 void DOS_Shutdown( void );
 #endif
 
+#if XASH_OGC
+void OGC_Init( void );
+void OGC_Shutdown( void );
+#endif
+
 #if XASH_LINUX
 void Linux_Init( void );
 void Linux_Shutdown( void );
