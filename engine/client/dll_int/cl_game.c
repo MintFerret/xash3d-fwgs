@@ -4051,7 +4051,6 @@ qboolean CL_LoadProgs( const char *name )
 	clgame.mempool = Mem_AllocPool( "Client Edicts Zone" );
 	clgame.entities = NULL;
 
-	#if !XASH_OGC //No VGUI please!
 
 	// NOTE: important stuff!
 	// vgui must startup BEFORE loading client.dll to avoid get error ERROR_NOACESS during LoadLibrary
@@ -4060,7 +4059,6 @@ qboolean CL_LoadProgs( const char *name )
 	else
 		try_internal_vgui_support = true; // we failed to load vgui_support, but let's probe client.dll for support anyway
 
-	#endif
 	clgame.hInstance = COM_LoadLibrary( name, false, false );
 
 	if( !clgame.hInstance )

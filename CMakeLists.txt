@@ -25,7 +25,8 @@ add_definitions(
     -DHAVE_STRLCAT=1
     -DHAVE_STRNLEN=1
     -DCUSTOM_MODES=1
-    -DDEFAULT_DEV=2
+
+    #-DDEFAULT_DEV=2
 )
 file(GLOB PUBLIC_SOURCES public/*)
 list(REMOVE_ITEM PUBLIC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/public/build_vcs.c")
@@ -73,8 +74,6 @@ target_compile_definitions(filesystem_stdio PRIVATE
 target_compile_options(filesystem_stdio PRIVATE
  -fno-omit-frame-pointer -ffunction-sections -fno-asynchronous-unwind-tables
  -fno-exceptions -fpermissive
- #-mno-sdata
- #-G0
 )
 
 #cl_dll, dlls, menu goes here
@@ -103,7 +102,7 @@ target_include_directories(ref_gl PUBLIC
  	-DXASH_GL_STATIC=1
  	-DREF_DLL=1
  	)
- target_compile_options(ref_gl PRIVATE -fpermissive -fno-exceptions) #-msdata=eabi -mno-sdata -G0
+ target_compile_options(ref_gl PRIVATE -fpermissive -fno-exceptions)
  target_link_libraries(ref_gl public)
 
  file(GLOB ENGINE_SOURCES
@@ -164,13 +163,10 @@ target_compile_definitions(xash PUBLIC
 	-DXASH_ENABLE_MAIN=1
 	-DFRAME_POINTERS=1
 	-DBIGENDIAN=1
-	#-DUSE_FS_SEARCH_FOR_LOOKUPS=0
 
 
-	-DDEBUG_LOOKUPS_COUNT=1
-	-D_EXI_DEBUG=1
-	-D_DEBUG=1
-	-DDEBUG=1
+	#-DDEBUG_LOOKUPS_COUNT=1
+	#-D_EXI_DEBUG=1
 	)
 
 pkg_check_modules(DEPS REQUIRED sdl2 zlib opengl) # bzip2 #freetype2 #zlib
@@ -200,14 +196,11 @@ target_include_directories(xash PUBLIC
 	/opt/devkitpro/portlibs/wii/include/GL
 	)
 
-target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_gl menu
+target_link_libraries(xash PUBLIC filesystem_stdio hl cl_dll ref_gl menu vgui
  BZip2::BZip2 Opus::opus
 library_suffix pthread ${DEPS_LIBRARIES}
 MultiEmulator
-# PkgConfig::OPENGL
 opengx
-#GLU
-#glut
 )
 
 dkp_target_generate_symbol_list(xash)
@@ -215,8 +208,7 @@ ogc_create_dol(xash)
 
 target_compile_options(xash PUBLIC
 	-std=gnu11
-	-Og
-	-g3
+	-Os
 	-fno-omit-frame-pointer
 	-fno-strict-aliasing
 	-fno-stack-protector
@@ -225,11 +217,10 @@ target_compile_options(xash PUBLIC
 	-fno-exceptions
 	-freorder-blocks
 	-fvisibility=hidden
-	#-flto=auto
+	-flto=auto
 	-Wno-implicit-function-declaration
 	-Wno-int-conversion
 	-Wno-unused-function
-	#-fwhole-program
 )
 target_link_options(xash PUBLIC
 	-Wl,--gc-sections
