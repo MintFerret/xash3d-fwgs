@@ -9,7 +9,8 @@ Xash3D FWGS is a heavily modified fork of an original [Xash3D Engine](https://ww
 0) Rename `xash.dol` to `boot.dol` if it was compiled
 1) Move the `boot.dol` file to some directory inside the `apps` folder
 2) Copy `valve` directory to a folder named `xash3d` in the root of the sd card
-3) Run it via the Homebrew Channel
+3) (Optional) copy `extras.pk3` inside the `xash3d` folder to fix the main menu
+4) Run it via the Homebrew Channel
 
 ## Build instructions
 The Wii/GC port currently uses cmake to build its binaries. Will integrate it into waf at some point
@@ -38,6 +39,8 @@ This will build:
 - the filesystem
 -  hlsdk (game libraries)
 -  mainui
+-  vgui
+-  opengl renderer
 -  the engine itself
 
 ### Note
