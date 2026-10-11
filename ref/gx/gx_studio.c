@@ -1493,7 +1493,7 @@ static void R_StudioDrawPoints( void )
 		else
 		{
 			tr.fFlipViewModel = false;
-			GX_Cull( XASH_CULL_FRONT );
+			GX_Cull( XASH_CULL_BACK );
 		}
 	}
 

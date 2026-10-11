@@ -59,7 +59,11 @@ static int	g_stripcount;
 
 static void GX_SetupVtxFormatAlias( qboolean useColor, qboolean useTex )
 {
-	GX_SetChanVtxColor( useColor );
+	GX_Cull( XASH_CULL_BACK );
+	GX_SetAlphaCompare( GX_GREATER, 0, GX_AOP_AND, GX_ALWAYS, 0 );
+	useColor = false; /* viewmodel HL no usa vertex colors */
+	GX_SetChanVtxColor( false ); /* viewmodel: color de registro, no vertice */
+	{ GXColor _w = { 255, 255, 255, 255 }; GX_SetChanMatColor( GX_COLOR0A0, _w ); }
 	GX_SetNumTevStages( 1 );
 	GX_ClearVtxDesc();
 	GX_SetVtxDesc( GX_VA_POS,  GX_DIRECT );
