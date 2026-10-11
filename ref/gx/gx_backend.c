@@ -280,6 +280,18 @@ void GX_SetTexCoordArrayMode( int tmu, qboolean enable )
 	glState.texCoordArrayMode[tmu] = bit;
 }
 
+void GX_ResetRenderState( void )
+{
+	GXColor w = { 255, 255, 255, 255 };
+	GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
+	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
+	GX_SetAlphaCompare( GX_ALWAYS, 0, GX_AOP_AND, GX_ALWAYS, 0 );
+	GX_SetNumTevStages( 1 );
+	GX_SetNumTexGens( 1 );
+	GX_SetChanMatColor( GX_COLOR0A0, w );
+	GX_SetCullMode( GX_CULL_BACK );
+}
+
 void GX_Cull( int cull )
 {
 	u8 gxMode;

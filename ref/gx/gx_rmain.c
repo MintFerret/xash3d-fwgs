@@ -896,6 +896,7 @@ static void R_CheckCvars( void )
 
 void R_BeginFrame( qboolean clearScene )
 {
+	GX_ResetRenderState();
 	static int bf;
 	if( bf < 5 ) gEngfuncs.Con_Printf( "[GX] BeginFrame %d\n", bf );
 	bf++;

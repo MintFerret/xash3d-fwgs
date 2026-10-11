@@ -306,6 +306,7 @@ void GX_EnableTextureUnit( int tmu, qboolean enable );
 void GX_SetChanVtxColor( qboolean vtx );
 void GX_SetupTexturedPipeline( void );
 void GX_Cull( int cullMode );
+void GX_ResetRenderState( void );
 void GX_DrawIndexedPrimitive( u8 primType, const void *verts, int numVerts, const u16 *indices, int numIndices );
 void GX_PushPolygonOffset( float factor, float units );
 void GX_PopPolygonOffset( void );
