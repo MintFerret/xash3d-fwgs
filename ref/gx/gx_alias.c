@@ -60,7 +60,6 @@ static int	g_stripcount;
 static void GX_SetupVtxFormatAlias( qboolean useColor, qboolean useTex )
 {
 	GX_Cull( XASH_CULL_BACK );
-	GX_SetAlphaCompare( GX_GREATER, 0, GX_AOP_AND, GX_ALWAYS, 0 );
 	useColor = false; /* viewmodel HL no usa vertex colors */
 	GX_SetChanVtxColor( false ); /* viewmodel: color de registro, no vertice */
 	{ GXColor _w = { 255, 255, 255, 255 }; GX_SetChanMatColor( GX_COLOR0A0, _w ); }
@@ -867,7 +866,6 @@ void R_DrawAliasModel( cl_entity_t *e )
 		GX_Bind( XASH_TEXTURE0, m_pAliasHeader->gl_texturenum[skin][anim] );
 		if( FBitSet( R_GetTexture( m_pAliasHeader->gl_texturenum[skin][anim] )->flags, TF_HAS_ALPHA ))
 		{
-			GX_SetAlphaCompare( GX_GREATER, 0, GX_AOP_AND, GX_ALWAYS, 0 );
 			tr.blend = 1.0f;
 		}
 	}
