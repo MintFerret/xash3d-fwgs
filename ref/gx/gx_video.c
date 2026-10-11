@@ -147,6 +147,11 @@ void GX_Present( void )
 
 	if( n < 5 ) gEngfuncs.Con_Printf( "[GX] present %d: DrawDone\n", n );
 	GX_DrawDone();
+	/* GX_CopyDisp(clear=TRUE) solo limpia color/alpha/Z si sus escrituras estan habilitadas en ese momento. */
+	/* Si el ultimo dibujo dejo Z-write o color-update apagado, el EFB no se limpia y el frame anterior se acumula. */
+	GX_SetColorUpdate( GX_TRUE );
+	GX_SetAlphaUpdate( GX_TRUE );
+	GX_SetZMode( GX_TRUE, GX_ALWAYS, GX_TRUE );
 	if( n < 5 ) gEngfuncs.Con_Printf( "[GX] present %d: CopyDisp\n", n );
 	GX_CopyDisp( gxvid.xfb[gxvid.fb], GX_TRUE );
 	GX_DrawDone(); /* esperar a que la copia EFB->XFB termine antes de mostrarla (evita tearing) */
