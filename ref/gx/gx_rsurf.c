@@ -1186,7 +1186,7 @@ static void R_BlendLightmaps( void )
 		}
 
 		/* lightmaps dinamicos (linterna, dlights, estilos animados) */
-		R_BlendDynamicLightmapsSingle();
+		/* R_BlendDynamicLightmapsSingle(); */
 
 		GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
