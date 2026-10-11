@@ -918,6 +918,9 @@ void R_BeginFrame( qboolean clearScene )
         R_ClearScreen();
     }
 
+    /* Siempre limpiar EFB: el blend DST_CLR (lightmaps) necesita framebuffer fresco, si no, el muzzle flash aditivo queda pegado */
+    R_ClearScreen();
+
     R_CheckCvars();
     GXT( "cvars ok" );
     R_Set2DMode( true );
