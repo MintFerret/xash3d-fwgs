@@ -1736,6 +1736,18 @@ static void R_RenderBrushPoly( msurface_t *fa, int cull_type )
 
 static void R_DrawTextureChains( void )
 {
+	/* Reset defensivo: el muzzle flash puede dejar ColorUpdate/ZMode/Blend en estado que produce mundo negro */
+	GX_SetColorUpdate( GX_TRUE );
+	GX_SetAlphaUpdate( GX_TRUE );
+	GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
+	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
+	GX_SetAlphaCompare( GX_ALWAYS, 0, GX_AOP_AND, GX_ALWAYS, 0 );
+	GX_SetNumTexGens( 1 );
+	GX_SetTexCoordGen( GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY );
+	GX_SetNumTevStages( 1 );
+	GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
+	GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
+	GX_SetChanVtxColor( false );
 	GXColor white = { 255, 255, 255, 255 };
 	GX_SetChanMatColor( GX_COLOR0A0, white );
 	R_LoadIdentity();
