@@ -613,9 +613,10 @@ static qboolean LM_AllocBlock( int w, int h, int *x, int *y )
 
 static void LM_UploadDynamicBlock( void )
 {
+	/* siempre la pagina completa: si se subiera solo max_height, la textura se achicaria y las UV quedarian mal */
 	GX_UpdateTexture( tr.dlightTexture,
-		BLOCK_SIZE, gx_lms.atlas.max_height,
-		BLOCK_SIZE, gx_lms.atlas.max_height,
+		BLOCK_SIZE, BLOCK_SIZE,
+		BLOCK_SIZE, BLOCK_SIZE,
 		gx_lms.lightmap_buffer, PF_RGBA_32 );
 }
 
@@ -1070,6 +1071,61 @@ static qboolean R_HasLightmap( void )
 }
 static void DrawGLPolyBatchChain( msurface_t *head );
 
+static void R_BlendDynamicLightmapsSingle( void )
+{
+	msurface_t *newsurf, *drawsurf;
+
+	if( !r_dynamic->value || !gx_lms.dynamic_surfaces )
+		return;
+
+	LM_InitBlock();
+	newsurf = gx_lms.dynamic_surfaces;
+
+	for( msurface_t *surf = gx_lms.dynamic_surfaces; surf != NULL; surf = surf->info->lightmapchain )
+	{
+		mextrasurf_t *info = surf->info;
+		byte *base;
+		int sample_size = gEngfuncs.Mod_SampleSizeForFace( surf );
+		int smax = ( info->lightextents[0] / sample_size ) + 1;
+		int tmax = ( info->lightextents[1] / sample_size ) + 1;
+
+		if( !LM_AllocBlock( smax, tmax, &surf->info->dlight_s, &surf->info->dlight_t ))
+		{
+			LM_UploadBlock( true );
+
+			for( drawsurf = newsurf; drawsurf != surf; drawsurf = drawsurf->info->lightmapchain )
+			{
+				GX_Bind( 0, tr.dlightTexture );
+				DrawGLPolyChain( drawsurf->polys,
+					( drawsurf->light_s - drawsurf->info->dlight_s ) * ( 1.0f / (float)BLOCK_SIZE ),
+					( drawsurf->light_t - drawsurf->info->dlight_t ) * ( 1.0f / (float)BLOCK_SIZE ),
+					drawsurf );
+			}
+
+			newsurf = drawsurf;
+			LM_InitBlock();
+
+			if( !LM_AllocBlock( smax, tmax, &surf->info->dlight_s, &surf->info->dlight_t ))
+				gEngfuncs.Host_Error( "AllocBlock: full\n" );
+		}
+
+		base = gx_lms.lightmap_buffer;
+		base += ( surf->info->dlight_t * BLOCK_SIZE + surf->info->dlight_s ) * 4;
+		R_BuildLightMap( surf, base, BLOCK_SIZE * 4, true );
+	}
+
+	if( newsurf ) LM_UploadBlock( true );
+
+	for( msurface_t *surf = newsurf; surf != NULL; surf = surf->info->lightmapchain )
+	{
+		GX_Bind( 0, tr.dlightTexture );
+		DrawGLPolyChain( surf->polys,
+			( surf->light_s - surf->info->dlight_s ) * ( 1.0f / (float)BLOCK_SIZE ),
+			( surf->light_t - surf->info->dlight_t ) * ( 1.0f / (float)BLOCK_SIZE ),
+			surf );
+	}
+}
+
 static void R_BlendLightmaps( void )
 {
 	msurface_t	*newsurf = NULL;
@@ -1129,13 +1185,15 @@ static void R_BlendLightmaps( void )
 				surf->texturechain = NULL;
 		}
 
+		/* lightmaps dinamicos (linterna, dlights, estilos animados) */
+		R_BlendDynamicLightmapsSingle();
+
 		GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
 		GX_SetNumTexGens( 1 );
 		GX_SetTexCoordGen( GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY );
 		GX_SetNumTevStages( 1 );
 		GX_EnableTextureUnit( 0, true );
-		/* dinamicos (flashlight/dlights) omitidos en este modo */
 		return;
 	}
 

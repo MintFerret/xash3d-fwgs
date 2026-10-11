@@ -351,6 +351,9 @@ static float R_GetFarClip( void )
 
 void R_SetupFrustum( void )
 {
+	/* RI.vforward/vright/vup nunca se calculaban: particulas, sprites, beams y el frustum quedaban con vectores en cero */
+	AngleVectors( RI.rvp.viewangles, RI.vforward, RI.vright, RI.vup );
+
 
     if( !r_lockfrustum.value )
     {
