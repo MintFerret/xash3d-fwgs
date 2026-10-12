@@ -947,6 +947,8 @@ static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples
 		GX_End();
 
 	GX_SetupFogColorForSurfaces();
+
+	gx_dbg_chain_surfs = 0;
 }
 
 static void EmitWaterLightPolys( msurface_t *warp, float soffset, float toffset, qboolean dynamic )
@@ -1734,6 +1736,43 @@ static void R_RenderBrushPoly( msurface_t *fa, int cull_type )
 	R_RenderLightmapForSurface( fa );
 }
 
+static int gx_dbg_chain_surfs;
+
+static void GX_DiagProbe( const char *tag )
+{
+	static int frame;
+	static int last_logged = -1000;
+	const int w = gpGlobals->width, h = gpGlobals->height;
+	const int px[5] = { w / 4, w / 2, ( w * 3 ) / 4, w / 5, ( w * 4 ) / 5 };
+	const int py[5] = { h / 3, h / 2, h / 3, ( h * 3 ) / 4, ( h * 3 ) / 4 };
+	int i;
+
+	if( gx_testmode != 20 )
+		return;
+
+	if( tag[0] == 0x42 ) /* B... */
+		frame++;
+
+	if( frame - last_logged < 20 && frame > 10 )
+		return;
+	if( tag[0] == 0x5A ) /* Z... */
+		last_logged = frame;
+
+	GX_DrawDone();
+	gEngfuncs.Con_Printf( "[PROBE] f=%d %s chainsurfs=%d dyn=%d dl=%d fog=%d/%d poff=%d", frame, tag,
+		gx_dbg_chain_surfs, gx_lms.dynamic_surfaces != NULL, (int)tr.dlightframecount,
+		(int)glState.isFogEnabled, (int)RI.fogEnabled, (int)glState.num_polyoffsets );
+	for( i = 0; i < 5; i++ )
+	{
+		GXColor c = { 0, 0, 0, 0 };
+		u32 z = 0;
+		GX_PeekARGB( px[i], py[i], &c );
+		GX_PeekZ( px[i], py[i], &z );
+		gEngfuncs.Con_Printf( " | %02x%02x%02x z=%06x", c.r, c.g, c.b, (unsigned)z );
+	}
+	gEngfuncs.Con_Printf( "\n" );
+}
+
 static void R_DrawTextureChains( void )
 {
 	/* Reset defensivo: el muzzle flash puede dejar ColorUpdate/ZMode/Blend en estado que produce mundo negro */
@@ -1792,7 +1831,10 @@ static void R_DrawTextureChains( void )
 			{
 				msurface_t *batch_head = s;
 				for( ; s != NULL; s = s->texturechain )
+				{
 					R_RenderBrushPoly( s, CULL_VISIBLE );
+					gx_dbg_chain_surfs++;
+				}
 
 				/* el pase de lightmaps ya dibuja textura x lightmap: no dibujar dos veces
 				   las superficies con lightmap (solo las que no pasan por ese pase) */
@@ -2418,6 +2460,29 @@ void R_DrawWorld( void )
 
 	R_ClearSkyBox();
 
+	/* endurecimiento: no confiar en el estado que dejo el frame anterior */
+	{
+		int u;
+		for( u = 0; u < MAX_TEXTURE_UNITS; u++ )
+		{
+			glState.currentTexturesIndex[u] = 0;
+			glState.currentTextures[u] = NULL;
+		}
+		GX_SetScissor( 0, 0, gpGlobals->width, gpGlobals->height );
+		GX_SetClipMode( GX_CLIP_ENABLE );
+		GX_SetCoPlanar( GX_DISABLE );
+		GX_SetColorUpdate( GX_TRUE );
+		GX_SetAlphaUpdate( GX_TRUE );
+		GX_SetZCompLoc( GX_TRUE );
+		GX_SetCurrentMtx( GX_PNMTX0 );
+		if( !glState.isFogEnabled )
+		{
+			GXColor nofog = { 0, 0, 0, 0 };
+			GX_SetFog( GX_FOG_NONE, 0.0f, 0.0f, 0.0f, 0.0f, nofog );
+		}
+	}
+	GX_DiagProbe( "B-start" );
+
 	double start = gEngfuncs.pfnTime();
 	if( FBitSet( RI.rvp.flags, RF_DRAW_OVERVIEW ))
 		R_DrawWorldTopView( WORLDMODEL->nodes, RI.frustum.clipFlags );
@@ -2430,6 +2495,7 @@ void R_DrawWorld( void )
 
 	if( gx_world_dbg > 0 ) gEngfuncs.Con_Printf( "[WORLD] chains start\n" );
 	R_DrawTextureChains();
+	GX_DiagProbe( "after-pass1" );
 	if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] chains done\n" ); }
 
 	if( !ENGINE_GET_PARM( PARM_DEV_OVERVIEW ))
@@ -2438,6 +2504,7 @@ void R_DrawWorld( void )
 		GX_ResetFogColor();
 		if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] decals done\n" ); }
 		R_BlendLightmaps();
+		GX_DiagProbe( "after-lightmaps" );
 		if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] lightmaps done\n" ); }
 		if( gx_testmode != 8 )
 		{
@@ -2448,6 +2515,7 @@ void R_DrawWorld( void )
 
 		if( skychain && gx_testmode != 8 )
 			R_DrawSkyBox();
+		GX_DiagProbe( "Z-after-sky" );
 		if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] sky/extras done\n" ); }
 	}
 

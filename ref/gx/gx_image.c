@@ -809,8 +809,10 @@ static qboolean GX_UploadTexture( gl_texture_t *tex, rgbdata_t *pic )
 
 	GX_ApplyTextureParams( tex );
 
-	glState.currentTextures[glState.activeTMU] = &tex->texObj;
-	glState.currentTexturesIndex[glState.activeTMU] = (int)( tex - gl_textures );
+	/* NO marcar la textura como bindeada: nunca se cargo al hardware (GX_LoadTexObj). */
+	/* Si se marca, el siguiente GX_Bind de esa textura se salta la carga y se dibuja con otra. */
+	glState.currentTextures[glState.activeTMU] = NULL;
+	glState.currentTexturesIndex[glState.activeTMU] = 0;
 
 	return true;
 }
