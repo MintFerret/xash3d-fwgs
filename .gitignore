@@ -374,3 +374,6 @@ GEMINI.md
 .continue/
 .codeium/
 .github/copilot-instructions.md
+*.bak-*
+fix*.py
+force_*.py

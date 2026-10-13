@@ -1158,12 +1158,12 @@ static void R_BlendLightmaps( void )
 					msurface_t *q;
 					lmlog++;
 					for( q = gx_lms.lightmap_surfaces[i]; q != NULL; q = q->info->lightmapchain ) cnt++;
-					gEngfuncs.Con_Printf( "[LMDRAW] page %d tex=%d surfs=%d\n", i, (int)tr.lightmapTextures[i], cnt );
+					GX_LOG( "[LMDRAW] page %d tex=%d surfs=%d\n", i, (int)tr.lightmapTextures[i], cnt );
 					q = gx_lms.lightmap_surfaces[i];
 					for( int k = 0; k < 3 && q; k++, q = q->info->lightmapchain )
 					{
 						glpoly2_t *pp = q->polys;
-						gEngfuncs.Con_Printf( "[LMDRAW]   s%d ls=%d lt=%d vbo=%d nv=%d", k, (int)q->light_s, (int)q->light_t, (int)q->info->reserved[0], pp ? pp->numverts : -1 );
+						GX_LOG( "[LMDRAW]   s%d ls=%d lt=%d vbo=%d nv=%d", k, (int)q->light_s, (int)q->light_t, (int)q->info->reserved[0], pp ? pp->numverts : -1 );
 						if( pp && pp->numverts >= 3 )
 							gEngfuncs.Con_Printf( " uv0=%.3f,%.3f uv1=%.3f,%.3f uv2=%.3f,%.3f", pp->verts[0][5], pp->verts[0][6], pp->verts[1][5], pp->verts[1][6], pp->verts[2][5], pp->verts[2][6] );
 						gEngfuncs.Con_Printf( "\n" );
@@ -1750,7 +1750,7 @@ static void GX_DiagProbe( const char *tag )
 		last_logged = frame;
 
 	GX_DrawDone();
-	gEngfuncs.Con_Printf( "[PROBE] f=%d %s chainsurfs=%d dyn=%d dl=%d fog=%d/%d poff=%d", frame, tag,
+	GX_LOG( "[PROBE] f=%d %s chainsurfs=%d dyn=%d dl=%d fog=%d/%d poff=%d", frame, tag,
 		gx_dbg_chain_surfs, gx_lms.dynamic_surfaces != NULL, (int)tr.dlightframecount,
 		(int)glState.isFogEnabled, (int)RI.fogEnabled, (int)glState.num_polyoffsets );
 	for( i = 0; i < 5; i++ )
@@ -1852,7 +1852,7 @@ static void R_DrawTextureChains( void )
 					gl_texture_t *gt = R_GetTexture( t->gl_texturenum );
 					int nf = 0;
 					for( msurface_t *q = batch_head; q; q = q->texturechain ) nf++;
-					gEngfuncs.Con_Printf( "[WCHAIN] #%d %s tex=%d %dx%d fmt=%d mips=%d surfs=%d ...\n", i, t->name, t->gl_texturenum,
+					GX_LOG( "[WCHAIN] #%d %s tex=%d %dx%d fmt=%d mips=%d surfs=%d ...\n", i, t->name, t->gl_texturenum,
 						gt ? gt->width : 0, gt ? gt->height : 0, gt ? (int)gt->format : -1, gt ? (int)gt->numMips : -1, nf );
 				}
 				if( batch_head )
@@ -1860,7 +1860,7 @@ static void R_DrawTextureChains( void )
 				if( gx_world_dbg > 0 )
 				{
 					GX_DrawDone();
-					gEngfuncs.Con_Printf( "[WCHAIN]   ok\n" );
+					GX_LOG( "[WCHAIN]   ok\n" );
 				}
 			}
 		t->texturechain = NULL;
@@ -2536,19 +2536,19 @@ void R_DrawWorld( void )
 
 	start = gEngfuncs.pfnTime();
 
-	if( gx_world_dbg > 0 ) gEngfuncs.Con_Printf( "[WORLD] chains start\n" );
+	if( gx_world_dbg > 0 ) GX_LOG( "[WORLD] chains start\n" );
 	R_DrawTextureChains();
 	GX_DiagProbe( "after-pass1" );
-	if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] chains done\n" ); }
+	if( gx_world_dbg > 0 ) { GX_DrawDone(); GX_LOG( "[WORLD] chains done\n" ); }
 
 	if( !ENGINE_GET_PARM( PARM_DEV_OVERVIEW ))
 	{
 		if( gx_testmode != 8 ) DrawDecalsBatch();
 		GX_ResetFogColor();
-		if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] decals done\n" ); }
+		if( gx_world_dbg > 0 ) { GX_DrawDone(); GX_LOG( "[WORLD] decals done\n" ); }
 		R_BlendLightmaps();
 		GX_DiagProbe( "after-lightmaps" );
-		if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] lightmaps done\n" ); }
+		if( gx_world_dbg > 0 ) { GX_DrawDone(); GX_LOG( "[WORLD] lightmaps done\n" ); }
 		if( gx_testmode != 8 )
 		{
 			R_RenderFullbrights( R_HasEnabledVBO( ));
@@ -2559,7 +2559,7 @@ void R_DrawWorld( void )
 		if( skychain && gx_testmode != 8 )
 			R_DrawSkyBox();
 		GX_DiagProbe( "Z-after-sky" );
-		if( gx_world_dbg > 0 ) { GX_DrawDone(); gEngfuncs.Con_Printf( "[WORLD] sky/extras done\n" ); }
+		if( gx_world_dbg > 0 ) { GX_DrawDone(); GX_LOG( "[WORLD] sky/extras done\n" ); }
 	}
 
 	end = gEngfuncs.pfnTime();
@@ -2572,7 +2572,7 @@ void R_DrawWorld( void )
 		gx_world_dbg--;
 		for( int i = 0; i < MAX_LIGHTMAPS; i++ )
 			if( tr.lightmapTextures[i] ) pages++;
-		gEngfuncs.Con_Printf( "[WORLD] polys=%d leafs=%d lightmap pages=%d haslightdata=%d t_node=%.1fms t_draw=%.1fms\n",
+		GX_LOG( "[WORLD] polys=%d leafs=%d lightmap pages=%d haslightdata=%d t_node=%.1fms t_draw=%.1fms\n",
 			(int)r_stats.c_world_polys, (int)r_stats.c_world_leafs, pages,
 			WORLDMODEL->lightdata ? 1 : 0, r_stats.t_world_node * 1000.0, r_stats.t_world_draw * 1000.0 );
 	}

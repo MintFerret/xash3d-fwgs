@@ -56,7 +56,8 @@ void SCR_DrawFPS( int height )
 {
 	static int __dbg_cnt = 0;
 	if( ( __dbg_cnt % 180 ) == 0 )
-		Con_Printf( "[FPSDBG] state=%d showfps=%.0f bg=%d\n", (int)cls.state, cl_showfps.value, (int)cl.background );
+		if( cl_showfps.value > 0 )
+			Con_Printf( "[FPSDBG] state=%d showfps=%.0f bg=%d\n", (int)cls.state, cl_showfps.value, (int)cl.background );
 	__dbg_cnt++;
 	rgba_t		color;
 	static double	nexttime = 0, lasttime = 0;

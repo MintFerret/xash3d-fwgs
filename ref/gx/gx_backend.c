@@ -223,6 +223,8 @@ void GX_MultiTexCoord2f( int tmu, float s, float t )
 	gx_pending_texcoord[tmu][1] = t;
 }
 
+convar_t *gx_verbose;
+
 void GX_SetChanVtxColor( qboolean vtx )
 {
 	u8 src = vtx ? GX_SRC_VTX : GX_SRC_REG;

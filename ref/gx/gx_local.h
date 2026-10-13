@@ -284,6 +284,9 @@ void Matrix4x4_ToMtx( Mtx dst, const matrix4x4 src );
 
 void GX_ReadPixelsRGBA( int x, int y, int w, int h, byte *out );
 void GX_UpdateTexture( int texnum, int cols, int rows, int width, int height, const byte *buffer, pixformat_t fmt );
+extern convar_t *gx_verbose;
+#define GX_LOG(...) do { if( gx_verbose && gx_verbose->value >= 1 ) gEngfuncs.Con_Printf(__VA_ARGS__); } while(0)
+
 void GX_UpdateTextureSub( int texnum, int x, int y, int w, int h, const byte *rgba );
 
 void GX_ApplyTextureParams( gl_texture_t *tex );

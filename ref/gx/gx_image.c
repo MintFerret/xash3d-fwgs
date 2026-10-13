@@ -32,7 +32,7 @@ static void GX_TexAccount( const gl_texture_t *tex, size_t bytes, int sign )
         gx_tex_count++;
         if( bytes >= 256 * 1024 || gx_tex_bytes >= gx_tex_next_report )
         {
-            gEngfuncs.Con_Printf( "[GXMEM] +%s %ux%u %u KB | textures total %u KB in %d\n",
+            GX_LOG( "[GXMEM] +%s %ux%u %u KB | textures total %u KB in %d\n",
                 tex->name, (unsigned)tex->width, (unsigned)tex->height,
                 (unsigned)( bytes / 1024 ), (unsigned)( gx_tex_bytes / 1024 ), gx_tex_count );
             while( gx_tex_bytes >= gx_tex_next_report )
@@ -50,7 +50,7 @@ void GX_MemReport( const char *tag )
 {
     struct mallinfo mi = mallinfo();
 
-    gEngfuncs.Con_Printf( "[GXMEM] %s: heap in use %u KB, free inside heap %u KB, sbrk'd %u KB | "
+    GX_LOG( "[GXMEM] %s: heap in use %u KB, free inside heap %u KB, sbrk'd %u KB | "
         "arena2 left %u KB | textures %u KB in %d\n", tag,
         (unsigned)mi.uordblks / 1024, (unsigned)mi.fordblks / 1024, (unsigned)mi.arena / 1024,
         (unsigned)(( u32 )SYS_GetArena2Hi() - ( u32 )SYS_GetArena2Lo()) / 1024,
@@ -743,7 +743,7 @@ static qboolean GX_UploadTexture( gl_texture_t *tex, rgbdata_t *pic )
 	if( g_diagFmtCount < 10 )
 	{
 		g_diagFmtCount++;
-		gEngfuncs.Con_Printf( "[FMTDIAG] #%d %s pic->type=%d flags=0x%X %dx%d\n",
+		GX_LOG( "[FMTDIAG] #%d %s pic->type=%d flags=0x%X %dx%d\n",
 			g_diagFmtCount, tex->name, (int)pic->type, pic->flags, pic->width, pic->height );
 	}
 
@@ -796,7 +796,7 @@ static qboolean GX_UploadTexture( gl_texture_t *tex, rgbdata_t *pic )
 		if( g_diagTexIdx < 15 )
 		{
 			g_diagTexIdx++;
-			gEngfuncs.Con_Printf( "[UPLDIAG] #%d %s dataFmt=%d -> gxFmt=%d %dx%d\n",
+			GX_LOG( "[UPLDIAG] #%d %s dataFmt=%d -> gxFmt=%d %dx%d\n",
 				g_diagTexIdx, tex->name, (int)dataFmt, (int)picked, tex->width, tex->height );
 		}
 		GX_UploadMipLevel( tex, 0, tex->width, tex->height, dataFmt, data, picked );

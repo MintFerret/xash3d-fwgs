@@ -682,6 +682,12 @@ void Host_Frame( double time )
 	HTTP_Run();			 // both server and client
 	XRcon_Frame();
 
+#if XASH_OGC
+	/* Wii: developer mode desactivado */
+	if( host_developer.value != DEV_NONE )
+		Cvar_DirectSetValue( &host_developer, DEV_NONE );
+#endif
+
 	host.framecount++;
 	host.pureframetime = Platform_DoubleTime() - t1;
 }
@@ -1016,6 +1022,10 @@ static void Host_InitCommon( int argc, char **argv, const char *progname, qboole
 {
 	const char *basedir = progname[0] == '#' ? progname + 1 : progname;
 	int developer = DEFAULT_DEV;
+#if XASH_OGC
+	/* Wii: developer>0 escribe logs a SD sincronicamente */
+	developer = DEV_NONE;
+#endif
 
 	// some commands may turn engine into infinite loop,
 	// e.g. xash.exe +game xash -game xash
