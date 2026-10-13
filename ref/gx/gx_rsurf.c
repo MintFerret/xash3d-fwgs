@@ -613,6 +613,9 @@ static qboolean LM_AllocBlock( int w, int h, int *x, int *y )
 
 static void LM_UploadDynamicBlock( void )
 {
+	/* la GPU lee la textura dinamica de forma asincrona: esperar a que termine los dibujos */
+	/* ya encolados que la usan (mundo) antes de reescribirla (entidades brush, 2do bloque) */
+	GX_DrawDone();
 	/* siempre la pagina completa: si se subiera solo max_height, la textura se achicaria y las UV quedarian mal */
 	GX_UpdateTexture( tr.dlightTexture,
 		BLOCK_SIZE, BLOCK_SIZE,
@@ -1187,7 +1190,7 @@ static void R_BlendLightmaps( void )
 		}
 
 		/* lightmaps dinamicos (linterna, dlights, estilos animados) */
-		/* R_BlendDynamicLightmapsSingle(); */
+		R_BlendDynamicLightmapsSingle();
 
 		GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
@@ -2187,10 +2190,59 @@ void R_DrawBrushModel( cl_entity_t *e )
 	if( gl_polyoffset_bmodels.value )
 		GX_PushPolygonOffset( -0.5f, -gl_polyoffset_bmodels.value );
 
+	/* Pipeline para el pase difuso: R_RenderBrushPoly solo registra lightmaps/decals/fullbright, */
+	/* el dibujo de la textura estaba comentado y las entidades brush (botones, plataformas, */
+	/* puertas) solo mostraban el pase de lightmap = siluetas negras. */
+	GX_SetNumChans( 1 );
+	GX_SetChanCtrl( GX_COLOR0A0, GX_DISABLE, GX_SRC_REG, GX_SRC_REG, GX_LIGHTNULL, GX_DF_NONE, GX_AF_NONE );
+	GX_SetNumTexGens( 1 );
+	GX_SetTexCoordGen( GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY );
+	GX_SetNumTevStages( 1 );
+	GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
+	GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
+	GX_SetCullMode( GX_CULL_NONE );
+
 	for( int i = 0; i < num_sorted; i++ )
 	{
-		if( !allow_vbo || !R_AddSurfToVBO( gpGlobals->draw_surfaces[i].surf, drawlightmap ))
-			R_RenderBrushPoly( gpGlobals->draw_surfaces[i].surf, gpGlobals->draw_surfaces[i].cull );
+		msurface_t *bs = gpGlobals->draw_surfaces[i].surf;
+
+		if( !allow_vbo || !R_AddSurfToVBO( bs, drawlightmap ))
+		{
+			R_RenderBrushPoly( bs, gpGlobals->draw_surfaces[i].cull );
+
+			if( bs->polys && !FBitSet( bs->flags, SURF_DRAWTURB | SURF_DRAWSKY ))
+			{
+				glpoly2_t *q;
+				int tris = 0;
+
+				for( q = bs->polys; q != NULL; q = q->chain )
+					if( q->numverts >= 3 ) tris += q->numverts - 2;
+
+				if( tris > 0 )
+				{
+					GX_ClearVtxDesc();
+					GX_SetVtxDesc( GX_VA_POS,  GX_DIRECT );
+					GX_SetVtxDesc( GX_VA_TEX0, GX_DIRECT );
+					GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_POS,  GX_POS_XYZ, GX_F32, 0 );
+					GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0 );
+					GX_Begin( GX_TRIANGLES, GX_VTXFMT0, tris * 3 );
+					for( q = bs->polys; q != NULL; q = q->chain )
+					{
+						float *base = q->verts[0];
+						for( int k = 1; k < q->numverts - 1; k++ )
+						{
+							float *v[3] = { base, base + k * VERTEXSIZE, base + ( k + 1 ) * VERTEXSIZE };
+							for( int m = 0; m < 3; m++ )
+							{
+								GX_Position3f32( v[m][0], v[m][1], v[m][2] );
+								GX_TexCoord2f32( v[m][3], v[m][4] );
+							}
+						}
+					}
+					GX_End();
+				}
+			}
+		}
 	}
 
 	R_DrawVBO( drawlightmap, true );
