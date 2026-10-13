@@ -78,7 +78,7 @@ static const ogc_btn_t ogc_map_wiimote[] =
     { WPAD_BUTTON_1,         K_TAB         }, // Tab
     { WPAD_BUTTON_2,         K_F6          }, // savequick
 
-    { WPAD_BUTTON_PLUS,      K_BACK_BUTTON }, // pause
+    { WPAD_BUTTON_PLUS,      K_ESCAPE      }, // menu (esc)
     { WPAD_BUTTON_MINUS,     K_X_BUTTON    }, // +reload
 
     { WPAD_BUTTON_UP,        K_Y_BUTTON    }, // flashlight
