@@ -118,15 +118,9 @@ jobs:
             echo "ELF: $elf"
             echo "========================================"
 
-            "$ADDR2LINE" -f -C -e "$elf" \
-              0x803B7EA8 \
-              0x803B0F7C \
-              0x80392968 \
-              0x802FD32C \
-              0x800D1998 \
-              0x8008D3C0 \
-              0x8008C754 \
-              0x800041BC
+            ADDRS=$(grep -v '^#' crash_addrs.txt | tr -s ' \n' ' ')
+            echo "Addresses: $ADDRS"
+            "$ADDR2LINE" -f -C -e "$elf" $ADDRS
           done
 
       - name: Upload Wii build artifacts
