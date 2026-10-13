@@ -948,8 +948,7 @@ static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples
 
 	GX_SetupFogColorForSurfaces();
 
-	gx_dbg_chain_surfs = 0;
-}
+	}
 
 static void EmitWaterLightPolys( msurface_t *warp, float soffset, float toffset, qboolean dynamic )
 {
@@ -1775,6 +1774,7 @@ static void GX_DiagProbe( const char *tag )
 
 static void R_DrawTextureChains( void )
 {
+	gx_dbg_chain_surfs = 0;
 	/* Reset defensivo: el muzzle flash puede dejar ColorUpdate/ZMode/Blend en estado que produce mundo negro */
 	GX_SetColorUpdate( GX_TRUE );
 	GX_SetAlphaUpdate( GX_TRUE );
