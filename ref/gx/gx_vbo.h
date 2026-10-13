@@ -268,8 +268,13 @@ GX_SetArray(GX_VA_POS, g_vbo.vertex_data, GX_VBO_VERT_SIZE);
 GX_SetArray(GX_VA_TEX0, g_vbo.vertex_data + 12, GX_VBO_VERT_SIZE);
 GX_SetArray(GX_VA_TEX1, g_vbo.vertex_data + 20, GX_VBO_VERT_SIZE);
 
-GX_Begin(GX_TRIANGLES, GX_VTXFMT0, g_vbo.num_indices);
-for (i = 0; i < g_vbo.num_indices; i++)
+for (i = 0; i < g_vbo.num_indices; )
+{
+int n = g_vbo.num_indices - i;
+int j;
+if (n > 60000) n = 60000;
+GX_Begin(GX_TRIANGLES, GX_VTXFMT0, (u16)n);
+for (j = 0; j < n; j++, i++)
 {
 u16 idx = g_vbo.index_data[i];
 GX_Position1x16(idx);
@@ -277,6 +282,7 @@ GX_TexCoord1x16(idx);
 GX_TexCoord1x16(idx);
 }
 GX_End();
+}
 }
 
 if (has_direct)

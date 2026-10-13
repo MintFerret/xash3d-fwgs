@@ -878,7 +878,6 @@ static void DrawGLPoly( glpoly2_t *p, float xScale, float yScale )
 static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples )
 {
 	float	waveHeight;
-	const qboolean useQuads = FBitSet( warp->flags, SURF_DRAWTURB_QUADS );
 
 	if( !warp->polys ) return;
 
@@ -890,9 +889,6 @@ static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples
 
 	GX_SetupVtxFormat();
 
-	if( useQuads )
-		GX_Begin( GX_QUADS, GX_VTXFMT0, 0 );
-
 	for( glpoly2_t *p = warp->polys; p; p = p->next )
 	{
 		float *v;
@@ -901,8 +897,10 @@ static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples
 			v = p->verts[0] + ( p->numverts - 1 ) * VERTEXSIZE;
 		else v = p->verts[0];
 
-		if( !useQuads )
-			GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, p->numverts );
+		if( p->numverts < 3 )
+			continue;
+
+		GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, p->numverts );
 
 		for( int i = 0; i < p->numverts; i++ )
 		{
@@ -934,20 +932,17 @@ static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples
 			s *= ( 1.0f / SUBDIVIDE_SIZE );
 			t *= ( 1.0f / SUBDIVIDE_SIZE );
 
-			GX_TexCoord2f32( s, t );
 			GX_Position3f32( v[0], v[1], nv );
+			GX_TexCoord2f32( s, t );
+			GX_TexCoord2f32( 0.0f, 0.0f );
 
 			if( reverse )
 				v -= VERTEXSIZE;
 			else v += VERTEXSIZE;
 		}
 
-		if( !useQuads )
-			GX_End();
-	}
-
-	if( useQuads )
 		GX_End();
+	}
 
 	GX_SetupFogColorForSurfaces();
 
@@ -955,7 +950,6 @@ static void EmitWaterPolys( msurface_t *warp, qboolean reverse, qboolean ripples
 
 static void EmitWaterLightPolys( msurface_t *warp, float soffset, float toffset, qboolean dynamic )
 {
-	const qboolean useQuads = FBitSet( warp->flags, SURF_DRAWTURB_QUADS );
 	float waveHeight = RI.currententity->curstate.scale;
 
 	if( warp->polys->verts[0][2] >= RI.rvp.vieworigin[2] )
@@ -963,15 +957,14 @@ static void EmitWaterLightPolys( msurface_t *warp, float soffset, float toffset,
 
 	GX_SetupVtxFormat();
 
-	if( useQuads )
-		GX_Begin( GX_QUADS, GX_VTXFMT0, 0 );
-
 	for( glpoly2_t *p = warp->polys; p; p = p->next )
 	{
 		float	*v = p->verts[0];
 
-		if( !useQuads )
-			GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, p->numverts );
+		if( p->numverts < 3 )
+			continue;
+
+		GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, p->numverts );
 
 		for( int i = 0; i < p->numverts; i++, v += VERTEXSIZE )
 		{
@@ -989,12 +982,8 @@ static void EmitWaterLightPolys( msurface_t *warp, float soffset, float toffset,
 			else GX_Position3f32( v[0], v[1], v[2] );
 		}
 
-		if( !useQuads )
-			GX_End();
-	}
-
-	if( useQuads )
 		GX_End();
+	}
 }
 
 static void DrawGLPolyChain( glpoly2_t *p, float soffset, float toffset, msurface_t *surf )
