@@ -2460,6 +2460,8 @@ void R_DrawWorld( void )
 
 	R_ClearSkyBox();
 
+	glState.faceCull = XASH_CULL_FRONT; /* estado de culling por CPU del mundo */
+
 	/* endurecimiento: no confiar en el estado que dejo el frame anterior */
 	{
 		int u;

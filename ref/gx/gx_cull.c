@@ -71,16 +71,11 @@ int R_CullSurface( const msurface_t *surf, const gl_frustum_t *frustum, uint cli
 		if( FBitSet( surf->flags, SURF_PLANEBACK ))
 			dist = -dist;
 
-		if( glState.faceCull == XASH_CULL_FRONT )
-		{
-			if( dist <= BACKFACE_EPSILON )
-				return CULL_BACKSIDE;
-		}
-		else
-		{
-			if( dist >= -BACKFACE_EPSILON )
-				return CULL_BACKSIDE;
-		}
+		/* La convencion del culling por CPU es siempre la de GL_FRONT (la que usa el mundo). */
+		/* glState.faceCull cambia con GX_Cull(BACK/NONE) de modelos, sprites, particulas y decals; */
+		/* si se respetara BACK aqui, el test se invertia y se descartaban TODAS las caras visibles. */
+		if( dist <= BACKFACE_EPSILON )
+			return CULL_BACKSIDE;
 	}
 
 	if( frustum && clipflags && GL_FrustumCullBox( frustum, surf->info->mins, surf->info->maxs, clipflags ))
