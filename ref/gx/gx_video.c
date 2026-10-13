@@ -43,7 +43,6 @@ CVAR_DEFINE_AUTO( gl_overbright, "0", FCVAR_GLCONFIG, "overbrights" );
 CVAR_DEFINE_AUTO( gl_fog, "1", FCVAR_GLCONFIG, "allow for rendering fog using the GX hardware fog unit" );
 CVAR_DEFINE_AUTO( gl_litwater_force, "0", FCVAR_GLCONFIG, "force enable lightmapped water, even if support not declared in the map" );
 CVAR_DEFINE_AUTO( r_lighting_ambient, "0.3", FCVAR_GLCONFIG, "map ambient lighting scale" );
-	gx_verbose = gEngfuncs.Cvar_Get( "gx_verbose", "0", FCVAR_ARCHIVE, "GX debug logs (0=off, 1=on)" );
 CVAR_DEFINE_AUTO( r_detailtextures, "0", FCVAR_GLCONFIG, "enable detail textures support" );
 CVAR_DEFINE_AUTO( r_novis, "0", 0, "ignore vis information (perfomance test)" );
 CVAR_DEFINE_AUTO( r_nocull, "0", 0, "ignore frustrum culling (perfomance test)" );
@@ -306,6 +305,7 @@ static void GX_InitTexRegions( void )
 }
 static void GX_InitCommands( void )
 {
+	gx_verbose = gEngfuncs.Cvar_Get( "gx_verbose", "0", FCVAR_ARCHIVE, "GX debug logs (0=off, 1=on)" );
 	gEngfuncs.Cvar_RegisterVariable( &r_lighting_ambient );
 	gEngfuncs.Cvar_RegisterVariable( &r_novis );
 	gEngfuncs.Cvar_RegisterVariable( &r_nocull );
