@@ -445,14 +445,27 @@ qboolean VID_ScreenShot( const char *filename, int shot_type )
 	r_shot->size   = r_shot->width * r_shot->height * gEngfuncs.Image_GetPFDesc( r_shot->type )->bpp;
 	r_shot->palette = NULL;
 
-	r_shot->buffer = (byte *)memalign( 32, r_shot->size );
-	if( !r_shot->buffer )
+	// GX necesita un buffer alineado a 32 para leer el EFB, pero Image_Process
+	// hace Mem_Free() sobre pic->buffer al redimensionar: el buffer final DEBE
+	// venir del zone allocator (Mem_*), no de memalign/free de libc.
+	byte *aligned = (byte *)memalign( 32, r_shot->size );
+	if( !aligned )
 	{
 		Mem_Free( r_shot );
 		return false;
 	}
 
-	GX_ReadPixelsRGBA( 0, 0, r_shot->width, r_shot->height, r_shot->buffer );
+	r_shot->buffer = (byte *)Mem_Malloc( r_temppool, r_shot->size );
+	if( !r_shot->buffer )
+	{
+		free( aligned );
+		Mem_Free( r_shot );
+		return false;
+	}
+
+	GX_ReadPixelsRGBA( 0, 0, r_shot->width, r_shot->height, aligned );
+	memcpy( r_shot->buffer, aligned, r_shot->size );
+	free( aligned );
 
 	switch( shot_type )
 	{
@@ -478,9 +491,7 @@ qboolean VID_ScreenShot( const char *filename, int shot_type )
 
 	qboolean result = gEngfuncs.FS_SaveImage( filename, r_shot );
 	gEngfuncs.fsapi->AllowDirectPaths( false );
-	free( r_shot->buffer );
-	r_shot->buffer = NULL;
-	gEngfuncs.FS_FreeImage( r_shot );
+	gEngfuncs.FS_FreeImage( r_shot ); // libera buffer (Mem_Free) y la estructura
 
 	return result;
 }
