@@ -265,6 +265,7 @@ extern ref_instance_t	RI;
 extern gl_globals_t	tr;
 
 extern float		gldepthmin, gldepthmax;
+void GX_SetDepthRange( float zmin, float zmax );
 #define r_numEntities	(tr.draw_list->num_solid_entities + tr.draw_list->num_trans_entities)
 #define r_numStatics	(r_stats.c_client_ents)
 #define Mod_AllowMaterials() (ref_host_allow_materials->value && !FBitSet( gp_host->features, ENGINE_DISABLE_HDTEXTURES ))

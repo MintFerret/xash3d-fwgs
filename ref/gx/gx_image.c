@@ -1002,7 +1002,33 @@ void GX_UpdateTexSize( int texnum, int width, int height, int depth )
 	}
 }
 
+/* tiempo acumulado cargando texturas, para el log [LOAD] de R_NewMap */
+double gx_load_tex_time;
+int    gx_load_tex_count;
+
+static int GX_LoadTexture_impl( const char *name, const byte *buf, size_t size, int flags );
+static int GX_LoadTextureFromBuffer_impl( const char *name, rgbdata_t *pic, texFlags_t flags, qboolean update );
+
 int GX_LoadTexture( const char *name, const byte *buf, size_t size, int flags )
+{
+	double t0 = Platform_DoubleTime();
+	int ret = GX_LoadTexture_impl( name, buf, size, flags );
+	gx_load_tex_time += Platform_DoubleTime() - t0;
+	gx_load_tex_count++;
+	return ret;
+}
+
+int GX_LoadTextureFromBuffer( const char *name, rgbdata_t *pic, texFlags_t flags, qboolean update )
+{
+	double t0 = Platform_DoubleTime();
+	int ret = GX_LoadTextureFromBuffer_impl( name, pic, flags, update );
+	gx_load_tex_time += Platform_DoubleTime() - t0;
+	gx_load_tex_count++;
+	return ret;
+}
+
+static int GX_LoadTexture_impl( const char *name, const byte *buf, size_t size, int flags )
+
 {
 	if( !GX_CheckTexName( name )) return 0;
 
@@ -1042,7 +1068,7 @@ int GX_LoadTextureArray( const char **names, int flags )
 	return 0;
 }
 
-int GX_LoadTextureFromBuffer( const char *name, rgbdata_t *pic, texFlags_t flags, qboolean update )
+static int GX_LoadTextureFromBuffer_impl( const char *name, rgbdata_t *pic, texFlags_t flags, qboolean update )
 {
 	if( !GX_CheckTexName( name )) return 0;
 

@@ -36,6 +36,7 @@ extern void GX_MemReport( const char *tag );
 #define IsLiquidContents( cnt ) ( cnt == CONTENTS_WATER || cnt == CONTENTS_SLIME || cnt == CONTENTS_LAVA )
 
 float           gldepthmin, gldepthmax;
+extern int      gx_testmode;
 ref_instance_t  RI;
 
 float gx_pending_texcoord[MAX_TEXTURE_UNITS][2];
@@ -512,6 +513,16 @@ static void R_SetupFrame( void )
         R_FindViewLeaf();
 }
 
+// ultimo viewport aplicado (x, y, ancho, alto), para poder cambiar solo el rango Z
+static f32 gx_vp[4];
+
+void GX_SetDepthRange( float zmin, float zmax )
+{
+    if( gx_vp[2] <= 0.0f || gx_vp[3] <= 0.0f )
+        return;
+    GX_SetViewport( gx_vp[0], gx_vp[1], gx_vp[2], gx_vp[3], zmin, zmax );
+}
+
 void R_SetupGL( qboolean set_gl_state )
 {
     R_SetupModelviewMatrix( RI.worldviewMatrix );
@@ -529,16 +540,20 @@ void R_SetupGL( qboolean set_gl_state )
         int y2 = ceil(  gpGlobals->height - ( RI.rvp.viewport[1] + RI.rvp.viewport[3] ) * gpGlobals->height / gpGlobals->height );
 
         if( tr.rotation & 1 )
-            GX_SetViewport( (f32)y2, (f32)x, (f32)(y - y2), (f32)(x2 - x), gldepthmin, gldepthmax );
+        {
+            gx_vp[0] = (f32)y2; gx_vp[1] = (f32)x; gx_vp[2] = (f32)(y - y2); gx_vp[3] = (f32)(x2 - x);
+        }
         else
-            GX_SetViewport( (f32)x,  (f32)y2, (f32)(x2 - x), (f32)(y - y2), gldepthmin, gldepthmax );
+        {
+            gx_vp[0] = (f32)x; gx_vp[1] = (f32)y2; gx_vp[2] = (f32)(x2 - x); gx_vp[3] = (f32)(y - y2);
+        }
+        GX_SetViewport( gx_vp[0], gx_vp[1], gx_vp[2], gx_vp[3], gldepthmin, gldepthmax );
     }
     else
     {
-        GX_SetViewport(
-            (f32)RI.rvp.viewport[0], (f32)RI.rvp.viewport[1],
-            (f32)RI.rvp.viewport[2], (f32)RI.rvp.viewport[3],
-            gldepthmin, gldepthmax );
+        gx_vp[0] = (f32)RI.rvp.viewport[0]; gx_vp[1] = (f32)RI.rvp.viewport[1];
+        gx_vp[2] = (f32)RI.rvp.viewport[2]; gx_vp[3] = (f32)RI.rvp.viewport[3];
+        GX_SetViewport( gx_vp[0], gx_vp[1], gx_vp[2], gx_vp[3], gldepthmin, gldepthmax );
     }
 
     GX_SetCullMode( GX_CULL_FRONT );
@@ -825,6 +840,45 @@ void R_RenderScene( void )
     else tr.frametime = 0.0;
 
     tr.framecount++;
+    /* gxtest.txt = 21: diagnostico de dlights (log cada 60 frames)
+       gxtest.txt = 22: igual, y ademas fuerza una luz blanca de radio 300 en la camara
+       (si con 22 el mundo se ilumina, el renderizador funciona y el fallo esta en la creacion
+       de la luz: r_dynamic, EF_DIMLIGHT, etc.; si no se ilumina, el fallo es del renderizador) */
+    if(( gx_testmode == 21 || gx_testmode == 22 ) && FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
+    {
+        static int dl_log;
+
+        if( gx_testmode == 22 )
+        {
+            dlight_t *fl = &gp_dlights[MAX_DLIGHTS - 1];
+            VectorCopy( RI.rvp.vieworigin, fl->origin );
+            fl->radius = 300.0f;
+            fl->die = gp_cl->time + 1.0f;
+            fl->color.r = fl->color.g = fl->color.b = 255;
+            fl->minlight = 0.0f;
+        }
+
+        if(( dl_log++ % 60 ) == 0 )
+        {
+            int active = 0, first = -1;
+            for( int i = 0; i < MAX_DLIGHTS; i++ )
+            {
+                if( gp_dlights[i].die >= gp_cl->time && gp_dlights[i].radius > 0.0f )
+                {
+                    active++;
+                    if( first < 0 ) first = i;
+                }
+            }
+            gEngfuncs.Con_Printf( "[DLIGHT] r_dynamic=%d active=%d", (int)r_dynamic->value, active );
+            if( first >= 0 )
+                gEngfuncs.Con_Printf( " first=%d rad=%.0f col=%d,%d,%d min=%.0f org=%.0f,%.0f,%.0f",
+                    first, gp_dlights[first].radius, gp_dlights[first].color.r, gp_dlights[first].color.g,
+                    gp_dlights[first].color.b, gp_dlights[first].minlight,
+                    gp_dlights[first].origin[0], gp_dlights[first].origin[1], gp_dlights[first].origin[2] );
+            gEngfuncs.Con_Printf( "\n" );
+        }
+    }
+
     tr.dlightframecount = R_PushDlights( WORLDMODEL, tr.framecount );
 
     R_SetupFrustum();

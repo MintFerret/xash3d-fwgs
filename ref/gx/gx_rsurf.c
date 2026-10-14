@@ -1071,6 +1071,17 @@ static void R_BlendDynamicLightmapsSingle( void )
 	if( !r_dynamic->value || !gx_lms.dynamic_surfaces )
 		return;
 
+	if( gx_testmode == 21 || gx_testmode == 22 )
+	{
+		static int dyn_log;
+		if(( dyn_log++ % 60 ) == 0 )
+		{
+			int n = 0;
+			for( msurface_t *q = gx_lms.dynamic_surfaces; q != NULL; q = q->info->lightmapchain ) n++;
+			gEngfuncs.Con_Printf( "[DLIGHT] superficies dinamicas dibujadas=%d\n", n );
+		}
+	}
+
 	LM_InitBlock();
 	newsurf = gx_lms.dynamic_surfaces;
 

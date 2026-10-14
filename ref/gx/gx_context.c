@@ -403,8 +403,13 @@ static const char *R_GetConfigName( void )
 	return "opengl";
 }
 
+extern double gx_load_tex_time;
+extern int gx_load_tex_count;
+
 static void R_NewMap( void )
 {
+	double t_start = Platform_DoubleTime();
+	double t_lm, t_vbo;
 	tr.worldmodel = gp_cl->models[1];
 
 	R_ClearDecals();
@@ -433,15 +438,27 @@ static void R_NewMap( void )
 		tx->texturechain = NULL;
 	}
 
+	t_lm = Platform_DoubleTime();
 	GX_BuildLightmaps ();
+	t_lm = Platform_DoubleTime() - t_lm;
 
+	t_vbo = Platform_DoubleTime();
 	R_ClearVBO();
 	if( R_HasEnabledVBO( ))
 		R_GenerateVBO();
 	R_ResetRipples();
+	t_vbo = Platform_DoubleTime() - t_vbo;
 
 	if( gEngfuncs.drawFuncs->R_NewMap != NULL )
 		gEngfuncs.drawFuncs->R_NewMap();
+
+	/* diagnostico de tiempos de carga (siempre activo, una linea por mapa) */
+	gEngfuncs.Con_Printf( "[LOAD] R_NewMap=%.0fms (lightmaps+VBO=%.0fms, otros=%.0fms) | texturas desde el mapa anterior: %d cargas, %.0fms\n",
+		( Platform_DoubleTime() - t_start ) * 1000.0, ( t_lm + t_vbo ) * 1000.0,
+		( Platform_DoubleTime() - t_start - t_lm - t_vbo ) * 1000.0,
+		gx_load_tex_count, gx_load_tex_time * 1000.0 );
+	gx_load_tex_count = 0;
+	gx_load_tex_time = 0.0;
 }
 
 static void R_FillRenderAPI( render_api_t *api )

@@ -1483,18 +1483,20 @@ static void R_StudioDrawPoints( void )
 
 	pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
 
-	if( glState.faceCull != GX_CULL_NONE )
+	// El estado de culling NO se puede heredar: sprites, particulas, beams, decals
+	// y TriAPI del cliente lo dejan en NONE/FRONT segun el caso, y el viewmodel
+	// se veia con las caras traseras (transparente) cuando heredaba NONE.
+	// Se fija siempre. Un viewmodel espejado (cl_righthand) invierte el
+	// winding, asi que culla la cara contraria en vez de desactivar el culling.
+	if( R_AllowFlipViewModel( RI.currententity ))
 	{
-		if( R_AllowFlipViewModel( RI.currententity ))
-		{
-			tr.fFlipViewModel = true;
-			GX_Cull( XASH_CULL_NONE );
-		}
-		else
-		{
-			tr.fFlipViewModel = false;
-			GX_Cull( XASH_CULL_BACK );
-		}
+		tr.fFlipViewModel = true;
+		GX_Cull( XASH_CULL_FRONT );
+	}
+	else
+	{
+		tr.fFlipViewModel = false;
+		GX_Cull( XASH_CULL_BACK );
 	}
 
 	for( int j = 0; j < m_pSubModel->nummesh; j++ )
@@ -2610,6 +2612,10 @@ void R_DrawViewModel( void )
 
 	RI.currentmodel = RI.currententity->model;
 
+	// Igual que Quake/GL: el arma usa solo el primer 30% del rango de
+	// profundidad, asi nunca queda tapada ni titila al pegarse a una pared.
+	GX_SetDepthRange( gldepthmin, gldepthmin + 0.3f * ( gldepthmax - gldepthmin ));
+
 	switch( RI.currententity->model->type )
 	{
 	case mod_alias:
@@ -2620,6 +2626,8 @@ void R_DrawViewModel( void )
 		R_StudioDrawModelInternal( RI.currententity, STUDIO_RENDER );
 		break;
 	}
+
+	GX_SetDepthRange( gldepthmin, gldepthmax );
 }
 
 static void R_StudioLoadTexture( model_t *mod, studiohdr_t *phdr, mstudiotexture_t *ptexture )

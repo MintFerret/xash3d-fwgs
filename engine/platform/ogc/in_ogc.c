@@ -202,10 +202,25 @@ static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *pre
 		return;
 
 	for( i = 0; i < count; i++ )
-	{
-		if( changed & map[i].mask )
-			Key_Event( map[i].key, ( held & map[i].mask ) != 0 );
-	}
+        {
+                if( changed & map[i].mask )
+                {
+                        qboolean down = ( held & map[i].mask ) != 0;
+
+                        // En juego, ESC pasaba por el binding "cancelselect" y dependia del
+                        // client.dll para abrir el menu. Abrimos el menu directamente con el
+                        // comando del motor. Con el menu abierto, la tecla sigue yendo al
+                        // menu (volver atras).
+                        if( map[i].key == K_ESCAPE && cls.key_dest == key_game )
+                        {
+                                if( down )
+                                        Cbuf_AddText( "escape\n" );
+                                continue;
+                        }
+
+                        Key_Event( map[i].key, down );
+                }
+        }
 }
 static void OGC_PollNunchuk(void);
 
