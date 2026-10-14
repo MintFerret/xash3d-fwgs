@@ -1329,7 +1329,7 @@ int EXPORT Host_Main( int argc, char **argv, const char *progname, int bChangeGa
 			"bind R1_BUTTON \"+attack\"\n"
 			"bind L2_BUTTON \"+speed\"\n"
 			"bind R2_BUTTON \"+attack2\"\n"
-			"bind DPAD_UP \"+reload\"\n"
+			"bind DPAD_UP \"impulse 201\"\n"
 			"bind DPAD_DOWN \"lastinv\"\n"
 			"bind DPAD_LEFT \"invprev\"\n"
 			"bind DPAD_RIGHT \"invnext\"\n"

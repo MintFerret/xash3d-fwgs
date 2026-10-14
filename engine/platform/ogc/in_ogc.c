@@ -96,37 +96,37 @@ WPAD_Probe reports rather than by ORing them together.
 */
 static const ogc_btn_t ogc_map_classic[] =
 {
-	{ WPAD_CLASSIC_BUTTON_FULL_R, K_R1_BUTTON    },	// +attack
-	{ WPAD_CLASSIC_BUTTON_ZR,     K_R2_BUTTON    },	// +attack2
-	{ WPAD_CLASSIC_BUTTON_FULL_L, K_L1_BUTTON    },	// +duck
-	{ WPAD_CLASSIC_BUTTON_ZL,     K_L2_BUTTON    },	// +speed, walk
-	{ WPAD_CLASSIC_BUTTON_A,      K_A_BUTTON     },	// +jump
-	{ WPAD_CLASSIC_BUTTON_B,      K_B_BUTTON     },	// +use
-	{ WPAD_CLASSIC_BUTTON_X,      K_X_BUTTON     },	// +reload
-	{ WPAD_CLASSIC_BUTTON_Y,      K_Y_BUTTON     },	// flashlight
-	{ WPAD_CLASSIC_BUTTON_UP,     K_DPAD_UP      },
-	{ WPAD_CLASSIC_BUTTON_DOWN,   K_DPAD_DOWN    },	// lastinv
-	{ WPAD_CLASSIC_BUTTON_LEFT,   K_DPAD_LEFT    },	// invprev
-	{ WPAD_CLASSIC_BUTTON_RIGHT,  K_DPAD_RIGHT   },	// invnext
-	{ WPAD_CLASSIC_BUTTON_MINUS,  K_START_BUTTON },
-	{ WPAD_CLASSIC_BUTTON_PLUS,   K_BACK_BUTTON  },	// pause
-	{ WPAD_CLASSIC_BUTTON_HOME,   K_ESCAPE       },	// menu
+        // ZL y ZR disparan (cualquiera de los dos; se combinan en una sola entrada)
+        { WPAD_CLASSIC_BUTTON_ZL | WPAD_CLASSIC_BUTTON_ZR, K_R1_BUTTON }, // +attack
+        { WPAD_CLASSIC_BUTTON_FULL_R, K_Y_BUTTON     }, // linterna (impulse 100)
+        { WPAD_CLASSIC_BUTTON_FULL_L, K_L1_BUTTON    }, // +duck
+        { WPAD_CLASSIC_BUTTON_A,      K_A_BUTTON     }, // +jump
+        { WPAD_CLASSIC_BUTTON_X,      K_B_BUTTON     }, // +use
+        { WPAD_CLASSIC_BUTTON_Y,      K_X_BUTTON     }, // +reload
+        { WPAD_CLASSIC_BUTTON_B,      K_F6           }, // savequick (autoguardado)
+        { WPAD_CLASSIC_BUTTON_PLUS,   K_TAB          }, // marcador multijugador
+        { WPAD_CLASSIC_BUTTON_MINUS,  K_ESCAPE       }, // menu
+        { WPAD_CLASSIC_BUTTON_UP,     K_DPAD_UP      }, // spray
+        { WPAD_CLASSIC_BUTTON_DOWN,   K_DPAD_DOWN    }, // lastinv
+        { WPAD_CLASSIC_BUTTON_LEFT,   K_DPAD_LEFT    }, // invprev
+        { WPAD_CLASSIC_BUTTON_RIGHT,  K_DPAD_RIGHT   }, // invnext
+        { WPAD_CLASSIC_BUTTON_HOME,   K_ESCAPE       }, // menu
 };
 
 static const ogc_btn_t ogc_map_gamecube[] =
 {
-	{ PAD_TRIGGER_R,     K_R1_BUTTON   },	// +attack
-	{ PAD_TRIGGER_Z,     K_R2_BUTTON   },	// +attack2
-	{ PAD_TRIGGER_L,     K_L1_BUTTON   },	// +duck
-	{ PAD_BUTTON_A,      K_A_BUTTON    },	// +jump
-	{ PAD_BUTTON_B,      K_B_BUTTON    },	// +use
-	{ PAD_BUTTON_X,      K_X_BUTTON    },	// +reload
-	{ PAD_BUTTON_Y,      K_Y_BUTTON    },	// flashlight
-	{ PAD_BUTTON_UP,     K_DPAD_UP     },
-	{ PAD_BUTTON_DOWN,   K_DPAD_DOWN   },	// lastinv
-	{ PAD_BUTTON_LEFT,   K_DPAD_LEFT   },	// invprev
-	{ PAD_BUTTON_RIGHT,  K_DPAD_RIGHT  },	// invnext
-	{ PAD_BUTTON_START,  K_ESCAPE      },	// menu
+        { PAD_TRIGGER_R,     K_R1_BUTTON   },   // +attack
+        { PAD_TRIGGER_L,     K_R2_BUTTON   },   // +attack2
+        { PAD_TRIGGER_Z,     K_L1_BUTTON   },   // +duck
+        { PAD_BUTTON_A,      K_A_BUTTON    },   // +jump
+        { PAD_BUTTON_X,      K_B_BUTTON    },   // +use
+        { PAD_BUTTON_Y,      K_X_BUTTON    },   // +reload
+        { PAD_BUTTON_B,      K_F6          },   // savequick (autoguardado)
+        { PAD_BUTTON_UP,     K_Y_BUTTON    },   // linterna (impulse 100)
+        { PAD_BUTTON_DOWN,   K_TAB         },   // marcador multijugador
+        { PAD_BUTTON_LEFT,   K_DPAD_LEFT   },   // invprev
+        { PAD_BUTTON_RIGHT,  K_DPAD_RIGHT  },   // invnext
+        { PAD_BUTTON_START,  K_ESCAPE      },   // menu
 };
 
 static u32 ogc_buttons_held;
@@ -223,6 +223,7 @@ static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *pre
         }
 }
 static void OGC_PollNunchuk(void);
+static void OGC_PollSticks( u32 wpad_type );
 
 void OGC_ButtonsFrame( void )
 {
@@ -285,6 +286,9 @@ OGC_PollNunchuk();
 
 	OGC_EmitButtons( ogc_map_gamecube, ARRAYSIZE( ogc_map_gamecube ),
 		PAD_ButtonsHeld( PAD_CHAN0 ), &ogc_pad_held );
+
+        // Sticks del Classic Controller y del GameCube (el del Nunchuk va aparte)
+        OGC_PollSticks( type );
 }
 
 /*
@@ -527,6 +531,99 @@ void OGC_PointerMove( float *pitch, float *yaw )
 
         if( isnan( *pitch ) || isinf( *pitch ) ) *pitch = 0.0f;
     }
+}
+
+/*
+============
+OGC_StickToAxis
+
+Convierte una palanca (-1..1) al rango de eje del motor, con zona muerta
+propia; lo que queda fuera se reescala a todo el rango.
+- movimiento: el motor ya aplica su zona muerta
+- mirada: el motor anula todo lo menor a 16384, asi que se reescala a 16500..30000
+============
+*/
+static short OGC_StickToAxis( float n, qboolean look )
+{
+        const float dz = 0.18f;
+        float a = fabsf( n );
+        float out;
+
+        if( a < dz )
+                return 0;
+        if( a > 1.0f )
+                a = 1.0f;
+
+        a = ( a - dz ) / ( 1.0f - dz );
+
+        if( look )
+                out = 16500.0f + a * ( 30000.0f - 16500.0f );
+        else
+                out = a * 32767.0f;
+
+        return (short)( n < 0.0f ? -out : out );
+}
+
+// posicion de una palanca de WPAD como -1..1 (x derecha, y arriba)
+static float OGC_WpadAxis( int pos, int center, int min, int max )
+{
+        float range = ( pos >= center ) ? (float)( max - center ) : (float)( center - min );
+
+        if( range < 1.0f )
+                return 0.0f;
+
+        return bound( -1.0f, (float)( pos - center ) / range, 1.0f );
+}
+
+static void OGC_PollSticks( u32 wpad_type )
+{
+        static short last[4] = { 0, 0, 0, 0 };  // ultimo valor enviado
+        static const engineAxis_t axes[4] = { JOY_AXIS_SIDE, JOY_AXIS_FWD, JOY_AXIS_YAW, JOY_AXIS_PITCH };
+        float lx = 0.0f, ly = 0.0f, rx = 0.0f, ry = 0.0f;
+        short out[4];
+        int i;
+
+        if( wpad_type == WPAD_EXP_CLASSIC )
+        {
+                WPADData *data = WPAD_Data( WPAD_CHAN_0 );
+
+                if( data )
+                {
+                        const joystick_t *l = &data->exp.classic.ljs;
+                        const joystick_t *r = &data->exp.classic.rjs;
+
+                        lx = OGC_WpadAxis( l->pos.x, l->center.x, l->min.x, l->max.x );
+                        ly = OGC_WpadAxis( l->pos.y, l->center.y, l->min.y, l->max.y );
+                        rx = OGC_WpadAxis( r->pos.x, r->center.x, r->min.x, r->max.x );
+                        ry = OGC_WpadAxis( r->pos.y, r->center.y, r->min.y, r->max.y );
+                }
+        }
+
+        // GameCube: si las palancas del mando de GC se mueven, mandan ellas
+        {
+                float gx = bound( -1.0f, PAD_StickX( PAD_CHAN0 ) / 80.0f, 1.0f );
+                float gy = bound( -1.0f, PAD_StickY( PAD_CHAN0 ) / 80.0f, 1.0f );
+                float cx = bound( -1.0f, PAD_SubStickX( PAD_CHAN0 ) / 80.0f, 1.0f );
+                float cy = bound( -1.0f, PAD_SubStickY( PAD_CHAN0 ) / 80.0f, 1.0f );
+
+                if( fabsf( gx ) > 0.18f || fabsf( gy ) > 0.18f ) { lx = gx; ly = gy; }
+                if( fabsf( cx ) > 0.18f || fabsf( cy ) > 0.18f ) { rx = cx; ry = cy; }
+        }
+
+        // convencion de SDL que usa el motor: arriba es negativo en Y
+        out[0] = OGC_StickToAxis( lx, false );
+        out[1] = OGC_StickToAxis( -ly, false );
+        out[2] = OGC_StickToAxis( rx, true );
+        out[3] = OGC_StickToAxis( -ry, true );
+
+        for( i = 0; i < 4; i++ )
+        {
+                if( out[i] != last[i] )
+                {
+                        Joy_AxisMotionEvent( axes[i], out[i] );
+                        last[i] = out[i];
+                }
+        }
 }
 
 static void OGC_PollNunchuk(void)
