@@ -1,4 +1,11 @@
-# Direcciones del volcado de crash (STACK DUMP + PC), separadas por espacios o lineas.
-# Cambia estas y haz push: el paso "Resolve Wii crash addresses" las resuelve en Actions.
-0x800c6d7c 0x80052de8 0x800c7128 0x800940e4 0x802471a4
-0x800241d0 0x80031a24 0x8001f2f8 0x80083614 0x80085280
+0x8045adb4
+0x800fd384
+0x800fd310
+0x80297d58
+0x802986b4
+0x8025a478
+0x80283d64
+0x8025722c
+0x80298d9c
+0x80256624
+0x8025ba84
