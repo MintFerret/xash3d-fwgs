@@ -612,45 +612,54 @@ sensor has lost the bar - otherwise the pointer already leans the weapon.
 */
 static void OGC_GetRemoteTilt( float *roll, float *pitch )
 {
-static float f_roll, f_pitch;
-float t_roll = 0.0f, t_pitch = 0.0f, k;
-u32 type = WPAD_EXP_NONE;
+	static float f_roll, f_pitch;
+	float t_roll = 0.0f, t_pitch = 0.0f, k;
+	u32 type = WPAD_EXP_NONE;
 
-if( wii_gun_tilt.value != 0.0f && ogc_src == OGC_SRC_WII
-WPAD_Probe( WPAD_CHAN_0, &type ) == WPAD_ERR_NONE && type != WPAD_EXP_CLASSIC )
-{
-*data = WPAD_Data( WPAD_CHAN_0 );
+	if( wii_gun_tilt.value != 0.0f && ogc_src == OGC_SRC_WII
+		&& WPAD_Probe( WPAD_CHAN_0, &type ) == WPAD_ERR_NONE && type != WPAD_EXP_CLASSIC )
+	{
+		WPADData *data = WPAD_Data( WPAD_CHAN_0 );
 
-data )
-r = data->orient.roll, p = data->orient.pitch;
-lim = bound( 5.0f, wii_gun_tilt_max.value, 90.0f );
+		if( data )
+		{
+			float r = data->orient.roll, p = data->orient.pitch;
+			float lim = bound( 5.0f, wii_gun_tilt_max.value, 90.0f );
 
-isnan( r ) || isinf( r )) r = 0.0f;
-isnan( p ) || isinf( p )) p = 0.0f;
+			if( isnan( r ) || isinf( r )) r = 0.0f;
+			if( isnan( p ) || isinf( p )) p = 0.0f;
 
-zona muerta de 3 grados, el resto se reescala
-fabsf( r ) < 3.0f ) r = 0.0f; else r -= r > 0.0f ? 3.0f : -3.0f;
-= bound( -lim, r * wii_gun_tilt.value, lim );
+			// zona muerta de 3 grados, el resto se reescala
+			if( fabsf( r ) < 3.0f ) r = 0.0f; else r -= r > 0.0f ? 3.0f : -3.0f;
+			t_roll = bound( -lim, r * wii_gun_tilt.value, lim );
 
-!data->ir.valid && wii_gun_pitch.value != 0.0f )
-fabsf( p ) < 3.0f ) p = 0.0f; else p -= p > 0.0f ? 3.0f : -3.0f;
-= bound( -lim, p * wii_gun_pitch.value, lim );
-wii_showinput.value )
-int tick;
-tick++ % 60 ) == 0 )
-_Printf( "^3[TILT]^7 roll=%.1f pitch=%.1f ir=%d\n",
-t.roll, data->orient.pitch, (int)data->ir.valid );
-filtro exponencial (~70 ms): sigue al mando sin temblar
-k = 1.0f - expf( -(float)host.realframetime * 14.0f );
-k = bound( 0.0f, k, 1.0f );
-f_roll  += ( t_roll  - f_roll  ) * k;
-f_pitch += ( t_pitch - f_pitch ) * k;
+			if( !data->ir.valid && wii_gun_pitch.value != 0.0f )
+			{
+				if( fabsf( p ) < 3.0f ) p = 0.0f; else p -= p > 0.0f ? 3.0f : -3.0f;
+				t_pitch = bound( -lim, p * wii_gun_pitch.value, lim );
+			}
 
-if( fabsf( f_roll )  < 0.05f ) f_roll  = 0.0f;
-if( fabsf( f_pitch ) < 0.05f ) f_pitch = 0.0f;
+			if( wii_showinput.value )
+			{
+				static int tick;
+				if(( tick++ % 60 ) == 0 )
+					Con_Printf( "^3[TILT]^7 roll=%.1f pitch=%.1f ir=%d\n",
+					data->orient.roll, data->orient.pitch, (int)data->ir.valid );
+			}
+		}
+	}
 
-*roll  = f_roll;
-*pitch = f_pitch;
+	// filtro exponencial (~70 ms): sigue al mando sin temblar
+	k = 1.0f - expf( -(float)host.realframetime * 14.0f );
+	k = bound( 0.0f, k, 1.0f );
+	f_roll  += ( t_roll  - f_roll  ) * k;
+	f_pitch += ( t_pitch - f_pitch ) * k;
+
+	if( fabsf( f_roll )  < 0.05f ) f_roll  = 0.0f;
+	if( fabsf( f_pitch ) < 0.05f ) f_pitch = 0.0f;
+
+	*roll  = f_roll;
+	*pitch = f_pitch;
 }
 
 /*
@@ -672,152 +681,165 @@ static qboolean ogc_rumble_gc_on;
 
 void OGC_Rumble( float power, float seconds )
 {
-double now = host.realtime;
+	double now = host.realtime;
 
-power = bound( 0.0f, power * wii_rumble.value, 1.0f );
-if( power <= 0.0f || seconds <= 0.0f )
-;
+	power = bound( 0.0f, power * wii_rumble.value, 1.0f );
+	if( power <= 0.0f || seconds <= 0.0f )
+		return;
 
-if( now < ogc_rumble_end )
-{
-ya vibrando: se queda lo mas fuerte y lo mas largo
-power > ogc_rumble_power )
-= power;
-now + seconds > ogc_rumble_end )
-d = now + seconds;
-}
-else
-{
-= power;
-d = now + seconds;
-}
+	if( now < ogc_rumble_end )
+	{
+		// ya vibrando: se queda lo mas fuerte y lo mas largo
+		if( power > ogc_rumble_power )
+			ogc_rumble_power = power;
+		if( now + seconds > ogc_rumble_end )
+			ogc_rumble_end = now + seconds;
+	}
+	else
+	{
+		ogc_rumble_power = power;
+		ogc_rumble_end = now + seconds;
+	}
 }
 
 static void OGC_RumbleFrame( void )
 {
-static unsigned tick;
-static int prev_health;
-qboolean on = false, want_wii, want_gc;
+	static unsigned tick;
+	static int prev_health;
+	qboolean on = false, want_wii, want_gc;
 
-// dano recibido: la vida baja mientras se juega
-if( cls.state == ca_active && !cl.paused )
-{
-t hp = cl.local.health;
+	// dano recibido: la vida baja mientras se juega
+	if( cls.state == ca_active && !cl.paused )
+	{
+		int hp = cl.local.health;
 
-prev_health > 0 && hp < prev_health )
-t lost = bound( 1, prev_health - hp, 50 );
+		if( prev_health > 0 && hp < prev_health )
+		{
+			int lost = bound( 1, prev_health - hp, 50 );
 
-hp <= 0 )
-1.0f, 0.8f );
-0.55f + lost * 0.009f, 0.15f + lost * 0.008f );
-= hp;
-}
-else prev_health = 0;
+			if( hp <= 0 )
+				OGC_Rumble( 1.0f, 0.8f );
+			else
+				OGC_Rumble( 0.55f + lost * 0.009f, 0.15f + lost * 0.008f );
+		}
+		prev_health = hp;
+	}
+	else prev_health = 0;
 
-if( wii_rumble.value > 0.0f && host.realtime < ogc_rumble_end )
-{
-t duty = (int)( ogc_rumble_power * 6.0f + 0.5f );
- = ( tick++ % 6 ) < (unsigned)duty;
-}
-else tick = 0;
+	if( wii_rumble.value > 0.0f && host.realtime < ogc_rumble_end )
+	{
+		int duty = (int)( ogc_rumble_power * 6.0f + 0.5f );
+		on = ( tick++ % 6 ) < (unsigned)duty;
+	}
+	else tick = 0;
 
-want_wii = on && ogc_src == OGC_SRC_WII;
-want_gc  = on && ogc_src == OGC_SRC_GC;
+	want_wii = on && ogc_src == OGC_SRC_WII;
+	want_gc  = on && ogc_src == OGC_SRC_GC;
 
-if( want_wii != ogc_rumble_wii_on )
-{
-WPAD_CHAN_0, want_wii ? 1 : 0 );
- = want_wii;
-}
+	if( want_wii != ogc_rumble_wii_on )
+	{
+		WPAD_Rumble( WPAD_CHAN_0, want_wii ? 1 : 0 );
+		ogc_rumble_wii_on = want_wii;
+	}
 
-if( want_gc != ogc_rumble_gc_on )
-{
-trolMotor( PAD_CHAN0, want_gc ? PAD_MOTOR_RUMBLE : PAD_MOTOR_STOP_HARD );
- = want_gc;
-}
+	if( want_gc != ogc_rumble_gc_on )
+	{
+		PAD_ControlMotor( PAD_CHAN0, want_gc ? PAD_MOTOR_RUMBLE : PAD_MOTOR_STOP_HARD );
+		ogc_rumble_gc_on = want_gc;
+	}
 }
 
 /*
 ============
 USB keyboard
+
+libogc reports USB HID usage codes, which are laid out in the same order as
+the keys on the board, so a small switch gets from there to the engine's key
+numbers. Characters for the console, chat and menu take the symbol libogc has
+already shifted, the same split the SDL build makes between key events and
+text input.
+
+The keyboard sends one event per press and one per release; holding a key
+down does not repeat, which would make the console unusable (backspace!), so
+the repeat is done here.
 ============
 */
 static int OGC_HIDToKey( int u )
 {
-if( u >= 4 && u <= 29 )   return 'a' + ( u - 4 );
-if( u >= 30 && u <= 38 )  return '1' + ( u - 30 );
-if( u == 39 )             return '0';
-if( u >= 58 && u <= 69 )  return K_F1 + ( u - 58 );
+	if( u >= 4 && u <= 29 )   return 'a' + ( u - 4 );
+	if( u >= 30 && u <= 38 )  return '1' + ( u - 30 );
+	if( u == 39 )             return '0';
+	if( u >= 58 && u <= 69 )  return K_F1 + ( u - 58 );
 
-switch( u )
-{
-case 40:  return K_ENTER;
-case 41:  return K_ESCAPE;
-case 42:  return K_BACKSPACE;
-case 43:  return K_TAB;
-case 44:  return K_SPACE;
-case 45:  return 0x2D;
-case 46:  return 0x3D;
-case 47:  return 0x5B;
-case 48:  return 0x5D;
-case 49:  return 0x5C;
-case 51:  return 0x3B;
-case 52:  return 0x27;
-case 53:  return 0x60;
-case 54:  return 0x2C;
-case 55:  return 0x2E;
-case 56:  return 0x2F;
-case 57:  return K_CAPSLOCK;
-case 71:  return K_SCROLLLOCK;
-case 72:  return K_PAUSE;
-case 73:  return K_INS;
-case 74:  return K_HOME;
-case 75:  return K_PGUP;
-case 76:  return K_DEL;
-case 77:  return K_END;
-case 78:  return K_PGDN;
-case 79:  return K_RIGHTARROW;
-case 80:  return K_LEFTARROW;
-case 81:  return K_DOWNARROW;
-case 82:  return K_UPARROW;
-case 83:  return K_KP_NUMLOCK;
-case 84:  return K_KP_SLASH;
-case 85:  return K_KP_MUL;
-case 86:  return K_KP_MINUS;
-case 87:  return K_KP_PLUS;
-case 88:  return K_KP_ENTER;
-case 89:  return K_KP_END;
-case 90:  return K_KP_DOWNARROW;
-case 91:  return K_KP_PGDN;
-case 92:  return K_KP_LEFTARROW;
-case 93:  return K_KP_5;
-case 94:  return K_KP_RIGHTARROW;
-case 95:  return K_KP_HOME;
-case 96:  return K_KP_UPARROW;
-case 97:  return K_KP_PGUP;
-case 98:  return K_KP_INS;
-case 99:  return K_KP_DEL;
-case 224: case 228: return K_CTRL;
-case 225: case 229: return K_SHIFT;
-case 226: case 230: return K_ALT;
-case 227: case 231: return K_WIN;
-}
+	switch( u )
+	{
+	case 40:  return K_ENTER;
+	case 41:  return K_ESCAPE;
+	case 42:  return K_BACKSPACE;
+	case 43:  return K_TAB;
+	case 44:  return K_SPACE;
+	case 45:  return '-';
+	case 46:  return '=';
+	case 47:  return '[';
+	case 48:  return ']';
+	case 49:  return '\\';
+	case 51:  return ';';
+	case 52:  return '\'';
+	case 53:  return '`';
+	case 54:  return ',';
+	case 55:  return '.';
+	case 56:  return '/';
+	case 57:  return K_CAPSLOCK;
+	case 71:  return K_SCROLLLOCK;
+	case 72:  return K_PAUSE;
+	case 73:  return K_INS;
+	case 74:  return K_HOME;
+	case 75:  return K_PGUP;
+	case 76:  return K_DEL;
+	case 77:  return K_END;
+	case 78:  return K_PGDN;
+	case 79:  return K_RIGHTARROW;
+	case 80:  return K_LEFTARROW;
+	case 81:  return K_DOWNARROW;
+	case 82:  return K_UPARROW;
+	case 83:  return K_KP_NUMLOCK;
+	case 84:  return K_KP_SLASH;
+	case 85:  return K_KP_MUL;
+	case 86:  return K_KP_MINUS;
+	case 87:  return K_KP_PLUS;
+	case 88:  return K_KP_ENTER;
+	case 89:  return K_KP_END;
+	case 90:  return K_KP_DOWNARROW;
+	case 91:  return K_KP_PGDN;
+	case 92:  return K_KP_LEFTARROW;
+	case 93:  return K_KP_5;
+	case 94:  return K_KP_RIGHTARROW;
+	case 95:  return K_KP_HOME;
+	case 96:  return K_KP_UPARROW;
+	case 97:  return K_KP_PGUP;
+	case 98:  return K_KP_INS;
+	case 99:  return K_KP_DEL;
+	case 224: case 228: return K_CTRL;
+	case 225: case 229: return K_SHIFT;
+	case 226: case 230: return K_ALT;
+	case 227: case 231: return K_WIN;
+	}
 
-return 0;
+	return 0;
 }
 
 // only text and editing keys repeat; repeating ESC or ENTER would reopen the
 // menu or fire the same console line over and over
 static qboolean OGC_RepeatableKey( int key )
 {
-switch( key )
-{
-case K_BACKSPACE: case K_DEL:
-case K_UPARROW: case K_DOWNARROW: case K_LEFTARROW: case K_RIGHTARROW:
-case K_PGUP: case K_PGDN:
- true;
-}
-return false;
+	switch( key )
+	{
+	case K_BACKSPACE: case K_DEL:
+	case K_UPARROW: case K_DOWNARROW: case K_LEFTARROW: case K_RIGHTARROW:
+	case K_PGUP: case K_PGDN:
+		return true;
+	}
+	return false;
 }
 
 #define OGC_REPEAT_DELAY 0.40
@@ -830,6 +852,7 @@ static struct
 	int ch;		// character to repeat, 0 if none
 	double next;
 } ogc_repeat;
+
 static void OGC_KeyboardFrame( void )
 {
 	keyboard_event ev;
@@ -910,7 +933,6 @@ static void OGC_KeyboardFrame( void )
 		}
 	}
 }
-
 
 /*
 ============
