@@ -214,13 +214,13 @@ GNU General Public License for more details.
 #define MAX_VISIBLE_PACKET		128
 #define MAX_VISIBLE_PACKET_VIS_BYTES	((MAX_VISIBLE_PACKET + 7) / 8)
 #define MAX_EVENTS			128
-#define MAX_MODELS			512
+#define MAX_MODELS			2048
 #define MAX_SOUNDS			512
 #define MAX_CUSTOM			32
 #define MAX_DLIGHTS			16		// dynamic lights (rendered per one frame)
 #define MAX_ELIGHTS			32		// entity only point lights
 #define MAX_RENDER_DECALS		64		// max rendering decals per a level
-#define MAX_RESOURCES		1024
+#define MAX_RESOURCES		3072
 #elif XASH_LOW_MEMORY == 1
 #undef MAX_VISIBLE_PACKET
 #undef MAX_VISIBLE_PACKET_VIS_BYTES
