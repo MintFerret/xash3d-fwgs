@@ -103,8 +103,9 @@ WPAD_Probe reports rather than by ORing them together.
 */
 static const ogc_btn_t ogc_map_classic[] =
 {
-        // ZL y ZR disparan (cualquiera de los dos; se combinan en una sola entrada)
-        { WPAD_CLASSIC_BUTTON_ZL | WPAD_CLASSIC_BUTTON_ZR, K_R1_BUTTON }, // +attack
+        // ZR y ZL disparan por separado, como el raton: ZR primario, ZL secundario
+        { WPAD_CLASSIC_BUTTON_ZR,     K_R1_BUTTON    }, // +attack
+        { WPAD_CLASSIC_BUTTON_ZL,     K_R2_BUTTON    }, // +attack2
         { WPAD_CLASSIC_BUTTON_FULL_R, K_Y_BUTTON     }, // linterna (impulse 100)
         { WPAD_CLASSIC_BUTTON_FULL_L, K_L1_BUTTON    }, // +duck
         { WPAD_CLASSIC_BUTTON_A,      K_A_BUTTON     }, // +jump
@@ -145,7 +146,7 @@ whether the Wii remote pointer is allowed to aim: with a USB mouse in use the
 remote is usually lying on a table, and its IR sensor would keep dragging the
 aim around.
 */
-enum { OGC_SRC_WII, OGC_SRC_GC, OGC_SRC_MOUSE };
+enum { OGC_SRC_WII, OGC_SRC_GC, OGC_SRC_CLASSIC, OGC_SRC_MOUSE };
 static int ogc_src = OGC_SRC_WII;
 
 // set by OGC_Init: reading the queues of a device that failed to start would
@@ -156,6 +157,17 @@ int ogc_usb_mouse_ok;
 // where the player is pointing, as -1..1 from the centre of the screen.
 // kept here so the view code can lean the weapon towards it.
 static vec2_t ogc_pointer;
+
+/*
+Cambia el dispositivo activo. Mientras no sea el Wiimote, la mira deja de ser la
+del puntero IR (ver OGC_GetPointerAngles y OGC_PointerMove) y vuelve al centro,
+como en los shooters de Wii: con Classic, GameCube o raton el arma y el disparo
+salen rectos de la camara. El cursor de los menus conserva su ultima posicion.
+*/
+static void OGC_SetSource( int src )
+{
+	ogc_src = src;
+}
 
 static qboolean OGC_GetPointerAngles( float *dyaw, float *dpitch );
 
@@ -255,8 +267,8 @@ static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *pre
 		return;
 
 
-	// tocar un boton devuelve el control al mando (y no al raton)
-	ogc_src = src;
+	// tocar un boton pasa el control a ese dispositivo
+	OGC_SetSource( src );
 
 	for( i = 0; i < count; i++ )
 	{
@@ -319,7 +331,7 @@ OGC_PollNunchuk();
 			once_classic = 1;
 		}
 		OGC_EmitButtons( ogc_map_classic, ARRAYSIZE( ogc_map_classic ),
-			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held, OGC_SRC_WII );
+			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held, OGC_SRC_CLASSIC );
 	}
 	else
 	{
@@ -388,7 +400,7 @@ static qboolean OGC_GetPointerAngles( float *dyaw, float *dpitch )
 	float halffov, tanhalf, aspect;
 
 	// con el raton USB en uso el puntero IR no apunta (el mando suele estar en la mesa)
-	if( !wii_ir.value || ogc_src == OGC_SRC_MOUSE || refState.width <= 0 || refState.height <= 0 )
+	if( !wii_ir.value || ogc_src != OGC_SRC_WII || refState.width <= 0 || refState.height <= 0 )
 		return false;
 
 	halffov = bound( 10.0f, cl.local.scr_fov, 150.0f ) * 0.5f;
@@ -521,7 +533,7 @@ void OGC_PointerMove( float *pitch, float *yaw )
     #define IR_TOLERANCE_FRAMES 5
 
     // con el raton USB en uso el puntero IR no apunta (el mando suele estar en la mesa)
-	if( !wii_ir.value || ogc_src == OGC_SRC_MOUSE || refState.width <= 0 || refState.height <= 0 )
+	if( !wii_ir.value || ogc_src != OGC_SRC_WII || refState.width <= 0 || refState.height <= 0 )
         return;
 
     if( WPAD_Probe( WPAD_CHAN_0, &type ) != WPAD_ERR_NONE )
@@ -733,7 +745,7 @@ static void OGC_RumbleFrame( void )
 	}
 	else tick = 0;
 
-	want_wii = on && ogc_src == OGC_SRC_WII;
+	want_wii = on && ( ogc_src == OGC_SRC_WII || ogc_src == OGC_SRC_CLASSIC );
 	want_gc  = on && ogc_src == OGC_SRC_GC;
 
 	if( want_wii != ogc_rumble_wii_on )
@@ -969,7 +981,7 @@ static void OGC_MouseFrame( void )
 		int i;
 
 		if( ev.rx || ev.ry || ev.rz || changed )
-			ogc_src = OGC_SRC_MOUSE;
+			OGC_SetSource( OGC_SRC_MOUSE );
 
 		ogc_mouse_dx += ev.rx;
 		ogc_mouse_dy += ev.ry;
@@ -1068,6 +1080,7 @@ static void OGC_PollSticks( u32 wpad_type )
         static const engineAxis_t axes[4] = { JOY_AXIS_SIDE, JOY_AXIS_FWD, JOY_AXIS_YAW, JOY_AXIS_PITCH };
         float lx = 0.0f, ly = 0.0f, rx = 0.0f, ry = 0.0f;
         short out[4];
+        qboolean gc_moved = false, moved = false;
         int i;
 
         if( wpad_type == WPAD_EXP_CLASSIC )
@@ -1093,8 +1106,8 @@ static void OGC_PollSticks( u32 wpad_type )
                 float cx = bound( -1.0f, PAD_SubStickX( PAD_CHAN0 ) / 80.0f, 1.0f );
                 float cy = bound( -1.0f, PAD_SubStickY( PAD_CHAN0 ) / 80.0f, 1.0f );
 
-                if( fabsf( gx ) > 0.18f || fabsf( gy ) > 0.18f ) { lx = gx; ly = gy; }
-                if( fabsf( cx ) > 0.18f || fabsf( cy ) > 0.18f ) { rx = cx; ry = cy; }
+                if( fabsf( gx ) > 0.18f || fabsf( gy ) > 0.18f ) { lx = gx; ly = gy; gc_moved = true; }
+                if( fabsf( cx ) > 0.18f || fabsf( cy ) > 0.18f ) { rx = cx; ry = cy; gc_moved = true; }
         }
 
         // convencion de SDL que usa el motor: arriba es negativo en Y
@@ -1102,6 +1115,18 @@ static void OGC_PollSticks( u32 wpad_type )
         out[1] = OGC_StickToAxis( -ly, false );
         out[2] = OGC_StickToAxis( rx, true );
         out[3] = OGC_StickToAxis( -ry, true );
+
+        // mover una palanca tambien pasa el control a ese mando
+        for( i = 0; i < 4; i++ )
+                if( out[i] ) moved = true;
+
+        if( moved )
+        {
+                if( gc_moved )
+                        OGC_SetSource( OGC_SRC_GC );
+                else if( wpad_type == WPAD_EXP_CLASSIC )
+                        OGC_SetSource( OGC_SRC_CLASSIC );
+        }
 
         for( i = 0; i < 4; i++ )
         {
