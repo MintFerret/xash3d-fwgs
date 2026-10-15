@@ -2292,7 +2292,7 @@ check savegame for valid
 */
 int GAME_EXPORT SV_GetSaveComment( const char *savename, char *comment )
 {
-	int	i, tag, size, nNumberOfFields, nFieldSize, tokenSize, tokenCount;
+	int     i, tag, size, nNumberOfFields, nFieldSize, tokenSize, tokenCount, tableCount;
 	char	*pData, *pSaveData, *pFieldName, **pTokenList;
 	string	mapName, description;
 	file_t	*f;
@@ -2341,6 +2341,7 @@ int GAME_EXPORT SV_GetSaveComment( const char *savename, char *comment )
 	comment[0] = '\0';
 
 	FS_Read( f, &size, sizeof( int ));
+	FS_Read( f, &tableCount, sizeof( int ));
 	FS_Read( f, &tokenCount, sizeof( int ));	// These two ints are the token list
 	FS_Read( f, &tokenSize, sizeof( int ));
 	size += tokenSize;
