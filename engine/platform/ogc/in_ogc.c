@@ -879,8 +879,14 @@ static void OGC_KeyboardFrame( void )
 		qboolean ctrl;
 		int key, ch = 0;
 
+		if( ev.type == KEYBOARD_CONNECTED || ev.type == KEYBOARD_DISCONNECTED )
+		{
+			Con_Printf( ev.type == KEYBOARD_CONNECTED ? "^2[KBD]^7 teclado USB detectado\n" : "^1[KBD]^7 teclado USB desconectado\n" );
+			continue;
+		}
+
 		if( ev.type != KEYBOARD_PRESSED && ev.type != KEYBOARD_RELEASED )
-			continue; // conectado / desconectado
+			continue;
 
 		down = ev.type == KEYBOARD_PRESSED;
 		ctrl = MOD_ONESET( ev.modifiers, MOD_ANYCONTROL );
@@ -961,11 +967,34 @@ static void OGC_MouseFrame( void )
 {
 	static u8 held;
 	static qboolean placed;
+	static int was_connected, retries, total_events;
+	static double next_retry;
 	mouse_event ev;
 	int guard = 0;
 
 	if( !ogc_usb_mouse_ok )
-		return;
+	{
+		// si el USB no estaba listo al arrancar, se reintenta unas veces
+		if( retries < 5 && host.realtime >= next_retry )
+		{
+			next_retry = host.realtime + 3.0;
+			retries++;
+			ogc_usb_mouse_ok = ( MOUSE_Init() == 0 );
+			if( ogc_usb_mouse_ok )
+				Con_Printf( "^2[MOUSE]^7 USB iniciado (intento %d)\n", retries );
+		}
+
+		if( !ogc_usb_mouse_ok )
+			return;
+	}
+
+	// avisa cuando libogc encuentra o pierde el raton (necesita un raton HID
+	// estandar, "boot protocol"; algunos raton gaming o receptores no lo son)
+	if(( MOUSE_IsConnected() ? 1 : 0 ) != was_connected )
+	{
+		was_connected = MOUSE_IsConnected() ? 1 : 0;
+		Con_Printf( was_connected ? "^2[MOUSE]^7 raton USB detectado\n" : "^1[MOUSE]^7 raton USB desconectado\n" );
+	}
 
 	// el cursor del menu arranca en el centro de la pantalla
 	if( !placed && refState.width > 0 && refState.height > 0 )
@@ -979,6 +1008,8 @@ static void OGC_MouseFrame( void )
 	{
 		u8 changed = ev.button ^ held;
 		int i;
+
+		total_events++;
 
 		if( ev.rx || ev.ry || ev.rz || changed )
 			OGC_SetSource( OGC_SRC_MOUSE );
@@ -1001,6 +1032,14 @@ static void OGC_MouseFrame( void )
 
 		if( ev.rz )
 			IN_MWheelEvent( ev.rz > 0 ? 1 : -1 );
+	}
+
+	if( wii_showinput.value )
+	{
+		static int tick;
+		if(( tick++ % 120 ) == 0 )
+			Con_Printf( "^3[MOUSE]^7 detectado=%d eventos=%d botones=%02x cursor=%d,%d\n",
+				(int)was_connected, total_events, (unsigned)held, (int)ogc_mouse_x, (int)ogc_mouse_y );
 	}
 }
 

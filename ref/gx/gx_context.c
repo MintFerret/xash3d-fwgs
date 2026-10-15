@@ -46,7 +46,12 @@ void R_ClearScreen( void )
 
 	GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
 	GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
-	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
+
+	// Seguimos en modo 2D: el HUD no debe pasar por el test de profundidad.
+	// Antes esto reactivaba el Z-test, y todo lo que el HUD dibujaba despues
+	// de un FillRGBA se comparaba con la profundidad del arma (que ocupa el
+	// primer 30% del rango) y quedaba tapado por ella.
+	GX_SetZMode( GX_FALSE, GX_ALWAYS, GX_FALSE );
 	R_Set2DMode( false );
 }
 

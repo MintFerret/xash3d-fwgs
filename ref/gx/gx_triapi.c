@@ -133,6 +133,10 @@ void TriRenderMode( int mode )
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_FALSE );
 		break;
 	}
+
+	// el HUD tambien usa TriAPI: en 2D nunca hay test de profundidad
+	if( glState.in2DMode )
+		GX_SetZMode( GX_FALSE, GX_ALWAYS, GX_FALSE );
 }
 
 void TriBegin( int mode )
