@@ -172,7 +172,8 @@ static void Joy_ProcessTrigger( const engineAxis_t engineAxis, short value )
 	// update axis values
 	joyaxis[engineAxis].prevval = joyaxis[engineAxis].val;
 	joyaxis[engineAxis].val = value;
-    Con_Printf( "[JOY] Axis %d = %d\n", engineAxis, value );
+    // wii: log spam desactivado (lag al mover stick derecho)
+    // Con_Printf( "[JOY] Axis %d = %d\n", engineAxis, value );
 
 	if( joyaxis[engineAxis].val > trigThreshold &&
 		joyaxis[engineAxis].prevval <= trigThreshold ) // ignore random press
@@ -249,7 +250,8 @@ static void Joy_ProcessStick( const engineAxis_t engineAxis, short value )
 	// update axis values
 	joyaxis[engineAxis].prevval = joyaxis[engineAxis].val;
 	joyaxis[engineAxis].val = value;
-    if( engineAxis == JOY_AXIS_YAW || engineAxis == JOY_AXIS_PITCH ) Con_Printf( "[JOY] Axis %d = %d\n", engineAxis, value );
+    // wii: log spam desactivado (lag al mover stick derecho)
+    // if( engineAxis == JOY_AXIS_YAW || engineAxis == JOY_AXIS_PITCH ) Con_Printf( "[JOY] Axis %d = %d\n", engineAxis, value );
 
 	// fwd/side axis simulate hat movement
 	if( ( engineAxis == JOY_AXIS_SIDE || engineAxis == JOY_AXIS_FWD ) &&
