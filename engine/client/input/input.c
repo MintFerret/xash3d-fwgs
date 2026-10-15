@@ -577,6 +577,7 @@ static void IN_CollectInput( float *forward, float *side, float *pitch, float *y
 	// y viewent.angles (arma) en cl_view.c.
 	// Descomentar la linea de abajo si se quiere volver al comportamiento anterior.
         OGC_PointerMove( pitch, yaw );
+	OGC_MouseMove( pitch, yaw );
 #endif
 
 	IN_GyroFinalizeMove( forward, side, pitch, yaw );

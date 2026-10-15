@@ -18,6 +18,9 @@ GNU General Public License for more details.
 #include "event_flags.h"
 #include "net_encode.h"
 #include "con_nprint.h"
+#if XASH_OGC
+#include "platform/platform.h"
+#endif
 
 /*
 ===============
@@ -228,7 +231,12 @@ static qboolean CL_FireEvent( event_info_t *ei, int slot )
 			if( ev->func )
 			{
 				CL_DescribeEvent( ei, slot );
-				ev->func( &ei->args );
+				#if XASH_OGC
+				// el jugador local disparo: vibrar el mando
+				if( ei->args.entindex == cl.playernum + 1 )
+					OGC_Rumble( 0.7f, 0.12f );
+				#endif
+ev->func( &ei->args );
 				return true;
 			}
 

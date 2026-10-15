@@ -21,6 +21,8 @@ GNU General Public License for more details.
 #include "input.h"
 #include <wiiuse/wpad.h>
 #include <ogc/pad.h>
+#include <ogc/usbmouse.h>
+#include <wiikeyboard/keyboard.h>
 
 /*
 The remote's IR sensor arrives from SDL as an absolute pointer, not as
@@ -43,6 +45,11 @@ static CVAR_DEFINE_AUTO( wii_ir_gunsway, "7", FCVAR_ARCHIVE, "degrees the weapon
 static CVAR_DEFINE_AUTO( wii_ir_cursor, "1", FCVAR_ARCHIVE, "show the pointer in game as the aiming reticle" );
 static CVAR_DEFINE_AUTO( wii_nunchuk_sens, "320", FCVAR_ARCHIVE, "Nunchuk stick sensitivity (128=lento, 320=normal, 512=rapido)" );
 static CVAR_DEFINE_AUTO( wii_buttons, "1", FCVAR_ARCHIVE, "read the remote and nunchuk buttons straight from WPAD" );
+static CVAR_DEFINE_AUTO( wii_rumble, "1", FCVAR_ARCHIVE, "controller vibration strength (0 = off, 1 = full)" );
+static CVAR_DEFINE_AUTO( wii_gun_tilt, "1", FCVAR_ARCHIVE, "weapon rolls with the Wii remote (0 = off, negative = inverted)" );
+static CVAR_DEFINE_AUTO( wii_gun_tilt_max, "55", FCVAR_ARCHIVE, "maximum weapon roll in degrees" );
+static CVAR_DEFINE_AUTO( wii_gun_pitch, "1", FCVAR_ARCHIVE, "weapon follows the remote pitch when the pointer is lost (0 = off, negative = inverted)" );
+static CVAR_DEFINE_AUTO( wii_mouse_sens, "2", FCVAR_ARCHIVE, "USB mouse look speed" );
 #ifdef XASH_OGC_INPUTTEST
 #define WII_SHOWINPUT_DEFAULT "1"	// input test build: on with nothing to configure
 #else
@@ -132,11 +139,34 @@ static const ogc_btn_t ogc_map_gamecube[] =
 static u32 ogc_buttons_held;
 static u32 ogc_pad_held;
 
+/*
+Which device the player touched last. It decides where the rumble goes and
+whether the Wii remote pointer is allowed to aim: with a USB mouse in use the
+remote is usually lying on a table, and its IR sensor would keep dragging the
+aim around.
+*/
+enum { OGC_SRC_WII, OGC_SRC_GC, OGC_SRC_MOUSE };
+static int ogc_src = OGC_SRC_WII;
+
+// set by OGC_Init: reading the queues of a device that failed to start would
+// walk an uninitialised list
+int ogc_usb_kbd_ok;
+int ogc_usb_mouse_ok;
+
 // where the player is pointing, as -1..1 from the centre of the screen.
 // kept here so the view code can lean the weapon towards it.
 static vec2_t ogc_pointer;
 
 static qboolean OGC_GetPointerAngles( float *dyaw, float *dpitch );
+
+// USB mouse: motion waiting to be turned into view angles, and a virtual
+// cursor in screen pixels for the menus
+static float ogc_mouse_dx, ogc_mouse_dy;
+static float ogc_mouse_x, ogc_mouse_y;
+static void OGC_RumbleFrame( void );
+static void OGC_GetRemoteTilt( float *roll, float *pitch );
+static void OGC_KeyboardFrame( void );
+static void OGC_MouseFrame( void );
 
 void OGC_InputInit( void )
 {
@@ -155,6 +185,11 @@ void OGC_InputInit( void )
 Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_buttons );
 	Cvar_RegisterVariable( &wii_showinput );
+	Cvar_RegisterVariable( &wii_rumble );
+	Cvar_RegisterVariable( &wii_gun_tilt );
+	Cvar_RegisterVariable( &wii_gun_tilt_max );
+	Cvar_RegisterVariable( &wii_gun_pitch );
+	Cvar_RegisterVariable( &wii_mouse_sens );
 
 
 #if XASH_OGC_AIMTEST
@@ -191,7 +226,25 @@ changes are reported. WPAD is not scanned here - SDL already does that every
 frame to produce the pointer motion, and scanning twice would race it.
 ============
 */
-static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *prev )
+/*
+En juego, ESC pasaba por el binding "cancelselect" y dependia del client.dll
+para abrir el menu. Abrimos el menu directamente con el comando del motor. Con
+el menu abierto, la tecla sigue yendo al menu (volver atras). Lo usan tanto
+los botones de los mandos como el teclado USB.
+*/
+static void OGC_SendKey( int key, qboolean down )
+{
+	if( key == K_ESCAPE && cls.key_dest == key_game )
+	{
+		if( down )
+			Cbuf_AddText( "escape\n" );
+		return;
+	}
+
+	Key_Event( key, down );
+}
+
+static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *prev, int src )
 {
 	u32 changed = held ^ *prev;
 	int i;
@@ -201,26 +254,15 @@ static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *pre
 	if( !changed )
 		return;
 
+
+	// tocar un boton devuelve el control al mando (y no al raton)
+	ogc_src = src;
+
 	for( i = 0; i < count; i++ )
-        {
-                if( changed & map[i].mask )
-                {
-                        qboolean down = ( held & map[i].mask ) != 0;
-
-                        // En juego, ESC pasaba por el binding "cancelselect" y dependia del
-                        // client.dll para abrir el menu. Abrimos el menu directamente con el
-                        // comando del motor. Con el menu abierto, la tecla sigue yendo al
-                        // menu (volver atras).
-                        if( map[i].key == K_ESCAPE && cls.key_dest == key_game )
-                        {
-                                if( down )
-                                        Cbuf_AddText( "escape\n" );
-                                continue;
-                        }
-
-                        Key_Event( map[i].key, down );
-                }
-        }
+	{
+		if( changed & map[i].mask )
+			OGC_SendKey( map[i].key, ( held & map[i].mask ) != 0 );
+	}
 }
 static void OGC_PollNunchuk(void);
 static void OGC_PollSticks( u32 wpad_type );
@@ -228,6 +270,11 @@ static void OGC_PollSticks( u32 wpad_type );
 void OGC_ButtonsFrame( void )
 {
 	u32 type = WPAD_EXP_NONE;
+
+	// teclado y raton USB, y la vibracion, no dependen de wii_buttons
+	OGC_KeyboardFrame();
+	OGC_MouseFrame();
+	OGC_RumbleFrame();
 
 	if( !wii_buttons.value )
 		return;
@@ -272,7 +319,7 @@ OGC_PollNunchuk();
 			once_classic = 1;
 		}
 		OGC_EmitButtons( ogc_map_classic, ARRAYSIZE( ogc_map_classic ),
-			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held );
+			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held, OGC_SRC_WII );
 	}
 	else
 	{
@@ -281,11 +328,11 @@ OGC_PollNunchuk();
 			once_wiimote = 1;
 		}
 		OGC_EmitButtons( ogc_map_wiimote, ARRAYSIZE( ogc_map_wiimote ),
-			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held );
+			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held, OGC_SRC_WII );
 	}
 
 	OGC_EmitButtons( ogc_map_gamecube, ARRAYSIZE( ogc_map_gamecube ),
-		PAD_ButtonsHeld( PAD_CHAN0 ), &ogc_pad_held );
+		PAD_ButtonsHeld( PAD_CHAN0 ), &ogc_pad_held, OGC_SRC_GC );
 
         // Sticks del Classic Controller y del GameCube (el del Nunchuk va aparte)
         OGC_PollSticks( type );
@@ -300,6 +347,14 @@ Pointer position as -1..1 from screen centre, for the view model.
 */
 void OGC_GetPointer( float *x, float *y )
 {
+	if( ogc_src == OGC_SRC_MOUSE && refState.width > 0 && refState.height > 0 )
+	{
+		// cursor del raton USB, para los menus
+		if( x ) *x = ogc_mouse_x / (float)refState.width * 2.0f - 1.0f;
+		if( y ) *y = ogc_mouse_y / (float)refState.height * 2.0f - 1.0f;
+		return;
+	}
+
 	if( x ) *x = ogc_pointer[0];
 	if( y ) *y = ogc_pointer[1];
 }
@@ -332,7 +387,8 @@ static qboolean OGC_GetPointerAngles( float *dyaw, float *dpitch )
 {
 	float halffov, tanhalf, aspect;
 
-	if( !wii_ir.value || refState.width <= 0 || refState.height <= 0 )
+	// con el raton USB en uso el puntero IR no apunta (el mando suele estar en la mesa)
+	if( !wii_ir.value || ogc_src == OGC_SRC_MOUSE || refState.width <= 0 || refState.height <= 0 )
 		return false;
 
 	halffov = bound( 10.0f, cl.local.scr_fov, 150.0f ) * 0.5f;
@@ -409,14 +465,20 @@ centre while the pointer moves independently, which looks wrong.
 */
 void OGC_ApplyPointerToViewModel( cl_entity_t *view )
 {
-    float dyaw, dpitch;
+    float dyaw = 0.0f, dpitch = 0.0f, droll = 0.0f, tpitch = 0.0f;
 
-    if( !view || !wii_ir.value )
+    if( !view )
         return;
 
     // Calcula el offset angular real (mismo que el disparo), asi el arma
     // apunta EXACTAMENTE al crosshair, no solo se inclina un poco.
     if( !OGC_GetPointerAngles( &dyaw, &dpitch ))
+        dyaw = dpitch = 0.0f;
+
+    // Giro del propio mando (acelerometro): al girar el Wiimote el arma gira igual
+    OGC_GetRemoteTilt( &droll, &tpitch );
+
+    if( dyaw == 0.0f && dpitch == 0.0f && droll == 0.0f && tpitch == 0.0f )
         return;
 
     // Blindaje NaN/Inf
@@ -426,6 +488,9 @@ void OGC_ApplyPointerToViewModel( cl_entity_t *view )
     // Aplica el offset angular al arma
     view->angles[YAW]   += dyaw;
     view->angles[PITCH] -= dpitch;
+    view->angles[PITCH] += tpitch;
+    view->angles[ROLL]  += droll;
+    view->angles[ROLL]   = bound( -90.0f, view->angles[ROLL], 90.0f );
 
     // Clamp duro para Wii
     if( view->angles[PITCH] > 89.0f ) view->angles[PITCH] = 89.0f;
@@ -455,7 +520,8 @@ void OGC_PointerMove( float *pitch, float *yaw )
 
     #define IR_TOLERANCE_FRAMES 5
 
-    if( !wii_ir.value || refState.width <= 0 || refState.height <= 0 )
+    // con el raton USB en uso el puntero IR no apunta (el mando suele estar en la mesa)
+	if( !wii_ir.value || ogc_src == OGC_SRC_MOUSE || refState.width <= 0 || refState.height <= 0 )
         return;
 
     if( WPAD_Probe( WPAD_CHAN_0, &type ) != WPAD_ERR_NONE )
@@ -531,6 +597,405 @@ void OGC_PointerMove( float *pitch, float *yaw )
 
         if( isnan( *pitch ) || isinf( *pitch ) ) *pitch = 0.0f;
     }
+}
+
+/*
+============
+OGC_GetRemoteTilt
+
+How far the player has twisted the Wii remote, for the weapon. The roll comes
+from the accelerometer (gravity), so it is only meaningful while the remote is
+held still-ish and not pointing straight up or down; it is filtered so the gun
+does not shake with every wrist tremor. The pitch is only used when the IR
+sensor has lost the bar - otherwise the pointer already leans the weapon.
+============
+*/
+static void OGC_GetRemoteTilt( float *roll, float *pitch )
+{
+static float f_roll, f_pitch;
+float t_roll = 0.0f, t_pitch = 0.0f, k;
+u32 type = WPAD_EXP_NONE;
+
+if( wii_gun_tilt.value != 0.0f && ogc_src == OGC_SRC_WII
+WPAD_Probe( WPAD_CHAN_0, &type ) == WPAD_ERR_NONE && type != WPAD_EXP_CLASSIC )
+{
+*data = WPAD_Data( WPAD_CHAN_0 );
+
+data )
+r = data->orient.roll, p = data->orient.pitch;
+lim = bound( 5.0f, wii_gun_tilt_max.value, 90.0f );
+
+isnan( r ) || isinf( r )) r = 0.0f;
+isnan( p ) || isinf( p )) p = 0.0f;
+
+zona muerta de 3 grados, el resto se reescala
+fabsf( r ) < 3.0f ) r = 0.0f; else r -= r > 0.0f ? 3.0f : -3.0f;
+= bound( -lim, r * wii_gun_tilt.value, lim );
+
+!data->ir.valid && wii_gun_pitch.value != 0.0f )
+fabsf( p ) < 3.0f ) p = 0.0f; else p -= p > 0.0f ? 3.0f : -3.0f;
+= bound( -lim, p * wii_gun_pitch.value, lim );
+wii_showinput.value )
+int tick;
+tick++ % 60 ) == 0 )
+_Printf( "^3[TILT]^7 roll=%.1f pitch=%.1f ir=%d\n",
+t.roll, data->orient.pitch, (int)data->ir.valid );
+filtro exponencial (~70 ms): sigue al mando sin temblar
+k = 1.0f - expf( -(float)host.realframetime * 14.0f );
+k = bound( 0.0f, k, 1.0f );
+f_roll  += ( t_roll  - f_roll  ) * k;
+f_pitch += ( t_pitch - f_pitch ) * k;
+
+if( fabsf( f_roll )  < 0.05f ) f_roll  = 0.0f;
+if( fabsf( f_pitch ) < 0.05f ) f_pitch = 0.0f;
+
+*roll  = f_roll;
+*pitch = f_pitch;
+}
+
+/*
+============
+Rumble
+
+The motors only know on and off, so the strength is the share of time they
+spend on: a cycle of six frames, on for as many of them as the strength asks.
+
+The remote is the one that shakes, also when a Classic Controller is plugged
+into it. With a GameCube pad in use the pad's own motor is driven instead, and
+with a USB mouse nothing moves at all.
+============
+*/
+static double ogc_rumble_end;
+static float ogc_rumble_power;
+static qboolean ogc_rumble_wii_on;
+static qboolean ogc_rumble_gc_on;
+
+void OGC_Rumble( float power, float seconds )
+{
+double now = host.realtime;
+
+power = bound( 0.0f, power * wii_rumble.value, 1.0f );
+if( power <= 0.0f || seconds <= 0.0f )
+;
+
+if( now < ogc_rumble_end )
+{
+ya vibrando: se queda lo mas fuerte y lo mas largo
+power > ogc_rumble_power )
+= power;
+now + seconds > ogc_rumble_end )
+d = now + seconds;
+}
+else
+{
+= power;
+d = now + seconds;
+}
+}
+
+static void OGC_RumbleFrame( void )
+{
+static unsigned tick;
+static int prev_health;
+qboolean on = false, want_wii, want_gc;
+
+// dano recibido: la vida baja mientras se juega
+if( cls.state == ca_active && !cl.paused )
+{
+t hp = cl.local.health;
+
+prev_health > 0 && hp < prev_health )
+t lost = bound( 1, prev_health - hp, 50 );
+
+hp <= 0 )
+1.0f, 0.8f );
+0.55f + lost * 0.009f, 0.15f + lost * 0.008f );
+= hp;
+}
+else prev_health = 0;
+
+if( wii_rumble.value > 0.0f && host.realtime < ogc_rumble_end )
+{
+t duty = (int)( ogc_rumble_power * 6.0f + 0.5f );
+ = ( tick++ % 6 ) < (unsigned)duty;
+}
+else tick = 0;
+
+want_wii = on && ogc_src == OGC_SRC_WII;
+want_gc  = on && ogc_src == OGC_SRC_GC;
+
+if( want_wii != ogc_rumble_wii_on )
+{
+WPAD_CHAN_0, want_wii ? 1 : 0 );
+ = want_wii;
+}
+
+if( want_gc != ogc_rumble_gc_on )
+{
+trolMotor( PAD_CHAN0, want_gc ? PAD_MOTOR_RUMBLE : PAD_MOTOR_STOP_HARD );
+ = want_gc;
+}
+}
+
+/*
+============
+USB keyboard
+============
+*/
+static int OGC_HIDToKey( int u )
+{
+if( u >= 4 && u <= 29 )   return 'a' + ( u - 4 );
+if( u >= 30 && u <= 38 )  return '1' + ( u - 30 );
+if( u == 39 )             return '0';
+if( u >= 58 && u <= 69 )  return K_F1 + ( u - 58 );
+
+switch( u )
+{
+case 40:  return K_ENTER;
+case 41:  return K_ESCAPE;
+case 42:  return K_BACKSPACE;
+case 43:  return K_TAB;
+case 44:  return K_SPACE;
+case 45:  return 0x2D;
+case 46:  return 0x3D;
+case 47:  return 0x5B;
+case 48:  return 0x5D;
+case 49:  return 0x5C;
+case 51:  return 0x3B;
+case 52:  return 0x27;
+case 53:  return 0x60;
+case 54:  return 0x2C;
+case 55:  return 0x2E;
+case 56:  return 0x2F;
+case 57:  return K_CAPSLOCK;
+case 71:  return K_SCROLLLOCK;
+case 72:  return K_PAUSE;
+case 73:  return K_INS;
+case 74:  return K_HOME;
+case 75:  return K_PGUP;
+case 76:  return K_DEL;
+case 77:  return K_END;
+case 78:  return K_PGDN;
+case 79:  return K_RIGHTARROW;
+case 80:  return K_LEFTARROW;
+case 81:  return K_DOWNARROW;
+case 82:  return K_UPARROW;
+case 83:  return K_KP_NUMLOCK;
+case 84:  return K_KP_SLASH;
+case 85:  return K_KP_MUL;
+case 86:  return K_KP_MINUS;
+case 87:  return K_KP_PLUS;
+case 88:  return K_KP_ENTER;
+case 89:  return K_KP_END;
+case 90:  return K_KP_DOWNARROW;
+case 91:  return K_KP_PGDN;
+case 92:  return K_KP_LEFTARROW;
+case 93:  return K_KP_5;
+case 94:  return K_KP_RIGHTARROW;
+case 95:  return K_KP_HOME;
+case 96:  return K_KP_UPARROW;
+case 97:  return K_KP_PGUP;
+case 98:  return K_KP_INS;
+case 99:  return K_KP_DEL;
+case 224: case 228: return K_CTRL;
+case 225: case 229: return K_SHIFT;
+case 226: case 230: return K_ALT;
+case 227: case 231: return K_WIN;
+}
+
+return 0;
+}
+
+// only text and editing keys repeat; repeating ESC or ENTER would reopen the
+// menu or fire the same console line over and over
+static qboolean OGC_RepeatableKey( int key )
+{
+switch( key )
+{
+case K_BACKSPACE: case K_DEL:
+case K_UPARROW: case K_DOWNARROW: case K_LEFTARROW: case K_RIGHTARROW:
+case K_PGUP: case K_PGDN:
+ true;
+}
+return false;
+}
+
+#define OGC_REPEAT_DELAY 0.40
+#define OGC_REPEAT_RATE  0.04
+
+static struct
+{
+	int keycode;	// 0 = nothing held
+	int key;
+	int ch;		// character to repeat, 0 if none
+	double next;
+} ogc_repeat;
+static void OGC_KeyboardFrame( void )
+{
+	keyboard_event ev;
+	int guard = 0;
+
+	if( !ogc_usb_kbd_ok )
+		return;
+
+	while( guard++ < 64 && KEYBOARD_GetEvent( &ev ) > 0 )
+	{
+		qboolean down;
+		qboolean ctrl;
+		int key, ch = 0;
+
+		if( ev.type != KEYBOARD_PRESSED && ev.type != KEYBOARD_RELEASED )
+			continue; // conectado / desconectado
+
+		down = ev.type == KEYBOARD_PRESSED;
+		ctrl = MOD_ONESET( ev.modifiers, MOD_ANYCONTROL );
+		key = OGC_HIDToKey( ev.keycode );
+
+		if( !down )
+		{
+			if( ogc_repeat.keycode == ev.keycode )
+				ogc_repeat.keycode = 0;
+		}
+		else if( cls.key_dest != key_game )
+		{
+			// texto escrito: consola, chat y menus. Ctrl+A..Z manda 1..26
+			// (copiar, pegar...), como hace la version de SDL.
+			if( ctrl )
+			{
+				if( ev.keycode >= 4 && ev.keycode <= 29 )
+				{
+					CL_CharEvent( ev.keycode - 4 + 1 );
+					continue;
+				}
+			}
+			else if( ev.symbol >= 32 && ev.symbol < 127 )
+			{
+				ch = ev.symbol;
+				CL_CharEvent( ch );
+			}
+		}
+
+		if( key )
+		{
+			// las letras y numeros escritos ya llegaron como texto
+			if( down && cls.key_dest != key_game && ev.keycode >= 4 && ev.keycode <= 39 )
+			{
+				// nada
+			}
+			else OGC_SendKey( key, down );
+		}
+
+		if( down && cls.key_dest != key_game && !ctrl && ( ch || OGC_RepeatableKey( key )))
+		{
+			ogc_repeat.keycode = ev.keycode;
+			ogc_repeat.key = key;
+			ogc_repeat.ch = ch;
+			ogc_repeat.next = host.realtime + OGC_REPEAT_DELAY;
+		}
+	}
+
+	// repeticion: solo fuera de la partida (consola, chat, menus)
+	if( ogc_repeat.keycode )
+	{
+		if( cls.key_dest == key_game )
+			ogc_repeat.keycode = 0;
+		else if( host.realtime >= ogc_repeat.next )
+		{
+			ogc_repeat.next = host.realtime + OGC_REPEAT_RATE;
+
+			if( ogc_repeat.ch )
+				CL_CharEvent( ogc_repeat.ch );
+			else if( ogc_repeat.key )
+				OGC_SendKey( ogc_repeat.key, true );
+		}
+	}
+}
+
+
+/*
+============
+USB mouse
+
+Motion is collected here and handed to the view code by OGC_MouseMove, the
+same way the pointer does it; buttons and the wheel go through the engine's
+normal mouse entry points so the bindings (MOUSE1 attack and so on) and the
+menus behave as on a PC. The menus get a virtual cursor, since there is no
+absolute position to read from a mouse.
+============
+*/
+static void OGC_MouseFrame( void )
+{
+	static u8 held;
+	static qboolean placed;
+	mouse_event ev;
+	int guard = 0;
+
+	if( !ogc_usb_mouse_ok )
+		return;
+
+	// el cursor del menu arranca en el centro de la pantalla
+	if( !placed && refState.width > 0 && refState.height > 0 )
+	{
+		ogc_mouse_x = refState.width * 0.5f;
+		ogc_mouse_y = refState.height * 0.5f;
+		placed = true;
+	}
+
+	while( guard++ < 128 && MOUSE_GetEvent( &ev ) > 0 )
+	{
+		u8 changed = ev.button ^ held;
+		int i;
+
+		if( ev.rx || ev.ry || ev.rz || changed )
+			ogc_src = OGC_SRC_MOUSE;
+
+		ogc_mouse_dx += ev.rx;
+		ogc_mouse_dy += ev.ry;
+
+		if( refState.width > 0 && refState.height > 0 )
+		{
+			ogc_mouse_x = bound( 0.0f, ogc_mouse_x + ev.rx, (float)( refState.width - 1 ));
+			ogc_mouse_y = bound( 0.0f, ogc_mouse_y + ev.ry, (float)( refState.height - 1 ));
+		}
+
+		for( i = 0; i < 5; i++ )
+		{
+			if( changed & ( 1 << i ))
+				IN_MouseEvent( i, ( ev.button & ( 1 << i )) != 0 );
+		}
+		held = ev.button;
+
+		if( ev.rz )
+			IN_MWheelEvent( ev.rz > 0 ? 1 : -1 );
+	}
+}
+
+/*
+============
+OGC_MouseMove
+
+Adds the USB mouse's motion since the last call to the view angles.
+============
+*/
+void OGC_MouseMove( float *pitch, float *yaw )
+{
+	float s;
+
+	if( ogc_mouse_dx == 0.0f && ogc_mouse_dy == 0.0f )
+		return;
+
+	// fuera de la partida el raton solo mueve el cursor del menu
+	if( cls.key_dest != key_game )
+	{
+		ogc_mouse_dx = ogc_mouse_dy = 0.0f;
+		return;
+	}
+
+	s = wii_mouse_sens.value;
+	*yaw   -= ogc_mouse_dx * Cvar_VariableValue( "m_yaw" ) * s;
+	*pitch += ogc_mouse_dy * Cvar_VariableValue( "m_pitch" ) * s;
+
+	ogc_mouse_dx = ogc_mouse_dy = 0.0f;
 }
 
 /*

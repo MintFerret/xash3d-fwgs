@@ -283,10 +283,10 @@ void OGC_Init( void )
 	WPAD_SetDataFormat( WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR );
 
 	printf( "OGC_Init: USB keyboard\n" );
-	KEYBOARD_Init( NULL );
+	ogc_usb_kbd_ok = ( KEYBOARD_Init( NULL ) == 0 );
 
 	printf( "OGC_Init: USB mouse\n" );
-	MOUSE_Init( NULL );
+	ogc_usb_mouse_ok = ( MOUSE_Init( NULL ) == 0 );
 
 	printf( "OGC_Init: done\n" );
 }
