@@ -190,7 +190,7 @@ GNU General Public License for more details.
 #define MAX_VISIBLE_PACKET		128
 #define MAX_VISIBLE_PACKET_VIS_BYTES	((MAX_VISIBLE_PACKET + 7) / 8)
 #define MAX_EVENTS			128
-#define MAX_MODELS			512
+#define MAX_MODELS			2048
 #define MAX_SOUNDS			512
 #define MAX_CUSTOM			32
 #define MAX_DLIGHTS			16		// dynamic lights (rendered per one frame)
