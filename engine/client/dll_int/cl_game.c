@@ -1016,7 +1016,11 @@ void CL_InitEdicts( int maxclients )
 	Assert( clgame.entities == NULL );
 
 	if( !clgame.mempool ) return; // Host_Error without client
-#if XASH_LOW_MEMORY != 2 && !XASH_OGC
+#if XASH_LOW_MEMORY != 2 || XASH_OGC
+	// En Wii esto estaba excluido y CL_UPDATE_BACKUP se quedaba en SINGLEPLAYER_BACKUP (4)
+	// tambien en multijugador: con mascara 3 cualquier ack con >=3 paquetes de retraso
+	// daba "delta frame is too old", el cliente descartaba el frame y el movimiento
+	// iba lento y a saltos. cl.frames/commands ya tienen MULTIPLAYER_BACKUP (16) entradas.
 	CL_UPDATE_BACKUP = ( maxclients <= 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
 #endif
 	cls.num_client_entities = CL_UPDATE_BACKUP * NUM_PACKET_ENTITIES;

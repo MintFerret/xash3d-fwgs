@@ -2049,7 +2049,13 @@ void NET_Init( void )
 	NET_InitializeCriticalSections();
 
 	net.allow_ip = !Sys_CheckParm( "-noip" );
+#if XASH_OGC
+	// IOS/libogc no tiene IPv6: el socket "v6" salia como IPv4 y el escaneo LAN
+	// llenaba la consola de "Address family not supported ... to [::]:2701x"
+	net.allow_ip6 = false;
+#else
 	net.allow_ip6 = !Sys_CheckParm( "-noip6" );
+#endif
 
 	// specify custom host port
 	if( Sys_GetParmFromCmdLine( "-port", cmd ) && Q_isdigit( cmd ))
