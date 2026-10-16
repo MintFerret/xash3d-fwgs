@@ -259,6 +259,21 @@ static void SDL_SoundInputCallback( void *userdata, Uint8 *stream, int len )
 	voice.input_buffer_pos += size;
 }
 
+#if XASH_OGC
+/*
+===========
+VoiceCapture_* (stub Wii)
+
+El device de captura de SDL no existe en Wii; su apertura fallida deja un
+callback NULL registrado en el scheduler de libogc, que crashea al conectar
+a un servidor (KTickTaskRun, tick.c:78, PC=0). En Wii no hay microfono.
+===========
+*/
+qboolean VoiceCapture_Init( void ) { return false; }
+qboolean VoiceCapture_Activate( qboolean activate ) { (void)activate; return false; }
+qboolean VoiceCapture_Lock( qboolean lock ) { (void)lock; return false; }
+void VoiceCapture_Shutdown( void ) { }
+#else
 /*
 ===========
 VoiceCapture_Init
@@ -335,3 +350,4 @@ void VoiceCapture_Shutdown( void )
 	SDL_CloseAudioDevice( in_dev );
 	in_dev = 0;
 }
+#endif // XASH_OGC
