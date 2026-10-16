@@ -130,6 +130,25 @@ void OGC_EarlyInit( void )
 }
 
 
+/*
+Pila del hilo principal.
+
+libogc (tuxedo/default_stacks.c) trae una pila de 128KB en .bss y la expone con
+simbolos WEAK (__ppc_main_sp), justo para que el programa pueda reemplazarla.
+Esa pila esta pegada a .bss: si se desborda no hay fallo, sobrescribe en
+silencio los globales de abajo (p. ej. las KTickTask estaticas de lwip/libogc,
+que luego llaman a fn=NULL -> PC=0 en KTickTaskRun al unirse a una partida).
+Aqui la ampliamos; XASH_OGC_MAIN_STACK_KB lo cambia. Con 128 se queda como antes.
+*/
+#ifndef XASH_OGC_MAIN_STACK_KB
+#define XASH_OGC_MAIN_STACK_KB	384
+#endif
+
+#if XASH_OGC_MAIN_STACK_KB != 128
+static u8 ogc_main_stack[XASH_OGC_MAIN_STACK_KB * 1024] __attribute__(( aligned( 8 )));
+void *__ppc_main_sp = &ogc_main_stack[sizeof( ogc_main_stack )];
+#endif
+
 volatile int g_ogc_mark = 0;
 
 #if XASH_OGC_STACKWATCH

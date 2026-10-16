@@ -125,7 +125,7 @@ jobs:
             # KTickTask corrupta en r3) buscamos el simbolo anterior con nm.
             BIN=$(dirname "$ADDR2LINE")
             echo "=== Simbolo mas cercano (nm) ==="
-            "$BIN/powerpc-eabi-nm" -n -C "$elf" | awk -v list="$ADDRS" '
+            "$BIN/powerpc-eabi-nm" -n -S -C "$elf" | awk -v list="$ADDRS" '
               function h(s,  i,c,v){ v=0; s=tolower(s); sub(/^0x/,"",s);
                 for(i=1;i<=length(s);i++){ c=index("0123456789abcdef",substr(s,i,1))-1; v=v*16+c } return v }
               BEGIN{ n=split(list,A," "); for(i=1;i<=n;i++){ T[i]=h(A[i]); B[i]=-1 } }
