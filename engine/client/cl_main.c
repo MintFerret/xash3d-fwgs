@@ -2360,7 +2360,13 @@ qboolean CL_IsFromConnectingServer( netadr_t from )
 
 static void CL_HandleTestPacket( netadr_t from, sizebuf_t *msg )
 {
+#if XASH_OGC
+	// ver NET_QueuePacket: 32KB en la pila principal de 128KB de la Wii.
+	// Este paquete solo llega al unirse a un servidor (hilo principal).
+	static byte	recv_buf[NET_MAX_FRAGMENT];
+#else
 	byte	recv_buf[NET_MAX_FRAGMENT];
+#endif
 	dword	crcValue;
 	int	realsize;
 	dword	crcValue2 = 0;

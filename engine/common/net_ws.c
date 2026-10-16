@@ -1354,7 +1354,14 @@ queue normal and lagged packets
 */
 static qboolean NET_QueuePacket( int net_socket, netsrc_t sock, netadr_t *from, byte *data, size_t *length )
 {
+#if XASH_OGC
+	// el stack principal de la Wii es de solo 128KB y esta justo encima de .bss;
+	// 32KB por llamada (en cada poll de red) lo acercan al borde. Solo el hilo
+	// principal llama aqui, asi que un buffer estatico es seguro.
+	static byte	buf[NET_MAX_FRAGMENT];
+#else
 	byte		buf[NET_MAX_FRAGMENT];
+#endif
 	struct sockaddr_storage	addr = { 0 };
 
 	*length = 0;

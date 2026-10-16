@@ -121,6 +121,24 @@ jobs:
             ADDRS=$(grep -v '^#' crash_addrs.txt | tr -s ' \n' ' ')
             echo "Addresses: $ADDRS"
             "$ADDR2LINE" -f -C -e "$elf" $ADDRS
+            # addr2line solo entiende codigo. Para direcciones de datos (p. ej. la
+            # KTickTask corrupta en r3) buscamos el simbolo anterior con nm.
+            BIN=$(dirname "$ADDR2LINE")
+            echo "=== Simbolo mas cercano (nm) ==="
+            "$BIN/powerpc-eabi-nm" -n -C "$elf" | awk -v list="$ADDRS" '
+              function h(s,  i,c,v){ v=0; s=tolower(s); sub(/^0x/,"",s);
+                for(i=1;i<=length(s);i++){ c=index("0123456789abcdef",substr(s,i,1))-1; v=v*16+c } return v }
+              BEGIN{ n=split(list,A," "); for(i=1;i<=n;i++){ T[i]=h(A[i]); B[i]=-1 } }
+              { if(NF<3) next; v=h($1);
+                for(i=1;i<=n;i++){
+                  if(v<=T[i] && v>=B[i]){ B[i]=v; L[i]=$0 }
+                  else if(v>T[i] && !(i in NX)){ NX[i]=$0 } } }
+              END{ for(i=1;i<=n;i++) printf "%s -> %s  | siguiente: %s\n", A[i], L[i], NX[i] }'
+
+            echo "=== Secciones (objdump -h) ==="
+            "$BIN/powerpc-eabi-objdump" -h "$elf" | grep -E "\.(text|data|bss|sbss|sdata|stack|heap)|Idx" || true
+            echo "=== Simbolos de stack/heap ==="
+            "$BIN/powerpc-eabi-nm" -n -C "$elf" | grep -iE "stack|__bss|_end$|__heap|arena" | head -30 || true
           done
 
       - name: Upload Wii build artifacts
