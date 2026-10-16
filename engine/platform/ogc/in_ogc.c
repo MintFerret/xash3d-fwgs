@@ -352,6 +352,19 @@ OGC_PollNunchuk();
 
 /*
 ============
+OGC_AimIsPointer
+
+true solo si el Wiimote es el dispositivo activo: unicamente entonces el
+crosshair sigue al IR. Con Classic/GameCube/raton se queda en el centro.
+============
+*/
+qboolean OGC_AimIsPointer( void )
+{
+	return ogc_src == OGC_SRC_WII;
+}
+
+/*
+============
 OGC_GetPointer
 
 Pointer position as -1..1 from screen centre, for the view model.

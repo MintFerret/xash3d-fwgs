@@ -133,6 +133,7 @@ extern int ogc_usb_kbd_ok;
 extern int ogc_usb_mouse_ok;
 void OGC_ButtonsFrame( void );
 void OGC_GetPointer( float *x, float *y );
+qboolean OGC_AimIsPointer( void );
 void OGC_ApplyPointerToViewModel( struct cl_entity_s *view );
 void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemove );
 qboolean OGC_WantVisiblePointer( void );

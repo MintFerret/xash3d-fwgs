@@ -1624,13 +1624,12 @@ static int NET_IPSocket( const char *net_iface, int port, int family )
 		setsockopt( net_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 	}
 
-	#if !XASH_OGC
-	// make it broadcast capable
+	// make it broadcast capable (en Wii hace falta para la lista de partidas LAN;
+	// si IOS lo rechaza solo es un aviso)
 	if( NET_IsSocketError( setsockopt( net_socket, SOL_SOCKET, SO_BROADCAST, (char *)&_true, sizeof( _true ))))
 	{
 		Con_DPrintf( S_WARN "%s: port: %d setsockopt SO_BROADCAST: %s\n", __func__, port, NET_ErrorString( ));
 	}
-	#endif //not supported
 
 	if( !NET_MakeSocketReuseAddr( net_socket ))
 	{
@@ -2037,6 +2036,7 @@ void NET_Init( void )
 		return;
 	}
 	Con_Printf("wii network configured, ip: %s, gw: %s, mask %s\n", localip, gateway, netmask);
+	ogc_net_set_netmask( netmask );
 #endif
 
 	NET_InitializeCriticalSections();

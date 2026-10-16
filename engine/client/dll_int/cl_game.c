@@ -835,6 +835,7 @@ static void CL_DrawCrosshair( void )
 
 #if XASH_OGC
 	// Wii FPS: mover el crosshair segun la posicion del IR
+	if( OGC_AimIsPointer( ))
 	{
 		float px = 0.0f, py = 0.0f;
 		OGC_GetPointer( &px, &py );

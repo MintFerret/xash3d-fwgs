@@ -48,33 +48,93 @@ static inline int ogc_net_socket(int d, int t, int p)
 
  //Note: below here is stuff adapted from the quake3 port
 
-//build 8-byte POSIX addr for IOS (no sin_len prefix, tolen=8)
-static inline int ogc_net_sendto(int s, const void *b, int l, int f, const struct sockaddr *a, int al)
+// mascara de red de la Wii (en orden de red), la fija net_ws.c tras if_config.
+// Sirve para calcular el broadcast dirigido (192.168.x.255), porque algunos
+// routers/APs no reenvian 255.255.255.255 y la lista LAN quedaba vacia.
+static uint32_t ogc_net_netmask;
+
+static inline void ogc_net_set_netmask( const char *mask )
 {
-	uint8_t ios_addr[8];
-	const struct sockaddr *send_a  = a;
-
-	if (a && a->sa_family == AF_INET) {
-		const struct sockaddr_in *sin4 = (const struct sockaddr_in *)a;
-		uint16_t fam = (uint16_t)AF_INET;
-		memcpy(ios_addr + 0, &fam,            2);
-		memcpy(ios_addr + 2, &sin4->sin_port, 2);
-		memcpy(ios_addr + 4, &sin4->sin_addr, 4);
-		send_a  = (const struct sockaddr *)ios_addr;
-	}
-
-    return net_sendto(s, (void *)b, l, f, (struct sockaddr *)send_a, 8);
+	ogc_net_netmask = inet_addr( mask );
+	if( ogc_net_netmask == (uint32_t)-1 )
+		ogc_net_netmask = 0;
 }
 
-//recvfrom: normalize IOS error codes to -1 + errno=EAGAIN
+// libogc devuelve -errno; el motor espera -1 y errno (WSAGetLastError). Sin
+// esto NET_SendPacket nunca veia el error y no se imprimia nada al fallar.
+static inline int ogc_net_fix_ret( int ret )
+{
+	if( ret >= 0 )
+		return ret;
+	errno = ( ret == -1 ) ? EIO : -ret;
+	return -1;
+}
+
+//build 8-byte POSIX addr for IOS (no sin_len prefix, tolen=8)
+static inline int ogc_net_sendto_one(int s, const void *b, int l, int f, uint32_t addr, uint16_t port)
+{
+	uint8_t ios_addr[8];
+
+	ios_addr[0] = 8;                 // sa_len
+	ios_addr[1] = (uint8_t)AF_INET;  // sa_family
+	memcpy(ios_addr + 2, &port, 2);
+	memcpy(ios_addr + 4, &addr, 4);
+
+	return ogc_net_fix_ret( net_sendto(s, (void *)b, l, f, (struct sockaddr *)ios_addr, 8) );
+}
+
+static inline int ogc_net_sendto(int s, const void *b, int l, int f, const struct sockaddr *a, int al)
+{
+	if (a && a->sa_family == AF_INET) {
+		const struct sockaddr_in *sin4 = (const struct sockaddr_in *)a;
+		uint32_t dst = sin4->sin_addr.s_addr;
+		int ret = ogc_net_sendto_one(s, b, l, f, dst, sin4->sin_port);
+
+		// broadcast limitado: mandar tambien el dirigido de la subred
+		if (dst == 0xFFFFFFFFu && ogc_net_netmask) {
+			uint32_t directed = ( (uint32_t)net_gethostip() & ogc_net_netmask ) | ~ogc_net_netmask;
+			if (directed != 0xFFFFFFFFu) {
+				int ret2 = ogc_net_sendto_one(s, b, l, f, directed, sin4->sin_port);
+				if (ret < 0 && ret2 >= 0)
+					ret = ret2;
+			}
+		}
+		return ret;
+	}
+
+	errno = EAFNOSUPPORT;
+	return -1;
+}
+
+//recvfrom: libogc deja que IOS escriba la direccion directamente en el buffer
+//que le pasamos. Si ese buffer es la pila (sin alinear a 32 bytes), la
+//invalidacion de cache de IPC se lleva por delante variables vecinas y
+//corrompe la pila (retorno a PC=0). Usamos un buffer propio alineado.
 static inline int ogc_net_recvfrom(int s, void *b, int l, int f, struct sockaddr *a, socklen_t *al)
 {
-    int ret = net_recvfrom(s, b, l, f, a, al);
-    if (ret >= 0)
-		return ret;
+	static uint8_t from_buf[32] __attribute__((aligned(32)));
+	socklen_t flen = 8;
+	int ret;
 
-    errno = EAGAIN;
-    return -1;
+	memset( from_buf, 0, sizeof( from_buf ));
+	from_buf[0] = 8;
+	from_buf[1] = (uint8_t)AF_INET;
+
+	ret = net_recvfrom(s, b, l, f, a ? (struct sockaddr *)from_buf : NULL, a ? &flen : NULL);
+	if (ret >= 0) {
+		if (a) {
+			// struct sockaddr_in: len, family, port, addr (8 bytes)
+			socklen_t cap = ( al && *al < sizeof( struct sockaddr_in )) ? *al : sizeof( struct sockaddr_in );
+			memset( a, 0, cap );
+			memcpy( a, from_buf, cap < 8 ? cap : 8 );
+			if( al ) *al = sizeof( struct sockaddr_in );
+		}
+		return ret;
+	}
+
+	// sin datos (o cualquier error): el motor lo trata como EAGAIN
+	errno = EAGAIN;
+	return -1;
 }
 
 #define ioctlsocket net_ioctl
