@@ -415,6 +415,15 @@ extern int gx_load_tex_count;
 
 static void R_NewMap( void )
 {
+	/* config.cfg se ejecuta DESPUES de iniciar el renderer y trae r_dynamic 0
+	   (archivado). Sin r_dynamic no hay lightstyles ni luces dinamicas, asi que
+	   en el puerto Wii se fuerza a 1 en cada mapa. */
+	if( !r_dynamic->value )
+	{
+		gEngfuncs.Con_Printf( "r_dynamic estaba en 0 (config.cfg): forzado a 1\n" );
+		gEngfuncs.Cvar_SetValue( "r_dynamic", 1.0f );
+	}
+
 	double t_start = Platform_DoubleTime();
 	double t_lm, t_vbo;
 	tr.worldmodel = gp_cl->models[1];

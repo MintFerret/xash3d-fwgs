@@ -546,6 +546,28 @@ void GAME_EXPORT CL_PlaybackEvent( int flags, const edict_t *pInvoker, word even
 	}
 #endif
 
+#if XASH_OGC
+	{
+		// wii_evlog 1: registra los eventos predichos del jugador local
+		static convar_t *wii_evlog;
+		static int evn;
+
+		if( !wii_evlog )
+			wii_evlog = Cvar_Get( "wii_evlog", "0", 0, "log local predicted events (aim debugging)" );
+
+		if( wii_evlog->value && angles && evn < 60 )
+		{
+			float dy, dp;
+			OGC_GetAimDelta( &dy, &dp );
+			Con_Printf( "[EVLOG] %s ang=(%.1f %.1f %.1f) cam=(%.1f %.1f %.1f) delta=(%.1f %.1f) punch=(%.1f %.1f) i=%d,%d b=%d,%d\n",
+				cl.event_precache[eventindex], angles[0], angles[1], angles[2],
+				cl.viewangles[0], cl.viewangles[1], cl.viewangles[2], dy, dp,
+				cl.punchangle[0], cl.punchangle[1], iparam1, iparam2, bparam1, bparam2 );
+			evn++;
+		}
+	}
+#endif
+
 	event_args_t	args =
 	{
 		.origin = Vec3( origin ),
