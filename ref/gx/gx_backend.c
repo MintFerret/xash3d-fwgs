@@ -436,7 +436,9 @@ static const envmap_t r_envMapInfo[6] =
 
 qboolean VID_ScreenShot( const char *filename, int shot_type )
 {
-	uint flags = IMAGE_FLIP_Y;
+	// GL lee de abajo hacia arriba y por eso voltea; el EFB de GX ya sale de arriba
+	// hacia abajo (GX_ReadPixelsRGBA), asi que no hay que voltear la imagen.
+	uint flags = 0;
 	int  width = 0, height = 0;
 
 	rgbdata_t *r_shot = Mem_Calloc( r_temppool, sizeof( rgbdata_t ));

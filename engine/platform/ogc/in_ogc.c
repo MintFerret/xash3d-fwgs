@@ -443,6 +443,8 @@ camera renders from, is left alone.
 void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemove )
 {
 	float dyaw, dpitch;
+	float xt, yt, halffov, aspect;
+	vec3_t fwd, right, up, dir, cam;
 
 #ifdef XASH_OGC_AIMPROOF
 	// force a fixed pointer offset so the two ends can be compared
@@ -450,6 +452,36 @@ void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemo
 #endif
 	if( !OGC_GetPointerAngles( &dyaw, &dpitch ))
 		return;
+
+	// Sumar dyaw/dpitch a los angulos de la camara solo es correcto con la camara
+	// a nivel: un desplazamiento horizontal en pantalla gira alrededor del eje
+	// "arriba de la camara", no del eje vertical del mundo. Con la camara
+	// inclinada (mirando arriba/abajo) el disparo quedaba mucho mas cerca del
+	// centro que el reticulo. Se calcula la direccion real (misma proyeccion que
+	// el reticulo) y de ahi los angulos del comando.
+	halffov = bound( 10.0f, cl.local.scr_fov, 150.0f ) * 0.5f;
+	xt = ogc_pointer[0] * tan( DEG2RAD( halffov ));
+	aspect = (float)refState.height / (float)refState.width;
+	yt = ogc_pointer[1] * tan( DEG2RAD( halffov )) * aspect;
+
+	VectorCopy( viewangles, cam );
+	AngleVectors( cam, fwd, right, up );
+	VectorMA( fwd, xt, right, dir );
+	VectorMA( dir, -yt, up, dir );
+	VectorNormalize( dir );
+
+	{
+		float flat = sqrt( dir[0] * dir[0] + dir[1] * dir[1] );
+		float newyaw = RAD2DEG( atan2( dir[1], dir[0] ));
+		float newpitch = -RAD2DEG( atan2( dir[2], flat ));
+
+		dyaw = newyaw - cam[YAW];
+		while( dyaw > 180.0f ) dyaw -= 360.0f;
+		while( dyaw < -180.0f ) dyaw += 360.0f;
+		dpitch = newpitch - cam[PITCH];
+		// near the poles yaw is ill-defined; keep the offset sane
+		if( flat < 0.02f ) dyaw = 0.0f;
+	}
 
 #ifdef XASH_OGC_AIMPROOF
 	{

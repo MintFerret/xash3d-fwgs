@@ -879,6 +879,32 @@ void R_RenderScene( void )
         }
     }
 
+    /* gxtest.txt = 23: diagnostico de estilos de luz (interruptores/luces que se apagan).
+       Cada ~60 frames: r_dynamic, estilos con valor distinto de normal (256) y cuantas
+       superficies revisaron/reconstruyeron su lightmap desde el ultimo log. */
+    if( gx_testmode == 23 && FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
+    {
+        extern int gx_dbg_ls_rebuilds, gx_dbg_ls_checked;
+        static int ls_frame;
+
+        if(( ls_frame++ % 60 ) == 0 )
+        {
+            int changed = 0, first = -1;
+            for( int i = 0; i < MAX_LIGHTSTYLES; i++ )
+            {
+                if( g_lightstylevalue[i] != 256 )
+                {
+                    changed++;
+                    if( first < 0 ) first = i;
+                }
+            }
+            gEngfuncs.Con_Printf( "[LSTYLE] r_dynamic=%d estilos!=256: %d (primero=%d valor=%d) revisadas=%d reconstruidas=%d\n",
+                (int)r_dynamic->value, changed, first, first >= 0 ? (int)g_lightstylevalue[first] : -1,
+                gx_dbg_ls_checked, gx_dbg_ls_rebuilds );
+            gx_dbg_ls_checked = gx_dbg_ls_rebuilds = 0;
+        }
+    }
+
     tr.dlightframecount = R_PushDlights( WORLDMODEL, tr.framecount );
 
     R_SetupFrustum();

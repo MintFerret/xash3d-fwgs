@@ -418,6 +418,11 @@ void GX_ReadPixelsRGBA( int x, int y, int w, int h, byte *out )
     }
 
     GX_DrawDone();
+    /* GX_CopyTex copia el rectangulo y formato definidos con GX_SetTexCopySrc/Dst. En todo el
+       codigo nunca se llamaban, asi que la captura salia con tamano/formato de destino sin
+       definir (capturas corruptas en Load Game). EFB: origen arriba a la izquierda. */
+    GX_SetTexCopySrc( 0, 0, (u16)tw, (u16)th );
+    GX_SetTexCopyDst( (u16)tw, (u16)th, GX_TF_RGBA8, GX_FALSE );
     GX_CopyTex( tileBuf, GX_FALSE );
     GX_PixModeSync();
     GX_DrawDone();
@@ -452,7 +457,7 @@ void GX_ReadPixelsRGBA( int x, int y, int w, int h, byte *out )
                         dst[0] = r;
                         dst[1] = g;
                         dst[2] = b;
-                        dst[3] = a;
+                        dst[3] = 255; /* el alfa del EFB (RGB8/RGB565) no es fiable */
                     }
                 }
             }

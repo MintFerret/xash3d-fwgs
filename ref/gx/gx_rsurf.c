@@ -1591,10 +1591,16 @@ static void R_RenderDecalsForSurface( msurface_t *fa, int cull_type )
 	}
 }
 
+/* diagnostico (gxtest.txt = 23): cuantas superficies reconstruyeron su lightmap por cambio de estilo */
+int gx_dbg_ls_rebuilds;
+int gx_dbg_ls_checked;
+
 static qboolean R_CheckLightMap( msurface_t *fa )
 {
 	if( unlikely( !r_dynamic->value ))
 		return false;
+
+	gx_dbg_ls_checked++;
 
 	if( fa->dlightframe == tr.framecount )
 		return true;
@@ -1622,6 +1628,16 @@ static qboolean R_CheckLightMap( msurface_t *fa )
 		}
 
 		R_UpdateSurfaceCachedLight( fa );
+
+		gx_dbg_ls_rebuilds++;
+		if( gx_testmode == 23 )
+		{
+			static int ls_log;
+			if( ls_log++ < 30 )
+				gEngfuncs.Con_Printf( "[LSTYLE] rebuild map=%d style=%d valor=%d lm=%d tex=%d pos=%d,%d tam=%dx%d\n",
+					maps, style, (int)g_lightstylevalue[style], (int)fa->lightmaptexturenum,
+					(int)tr.lightmapTextures[fa->lightmaptexturenum], (int)fa->light_s, (int)fa->light_t, smax, tmax );
+		}
 
 		GX_UpdateTextureSub( tr.lightmapTextures[fa->lightmaptexturenum],
 			fa->light_s, fa->light_t, smax, tmax, temp );
