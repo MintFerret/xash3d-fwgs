@@ -2616,6 +2616,18 @@ void R_DrawViewModel( void )
 	// profundidad, asi nunca queda tapada ni titila al pegarse a una pared.
 	GX_SetDepthRange( gldepthmin, gldepthmin + 0.3f * ( gldepthmax - gldepthmin ));
 
+	// Estado conocido: el arma se dibujaba con lo que dejara el ultimo sprite,
+	// beam o entidad translucida (Z sin escritura, blend, alpha-test, color de
+	// canal con alfa bajo...) y por eso alternaba entre solida y transparente.
+	{
+		GXColor white = { 255, 255, 255, 255 };
+		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
+		GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
+		GX_SetAlphaCompare( GX_ALWAYS, 0, GX_AOP_AND, GX_ALWAYS, 0 );
+		GX_SetChanMatColor( GX_COLOR0A0, white );
+		R_AllowFog( true );
+	}
+
 	switch( RI.currententity->model->type )
 	{
 	case mod_alias:

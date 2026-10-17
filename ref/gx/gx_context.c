@@ -97,7 +97,9 @@ static void CL_FillRGBA( int rendermode, float _x, float _y, float _w, float _h,
 
 	GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
 	GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
-	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
+	/* seguimos en 2D: reactivar el Z-test aqui hacia que el texto del HUD dibujado
+	   despues quedara tapado por el arma (su profundidad es el primer 30%) */
+	GX_SetZMode( GX_FALSE, GX_ALWAYS, GX_FALSE );
 }
 
 static qboolean Mod_LooksLikeWaterTexture( const char *name )

@@ -840,6 +840,38 @@ void R_RenderScene( void )
     else tr.frametime = 0.0;
 
     tr.framecount++;
+
+    /* Red de seguridad para estilos de luz conmutables (32..63: interruptores,
+       apagar la luz de una sala). Si el cambio no llega por la actualizacion
+       parcial de lightmaps, se reconstruyen todas (lo mismo que hace cambiar el
+       brillo en las opciones de video). Como mucho una vez cada ~15 frames. */
+    if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ) && !FBitSet( RI.rvp.flags, RF_DRAW_CUBEMAP ) && r_dynamic->value )
+    {
+        static int ls_prev[MAX_LIGHTSTYLES];
+        static const void *ls_world;
+        static int ls_last_rebuild;
+
+        if( ls_world != WORLDMODEL )
+        {
+            ls_world = WORLDMODEL;
+            for( int i = 0; i < MAX_LIGHTSTYLES; i++ ) ls_prev[i] = g_lightstylevalue[i];
+        }
+        else
+        {
+            int changed = 0;
+            for( int i = 32; i < MAX_LIGHTSTYLES; i++ )
+                if( ls_prev[i] != (int)g_lightstylevalue[i] ) changed = 1;
+
+            if( changed && ( tr.framecount - ls_last_rebuild ) > 15 )
+            {
+                ls_last_rebuild = tr.framecount;
+                for( int i = 0; i < MAX_LIGHTSTYLES; i++ ) ls_prev[i] = g_lightstylevalue[i];
+                GX_RebuildLightmaps();
+                if( gx_testmode == 23 )
+                    gEngfuncs.Con_Printf( "[LSTYLE] estilo conmutable cambio: lightmaps reconstruidos\n" );
+            }
+        }
+    }
     /* gxtest.txt = 21: diagnostico de dlights (log cada 60 frames)
        gxtest.txt = 22: igual, y ademas fuerza una luz blanca de radio 300 en la camara
        (si con 22 el mundo se ilumina, el renderizador funciona y el fallo esta en la creacion

@@ -69,6 +69,10 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 
 	if( dbg ) GX_DbgWait( "dsp post-bind" );
 
+	// el HUD nunca pasa por el Z-test; no confiar en el estado que dejo otro dibujo
+	if( glState.in2DMode )
+		GX_SetZMode( GX_FALSE, GX_ALWAYS, GX_FALSE );
+
 
  // Make the whole 2D textured-quad pipeline explicit. Nothing else in the
  // renderer calls GX_SetNumTexGens, and the colour channel defaults are not
