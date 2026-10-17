@@ -347,6 +347,11 @@ static void GX_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset );
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset_bmodels );
 
+	/* r_dynamic es FCVAR_ARCHIVE: un 0 guardado en un config.cfg viejo apaga
+	   lightstyles y luces dinamicas para siempre (el log mostraba r_dynamic=0).
+	   El puerto Wii lo fuerza a 1 en cada arranque. */
+	gEngfuncs.Cvar_SetValue( "r_dynamic", 1.0f );
+
 	gEngfuncs.Cmd_AddCommand( "r_info", R_RenderInfo_f, "display renderer info" );
 	gEngfuncs.Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
 }

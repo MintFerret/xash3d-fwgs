@@ -440,6 +440,24 @@ in - the command carries the pointer angles while cl.viewangles, which the
 camera renders from, is left alone.
 ============
 */
+static float ogc_aim_delta[2];
+
+/*
+============
+OGC_GetAimDelta
+
+Offset (yaw, pitch) between the camera and the angles sent in the last usercmd.
+Client-predicted events (tau cannon, gluon...) are built by the client dll from
+the camera angles, so without this they draw the beam along the camera while the
+server traces along the pointer.
+============
+*/
+void OGC_GetAimDelta( float *dyaw, float *dpitch )
+{
+	*dyaw = ogc_aim_delta[0];
+	*dpitch = ogc_aim_delta[1];
+}
+
 void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemove )
 {
 	float dyaw, dpitch;
@@ -450,6 +468,7 @@ void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemo
 	// force a fixed pointer offset so the two ends can be compared
 	ogc_pointer[0] = 0.5f; ogc_pointer[1] = 0.0f;
 #endif
+    ogc_aim_delta[0] = ogc_aim_delta[1] = 0.0f;
 	if( !OGC_GetPointerAngles( &dyaw, &dpitch ))
 		return;
 
@@ -492,9 +511,15 @@ void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemo
 		n++;
 	}
 #endif
-	viewangles[YAW]   += dyaw;
-	viewangles[PITCH] += dpitch;
-	viewangles[PITCH] = bound( -89.0f, viewangles[PITCH], 89.0f );
+	{
+		float oldpitch = viewangles[PITCH];
+
+		viewangles[YAW]   += dyaw;
+		viewangles[PITCH] += dpitch;
+		viewangles[PITCH] = bound( -89.0f, viewangles[PITCH], 89.0f );
+		ogc_aim_delta[0] = dyaw;
+		ogc_aim_delta[1] = viewangles[PITCH] - oldpitch;
+	}
 
 	// Movement is derived from these same angles, so turning the aim would
 	// also turn "forward" - walk while pointing at the edge of the screen and

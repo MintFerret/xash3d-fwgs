@@ -516,6 +516,36 @@ void GAME_EXPORT CL_PlaybackEvent( int flags, const edict_t *pInvoker, word even
 	ClearBits( flags, FEV_NOTHOST|FEV_HOSTONLY|FEV_GLOBAL );
 	if( delay < 0.0f ) delay = 0.0f; // fixup negative delays
 
+#if XASH_OGC
+	// Wiimote: the server fires along the pointer, but the client dll builds the
+	// predicted event from the camera angles. Move them to the aim direction,
+	// unless they are already closer to it than to the camera.
+	vec3_t aimangles;
+	if( angles && OGC_AimIsPointer( ))
+	{
+		float dy, dp, dcam, daim, a, b;
+
+		OGC_GetAimDelta( &dy, &dp );
+		if( dy != 0.0f || dp != 0.0f )
+		{
+			a = anglemod( angles[YAW] - cl.viewangles[YAW] + 180.0f ) - 180.0f;
+			b = angles[PITCH] - cl.viewangles[PITCH];
+			dcam = fabsf( a ) + fabsf( b );
+			a = anglemod( angles[YAW] - ( cl.viewangles[YAW] + dy ) + 180.0f ) - 180.0f;
+			b = angles[PITCH] - ( cl.viewangles[PITCH] + dp );
+			daim = fabsf( a ) + fabsf( b );
+
+			if( dcam <= daim )
+			{
+				VectorCopy( angles, aimangles );
+				aimangles[YAW] += dy;
+				aimangles[PITCH] += dp;
+				angles = aimangles;
+			}
+		}
+	}
+#endif
+
 	event_args_t	args =
 	{
 		.origin = Vec3( origin ),
