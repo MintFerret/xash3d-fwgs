@@ -124,7 +124,6 @@ CVAR_DEFINE_AUTO( r_studio_sort_textures, "0", FCVAR_GLCONFIG, "change draw orde
 CVAR_DEFINE_AUTO( r_studio_drawelements, "1", FCVAR_GLCONFIG, "use glDrawElements for studiomodels" );
 CVAR_DEFINE_AUTO( r_studio_builtin_renderer, "0", 0, "use built-in studio model renderer instead of the one provided by client library (debugging)" );
 CVAR_DEFINE_AUTO( gx_studio_maxdist, "0", FCVAR_ARCHIVE, "do not draw monsters and players farther than this many units (0 = always draw)" );
-CVAR_DEFINE_AUTO( gx_studio_maxdist, "0", FCVAR_ARCHIVE, "do not draw monsters and players farther than this many units (0 = always draw)" );
 static cvar_t			*cl_righthand = NULL;
 
 static r_studio_interface_t	*pStudioDraw;
