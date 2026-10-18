@@ -35,6 +35,9 @@ void GX_DbgWait( const char *tag )
 	static u16 token = 0x100;
 	int i;
 
+	if( !gx_verbose || gx_verbose->value < 1 )
+	    return;
+
 	if( calls++ >= 8 )
 		return;
 
@@ -61,7 +64,7 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 {
 	if( gx_testmode == 3 ) return; // diagnostic: no textured quads at all
 	static int dsp;
-	int dbg = ( dsp < 2 );
+	int dbg = ( dsp < 2 ) && gx_verbose && gx_verbose->value >= 1;
 
 	if( dbg ) GX_DbgWait( "dsp pre-bind" );
 

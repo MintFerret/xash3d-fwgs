@@ -148,7 +148,7 @@ m->surfaces[j].info->reserved[1] = 0;
 }
 }
 
-gEngfuncs.Con_Printf("VBO: %d of %d verts (%.2f MB), %d surfaces drawn directly\n",
+GX_LOG("VBO: %d of %d verts (%.2f MB), %d surfaces drawn directly\n",
 g_vbo.num_verts_used, total,
 (g_vbo.num_verts_used * GX_VBO_VERT_SIZE) / (1024.0f * 1024.0f),
 g_vbo.overflow);
