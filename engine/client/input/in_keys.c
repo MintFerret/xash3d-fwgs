@@ -839,7 +839,7 @@ Key_EnableTextInput
 */
 void Key_EnableTextInput( qboolean enable, qboolean force )
 {
-	if( osk_enable.value )
+	if( OSK_IsEnabled( ))
 	{
 		OSK_EnableTextInput( enable, force );
 		return;

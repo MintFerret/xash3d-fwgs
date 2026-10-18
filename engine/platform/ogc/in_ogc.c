@@ -80,29 +80,66 @@ Options -> Controls rather than hidden in a config file.
 typedef struct { u32 mask; int key; } ogc_btn_t;
 
 /*
+Un "key" mayor que OGC_ACT_BASE no es una tecla del motor sino una accion que
+se ejecuta directamente. Asi el marcador, el autoguardado y el chat no
+dependen de que haya un bind en la configuracion del jugador (TAB venia sin
+bind y no abria nada), y el teclado en pantalla puede usar los mismos botones.
+*/
+#define OGC_ACT_BASE 0x10000
+enum
+{
+	OGC_ACT_SCORES = OGC_ACT_BASE,	// +showscores / -showscores
+	OGC_ACT_QUICKSAVE,		// savequick
+	OGC_ACT_CHAT,			// messagemode
+	OGC_ACT_HOME,			// toque corto: ESC, mantenido: consola
+	OGC_OSK_BASE,			// + OSK_ACT_*
+};
+
+#define OGC_OSK( act ) ( OGC_OSK_BASE + ( act ))
+
+
+/*
 Three layouts, one set of engine keys. The keys are picked so the stock
 bindings already land on the right actions, which keeps every scheme visible
 and rebindable from Options -> Controls instead of hidden in a config file.
 */
 static const ogc_btn_t ogc_map_wiimote[] =
 {
-    { WPAD_BUTTON_A,         K_A_BUTTON    }, // +jump
-    { WPAD_BUTTON_B,         K_L1_BUTTON   }, // +duck
+    { WPAD_BUTTON_LEFT,      K_DPAD_LEFT   }, // invprev
+    { WPAD_BUTTON_RIGHT,     K_DPAD_RIGHT  }, // invnext
+    { WPAD_BUTTON_DOWN,      K_DPAD_DOWN   }, // lastinv
+    { WPAD_BUTTON_UP,        K_Y_BUTTON    }, // flashlight
+
     { WPAD_NUNCHUK_BUTTON_C, K_B_BUTTON    }, // +use
     { WPAD_NUNCHUK_BUTTON_Z, K_R1_BUTTON   }, // +attack
 
-    { WPAD_BUTTON_1,         K_TAB         }, // Tab
-    { WPAD_BUTTON_2,         K_F6          }, // savequick
+    { WPAD_BUTTON_1,         OGC_ACT_SCORES    }, // marcador (TAB)
+    { WPAD_BUTTON_2,         OGC_ACT_QUICKSAVE }, // savequick
 
-    { WPAD_BUTTON_PLUS,      K_ESCAPE      }, // menu (esc)
+    { WPAD_BUTTON_PLUS,      OGC_ACT_CHAT  }, // chat
     { WPAD_BUTTON_MINUS,     K_X_BUTTON    }, // +reload
 
-    { WPAD_BUTTON_UP,        K_Y_BUTTON    }, // flashlight
-    { WPAD_BUTTON_DOWN,      K_R2_BUTTON   }, // +attack2
-    { WPAD_BUTTON_LEFT,      K_DPAD_LEFT   }, // invprev
-    { WPAD_BUTTON_RIGHT,     K_DPAD_RIGHT  }, // invnext
+    { WPAD_BUTTON_A,         K_A_BUTTON    }, // +jump
+    { WPAD_BUTTON_B,         K_R2_BUTTON   }, // +attack2
 
-    { WPAD_BUTTON_HOME,      K_ESCAPE      }, // menu
+    { WPAD_BUTTON_HOME,      OGC_ACT_HOME  }, // ESC (mantenido: consola)
+};
+
+// con el teclado en pantalla visible: A y B son clic, el puntero IR elige tecla
+static const ogc_btn_t ogc_osk_wiimote[] =
+{
+    { WPAD_BUTTON_A,         OGC_OSK( OSK_ACT_SELECT )    },
+    { WPAD_BUTTON_B,         OGC_OSK( OSK_ACT_SELECT )    },
+    { WPAD_BUTTON_2,         OGC_OSK( OSK_ACT_BACKSPACE ) },
+    { WPAD_BUTTON_1,         OGC_OSK( OSK_ACT_SHIFT )     },
+    { WPAD_BUTTON_MINUS,     OGC_OSK( OSK_ACT_SPACE )     },
+    { WPAD_BUTTON_PLUS,      OGC_OSK( OSK_ACT_ENTER )     },
+    { WPAD_NUNCHUK_BUTTON_Z, OGC_OSK( OSK_ACT_ENTER )     },
+    { WPAD_BUTTON_UP,        OGC_OSK( OSK_ACT_UP )        },
+    { WPAD_BUTTON_DOWN,      OGC_OSK( OSK_ACT_DOWN )      },
+    { WPAD_BUTTON_LEFT,      OGC_OSK( OSK_ACT_LEFT )      },
+    { WPAD_BUTTON_RIGHT,     OGC_OSK( OSK_ACT_RIGHT )     },
+    { WPAD_BUTTON_HOME,      OGC_ACT_HOME                 },
 };
 
 /*
@@ -112,22 +149,37 @@ WPAD_Probe reports rather than by ORing them together.
 */
 static const ogc_btn_t ogc_map_classic[] =
 {
-        // ZR y ZL disparan por separado, como el raton: ZR primario, ZL secundario
-        { WPAD_CLASSIC_BUTTON_ZR,     K_R1_BUTTON    }, // +attack
-        { WPAD_CLASSIC_BUTTON_ZL,     K_R2_BUTTON    }, // +attack2
-        { WPAD_CLASSIC_BUTTON_FULL_R, K_Y_BUTTON     }, // linterna (impulse 100)
-        { WPAD_CLASSIC_BUTTON_FULL_L, K_L1_BUTTON    }, // +duck
+        // L y R (gatillos grandes) disparan: R primario, L secundario.
+        // ZL y ZR (los pequenos) hacen de agacharse y linterna.
+        { WPAD_CLASSIC_BUTTON_FULL_R, K_R1_BUTTON    }, // +attack
+        { WPAD_CLASSIC_BUTTON_FULL_L, K_R2_BUTTON    }, // +attack2
+        { WPAD_CLASSIC_BUTTON_ZR,     K_Y_BUTTON     }, // linterna (impulse 100)
+        { WPAD_CLASSIC_BUTTON_ZL,     K_L1_BUTTON    }, // +duck
         { WPAD_CLASSIC_BUTTON_A,      K_A_BUTTON     }, // +jump
         { WPAD_CLASSIC_BUTTON_X,      K_B_BUTTON     }, // +use
         { WPAD_CLASSIC_BUTTON_Y,      K_X_BUTTON     }, // +reload
-        { WPAD_CLASSIC_BUTTON_B,      K_F6           }, // savequick (autoguardado)
-        { WPAD_CLASSIC_BUTTON_PLUS,   K_TAB          }, // marcador multijugador
-        { WPAD_CLASSIC_BUTTON_MINUS,  K_ESCAPE       }, // menu
+        { WPAD_CLASSIC_BUTTON_B,      OGC_ACT_QUICKSAVE }, // autoguardado
+        { WPAD_CLASSIC_BUTTON_PLUS,   OGC_ACT_CHAT   }, // chat
+        { WPAD_CLASSIC_BUTTON_MINUS,  OGC_ACT_SCORES }, // marcador multijugador
         { WPAD_CLASSIC_BUTTON_UP,     K_DPAD_UP      }, // spray
         { WPAD_CLASSIC_BUTTON_DOWN,   K_DPAD_DOWN    }, // lastinv
         { WPAD_CLASSIC_BUTTON_LEFT,   K_DPAD_LEFT    }, // invprev
         { WPAD_CLASSIC_BUTTON_RIGHT,  K_DPAD_RIGHT   }, // invnext
-        { WPAD_CLASSIC_BUTTON_HOME,   K_ESCAPE       }, // menu
+        { WPAD_CLASSIC_BUTTON_HOME,   OGC_ACT_HOME   }, // ESC (mantenido: consola)
+};
+
+static const ogc_btn_t ogc_osk_classic[] =
+{
+        { WPAD_CLASSIC_BUTTON_A,      OGC_OSK( OSK_ACT_SELECT )    },
+        { WPAD_CLASSIC_BUTTON_B,      OGC_OSK( OSK_ACT_BACKSPACE ) },
+        { WPAD_CLASSIC_BUTTON_X,      OGC_OSK( OSK_ACT_SPACE )     },
+        { WPAD_CLASSIC_BUTTON_Y,      OGC_OSK( OSK_ACT_SHIFT )     },
+        { WPAD_CLASSIC_BUTTON_PLUS,   OGC_OSK( OSK_ACT_ENTER )     },
+        { WPAD_CLASSIC_BUTTON_UP,     OGC_OSK( OSK_ACT_UP )        },
+        { WPAD_CLASSIC_BUTTON_DOWN,   OGC_OSK( OSK_ACT_DOWN )      },
+        { WPAD_CLASSIC_BUTTON_LEFT,   OGC_OSK( OSK_ACT_LEFT )      },
+        { WPAD_CLASSIC_BUTTON_RIGHT,  OGC_OSK( OSK_ACT_RIGHT )     },
+        { WPAD_CLASSIC_BUTTON_HOME,   OGC_ACT_HOME                 },
 };
 
 static const ogc_btn_t ogc_map_gamecube[] =
@@ -138,16 +190,31 @@ static const ogc_btn_t ogc_map_gamecube[] =
         { PAD_BUTTON_A,      K_A_BUTTON    },   // +jump
         { PAD_BUTTON_X,      K_B_BUTTON    },   // +use
         { PAD_BUTTON_Y,      K_X_BUTTON    },   // +reload
-        { PAD_BUTTON_B,      K_F6          },   // savequick (autoguardado)
+        { PAD_BUTTON_B,      OGC_ACT_QUICKSAVE }, // autoguardado
         { PAD_BUTTON_UP,     K_Y_BUTTON    },   // linterna (impulse 100)
-        { PAD_BUTTON_DOWN,   K_TAB         },   // marcador multijugador
+        { PAD_BUTTON_DOWN,   OGC_ACT_SCORES },  // marcador multijugador
         { PAD_BUTTON_LEFT,   K_DPAD_LEFT   },   // invprev
         { PAD_BUTTON_RIGHT,  K_DPAD_RIGHT  },   // invnext
-        { PAD_BUTTON_START,  K_ESCAPE      },   // menu
+        { PAD_BUTTON_START,  OGC_ACT_HOME  },   // ESC (mantenido: consola)
 };
 
-static u32 ogc_buttons_held;
-static u32 ogc_pad_held;
+static const ogc_btn_t ogc_osk_gamecube[] =
+{
+        { PAD_BUTTON_A,      OGC_OSK( OSK_ACT_SELECT )    },
+        { PAD_BUTTON_B,      OGC_OSK( OSK_ACT_BACKSPACE ) },
+        { PAD_BUTTON_X,      OGC_OSK( OSK_ACT_SPACE )     },
+        { PAD_BUTTON_Y,      OGC_OSK( OSK_ACT_SHIFT )     },
+        { PAD_TRIGGER_Z,     OGC_OSK( OSK_ACT_ENTER )     },
+        { PAD_BUTTON_UP,     OGC_OSK( OSK_ACT_UP )        },
+        { PAD_BUTTON_DOWN,   OGC_OSK( OSK_ACT_DOWN )      },
+        { PAD_BUTTON_LEFT,   OGC_OSK( OSK_ACT_LEFT )      },
+        { PAD_BUTTON_RIGHT,  OGC_OSK( OSK_ACT_RIGHT )     },
+        { PAD_BUTTON_START,  OGC_ACT_HOME                 },
+};
+
+// estado por mando: lo que estaba apretado, lo que se mando como "pulsado" y la tabla en uso
+typedef struct { u32 prev; u32 active; qboolean osk; } ogc_dev_t;
+static ogc_dev_t ogc_dev_wii, ogc_dev_classic, ogc_dev_gc;
 
 /*
 Which device the player touched last. It decides where the rumble goes and
@@ -269,37 +336,205 @@ para abrir el menu. Abrimos el menu directamente con el comando del motor. Con
 el menu abierto, la tecla sigue yendo al menu (volver atras). Lo usan tanto
 los botones de los mandos como el teclado USB.
 */
+static void OGC_SendKey( int key, qboolean down );
+
+// toque corto de Inicio/Start = ESC; mantenido ~1s = consola
+#define OGC_HOME_LONG 0.8
+static struct { qboolean down, used; double time; } ogc_home;
+
+static void OGC_SendAction( int act, qboolean down )
+{
+	static qboolean scores_down;
+
+	switch( act )
+	{
+	case OGC_ACT_SCORES:
+		// la tecla se suelta aunque en medio se haya abierto un menu
+		if( !down && scores_down )
+		{
+			scores_down = false;
+			Cbuf_AddText( "-showscores
+" );
+		}
+		else if( down && cls.key_dest == key_game && Cmd_Exists( "+showscores" ))
+		{
+			scores_down = true;
+			Cbuf_AddText( "+showscores
+" );
+		}
+		else
+			Key_Event( K_TAB, down );	// autocompletar en la consola, o el bind de TAB
+		break;
+
+	case OGC_ACT_QUICKSAVE:
+		if( down && cls.key_dest == key_game && Cmd_Exists( "savequick" ))
+			Cbuf_AddText( "savequick
+" );
+		break;
+
+	case OGC_ACT_CHAT:
+		if( down && cls.key_dest == key_game && Cmd_Exists( "messagemode" ))
+			Cbuf_AddText( "messagemode
+" );
+		break;
+
+	case OGC_ACT_HOME:
+		if( down )
+		{
+			ogc_home.down = true;
+			ogc_home.used = false;
+			ogc_home.time = host.realtime;
+		}
+		else if( ogc_home.down )
+		{
+			ogc_home.down = false;
+
+			if( !ogc_home.used )
+			{
+				OGC_SendKey( K_ESCAPE, true );
+				OGC_SendKey( K_ESCAPE, false );
+			}
+		}
+		break;
+
+	default:
+		if( act >= OGC_OSK_BASE )
+			OSK_Action( act - OGC_OSK_BASE, down );
+		break;
+	}
+}
+
 static void OGC_SendKey( int key, qboolean down )
 {
+	if( key >= OGC_ACT_BASE )
+	{
+		OGC_SendAction( key, down );
+		return;
+	}
+
 	if( key == K_ESCAPE && cls.key_dest == key_game )
 	{
 		if( down )
-			Cbuf_AddText( "escape\n" );
+			Cbuf_AddText( "escape
+" );
 		return;
 	}
 
 	Key_Event( key, down );
 }
 
-static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *prev, int src )
+// mantener Inicio abre la consola (para escribir comandos con el teclado en pantalla)
+static void OGC_HomeFrame( void )
 {
-	u32 changed = held ^ *prev;
+	if( ogc_home.down && !ogc_home.used && host.realtime - ogc_home.time >= OGC_HOME_LONG )
+	{
+		ogc_home.used = true;
+		Cbuf_AddText( "toggleconsole
+" );
+	}
+}
+
+static void OGC_EmitButtons( const ogc_btn_t *map, int count, const ogc_btn_t *oskmap, int oskcount,
+	u32 held, ogc_dev_t *dev, int src )
+{
+	qboolean osk = OSK_IsVisible();
+	const ogc_btn_t *cur = dev->osk ? oskmap : map;
+	int ncur = dev->osk ? oskcount : count;
+	u32 changed;
 	int i;
 
-	*prev = held;
+	// el teclado aparecio o se cerro: soltar lo que se habia pulsado con la
+	// tabla anterior; lo que sigue apretado no cuenta hasta soltarlo y volver a pulsar
+	if( osk != dev->osk )
+	{
+		for( i = 0; i < ncur; i++ )
+		{
+			if( dev->active & cur[i].mask )
+				OGC_SendKey( cur[i].key, false );
+		}
+
+		dev->active = 0;
+		dev->osk = osk;
+		cur = osk ? oskmap : map;
+		ncur = osk ? oskcount : count;
+	}
+
+	changed = held ^ dev->prev;
+	dev->prev = held;
 
 	if( !changed )
 		return;
 
-
-	// tocar un boton pasa el control a ese dispositivo
+	// tocar un boton pasa el control a ese dispositivo (y deja el teclado USB)
 	OGC_SetSource( src );
+	OSK_SetSuspended( false );
 
-	for( i = 0; i < count; i++ )
+	for( i = 0; i < ncur; i++ )
 	{
-		if( changed & map[i].mask )
-			OGC_SendKey( map[i].key, ( held & map[i].mask ) != 0 );
+		if( !( changed & cur[i].mask ))
+			continue;
+
+		if( held & cur[i].mask )
+		{
+			dev->active |= cur[i].mask;
+			OGC_SendKey( cur[i].key, true );
+		}
+		else if( dev->active & cur[i].mask )
+		{
+			dev->active &= ~cur[i].mask;
+			OGC_SendKey( cur[i].key, false );
+		}
 	}
+}
+
+/*
+Teclado en pantalla: el Wiimote elige tecla con el puntero IR, el raton USB con
+su cursor; Classic y GameCube con la cruceta. Tambien dice que boton hace que.
+*/
+static void OGC_OskFrame( void )
+{
+	static const char *hint_wii = "A/B: escribir  2: borrar  1: mayus  -: espacio  +: enviar  Home: salir";
+	static const char *hint_classic = "A: escribir  B: borrar  Y: mayus  X: espacio  +: enviar  Home: salir";
+	static const char *hint_gc = "A: escribir  B: borrar  Y: mayus  X: espacio  Z: enviar  Start: salir";
+	float x = -1.0f, y = -1.0f;
+
+	if( !OSK_IsVisible( ))
+		return;
+
+	if( ogc_src == OGC_SRC_CLASSIC )
+		OSK_SetHint( hint_classic );
+	else if( ogc_src == OGC_SRC_GC )
+		OSK_SetHint( hint_gc );
+	else
+		OSK_SetHint( hint_wii );
+
+	if( refState.width <= 0 || refState.height <= 0 )
+		return;
+
+	if( ogc_src == OGC_SRC_WII )
+	{
+		static float last_x, last_y;
+		WPADData *data = WPAD_Data( WPAD_CHAN_0 );
+
+		if( data && data->ir.valid )
+		{
+			x = data->ir.x / (float)refState.width;
+			y = data->ir.y / (float)refState.height;
+		}
+
+		// la cruceta mueve la seleccion: el puntero solo la mueve si se mueve el
+		OSK_Hover( x, y, fabsf( x - last_x ) + fabsf( y - last_y ) > 0.004f );
+		last_x = x;
+		last_y = y;
+	}
+	else if( ogc_src == OGC_SRC_MOUSE )
+	{
+		x = ogc_mouse_x / (float)refState.width;
+		y = ogc_mouse_y / (float)refState.height;
+		OSK_Hover( x, y, true );
+	}
+	else
+		OSK_Hover( -1.0f, -1.0f, false );
 }
 static void OGC_PollNunchuk(void);
 /*
@@ -441,25 +676,23 @@ OGC_PollNunchuk();
 
 	if( WPAD_Probe( WPAD_CHAN_0, &type ) == WPAD_ERR_NONE && type == WPAD_EXP_CLASSIC )
 	{
-		static int once_classic = 0;
-		if (!once_classic) {
-			once_classic = 1;
-		}
 		OGC_EmitButtons( ogc_map_classic, ARRAYSIZE( ogc_map_classic ),
-			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held, OGC_SRC_CLASSIC );
+			ogc_osk_classic, ARRAYSIZE( ogc_osk_classic ),
+			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_dev_classic, OGC_SRC_CLASSIC );
 	}
 	else
 	{
-		static int once_wiimote = 0;
-		if (!once_wiimote) {
-			once_wiimote = 1;
-		}
 		OGC_EmitButtons( ogc_map_wiimote, ARRAYSIZE( ogc_map_wiimote ),
-			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_buttons_held, OGC_SRC_WII );
+			ogc_osk_wiimote, ARRAYSIZE( ogc_osk_wiimote ),
+			WPAD_ButtonsHeld( WPAD_CHAN_0 ), &ogc_dev_wii, OGC_SRC_WII );
 	}
 
 	OGC_EmitButtons( ogc_map_gamecube, ARRAYSIZE( ogc_map_gamecube ),
-		PAD_ButtonsHeld( PAD_CHAN0 ), &ogc_pad_held, OGC_SRC_GC );
+		ogc_osk_gamecube, ARRAYSIZE( ogc_osk_gamecube ),
+		PAD_ButtonsHeld( PAD_CHAN0 ), &ogc_dev_gc, OGC_SRC_GC );
+
+	OGC_HomeFrame();
+	OGC_OskFrame();
 
         // Sticks del Classic Controller y del GameCube (el del Nunchuk va aparte)
         OGC_PollSticks( type );
@@ -1253,6 +1486,8 @@ static void OGC_KeyboardFrame( void )
 			continue;
 
 		down = ev.type == KEYBOARD_PRESSED;
+		if( down )
+			OSK_SetSuspended( true );	// con teclado fisico no hace falta el de pantalla
 		ctrl = MOD_ONESET( ev.modifiers, MOD_ANYCONTROL );
 		key = OGC_HIDToKey( ev.keycode );
 

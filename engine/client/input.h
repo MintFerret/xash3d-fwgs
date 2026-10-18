@@ -108,6 +108,25 @@ void OSK_Init( void );
 qboolean OSK_KeyEvent( int key, int down );
 void OSK_EnableTextInput( qboolean enable, qboolean force );
 void OSK_Draw( void );
+qboolean OSK_IsEnabled( void );
+qboolean OSK_IsVisible( void );
+void OSK_SetSuspended( qboolean suspended );
+void OSK_SetHint( const char *hint );
+qboolean OSK_Hover( float x, float y, qboolean move );
+void OSK_Action( int action, int down );
+
+enum
+{
+	OSK_ACT_UP = 0,
+	OSK_ACT_DOWN,
+	OSK_ACT_LEFT,
+	OSK_ACT_RIGHT,
+	OSK_ACT_SELECT,
+	OSK_ACT_BACKSPACE,
+	OSK_ACT_SPACE,
+	OSK_ACT_SHIFT,
+	OSK_ACT_ENTER,
+};
 
 //
 // in_joy.c

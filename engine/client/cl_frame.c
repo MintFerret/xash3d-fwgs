@@ -697,7 +697,7 @@ qboolean CL_ValidateDeltaPacket( uint oldpacket, frame_t *oldframe )
 		return false;
 	}
 
-	if(( cls.next_client_entities - oldframe->first_entity ) > ( cls.num_client_entities - NUM_PACKET_ENTITIES ))
+	if(( cls.next_client_entities - oldframe->first_entity ) > ( cls.num_client_entities - CL_NUM_PACKET_ENTITIES ))
 	{
 		Con_NPrintf( 2, "^3Warning:^1 delta frame is too old^7\n" );
 		return false;

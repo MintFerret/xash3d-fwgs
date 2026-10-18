@@ -420,7 +420,7 @@ static void R_NewMap( void )
 	   en el puerto Wii se fuerza a 1 en cada mapa. */
 	if( !r_dynamic->value )
 	{
-		gEngfuncs.Con_Printf( "r_dynamic estaba en 0 (config.cfg): forzado a 1\n" );
+		GX_LOG( "r_dynamic estaba en 0 (config.cfg): forzado a 1\n" );
 		gEngfuncs.Cvar_SetValue( "r_dynamic", 1.0f );
 	}
 
@@ -469,7 +469,7 @@ static void R_NewMap( void )
 		gEngfuncs.drawFuncs->R_NewMap();
 
 	/* diagnostico de tiempos de carga (siempre activo, una linea por mapa) */
-	gEngfuncs.Con_Printf( "[LOAD] R_NewMap=%.0fms (lightmaps+VBO=%.0fms, otros=%.0fms) | texturas desde el mapa anterior: %d cargas, %.0fms\n",
+	GX_LOG( "[LOAD] R_NewMap=%.0fms (lightmaps+VBO=%.0fms, otros=%.0fms) | texturas desde el mapa anterior: %d cargas, %.0fms\n",
 		( Platform_DoubleTime() - t_start ) * 1000.0, ( t_lm + t_vbo ) * 1000.0,
 		( Platform_DoubleTime() - t_start - t_lm - t_vbo ) * 1000.0,
 		gx_load_tex_count, gx_load_tex_time * 1000.0 );

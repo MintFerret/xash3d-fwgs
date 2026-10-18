@@ -64,7 +64,10 @@ typedef struct frame_s
 	entity_state_t	playerstate[MAX_CLIENTS];
 	weapon_data_t	weapondata[MAX_LOCAL_WEAPONS];
 	netbandwidthgraph_t graphdata;
-	byte		flags[MAX_VISIBLE_PACKET_VIS_BYTES];
+	// un paquete del servidor puede traer hasta 1 << MAX_VISIBLE_PACKET_BITS entidades
+	// (el limite de 128 de Wii es solo para alojar partidas): con un servidor
+	// online concurrido SETVISBIT escribia fuera del arreglo y pisaba num_entities
+	byte		flags[(( 1 << MAX_VISIBLE_PACKET_BITS ) + 7 ) / 8];
 	int		num_entities;
 	int		first_entity;	// into the circular cl_packet_entities[]
 } frame_t;
@@ -97,6 +100,16 @@ typedef struct
 #define CL_UPDATE_BACKUP SINGLEPLAYER_BACKUP
 #else
 extern int CL_UPDATE_BACKUP;
+#endif
+
+// entidades por frame que reserva el cliente en su anillo de deltas. En Wii el
+// limite de 64 (NUM_PACKET_ENTITIES) hacia que en servidores con mas de ~100
+// entidades visibles los deltas caducaran en 5-6 frames ("delta frame is too
+// old"). Solo afecta al cliente: el servidor propio sigue con NUM_PACKET_ENTITIES.
+#if XASH_OGC
+#define CL_NUM_PACKET_ENTITIES 128
+#else
+#define CL_NUM_PACKET_ENTITIES NUM_PACKET_ENTITIES
 #endif
 
 #define SIGNONS		2		// signon messages to receive before connected
@@ -249,7 +262,9 @@ typedef struct
 	// predicted velocity
 	vec3_t		simvel;
 
-	entity_state_t	instanced_baseline[MAX_CUSTOM_BASELINES];
+	// el servidor manda un indice de 6 bits: hasta 64, aunque el limite de Wii para
+	// alojar partidas sea 8 (con servidores online se escribia fuera del arreglo)
+	entity_state_t	instanced_baseline[64];
 	int		instanced_baseline_count;
 
 	char		sound_precache[MAX_SOUNDS][MAX_QPATH];

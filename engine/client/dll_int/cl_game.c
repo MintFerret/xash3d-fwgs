@@ -1023,7 +1023,7 @@ void CL_InitEdicts( int maxclients )
 	// iba lento y a saltos. cl.frames/commands ya tienen MULTIPLAYER_BACKUP (16) entradas.
 	CL_UPDATE_BACKUP = ( maxclients <= 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
 #endif
-	cls.num_client_entities = CL_UPDATE_BACKUP * NUM_PACKET_ENTITIES;
+	cls.num_client_entities = CL_UPDATE_BACKUP * CL_NUM_PACKET_ENTITIES;
 	cls.packet_entities = Mem_Realloc( clgame.mempool, cls.packet_entities, sizeof( entity_state_t ) * cls.num_client_entities );
 	clgame.entities = Mem_Calloc( clgame.mempool, sizeof( cl_entity_t ) * clgame.maxEntities );
 	clgame.static_entities = NULL; // will be initialized later

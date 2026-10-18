@@ -867,8 +867,6 @@ void R_RenderScene( void )
                 ls_last_rebuild = tr.framecount;
                 for( int i = 0; i < MAX_LIGHTSTYLES; i++ ) ls_prev[i] = g_lightstylevalue[i];
                 GX_RebuildLightmaps();
-                if( gx_testmode == 23 )
-                    gEngfuncs.Con_Printf( "[LSTYLE] estilo conmutable cambio: lightmaps reconstruidos\n" );
             }
         }
     }

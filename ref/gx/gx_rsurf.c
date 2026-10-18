@@ -672,7 +672,7 @@ static void LM_UploadBlock( qboolean dynamic )
 			BLOCK_SIZE, BLOCK_SIZE,
 			gx_lms.lightmap_buffer,
 			TF_NOMIPMAP | TF_CLAMP | TF_ATLAS_PAGE );
-        if( i < 3 ) gEngfuncs.Con_Printf("[LMDIAG] p%d px0=%02X%02X%02X%02X px1=%02X%02X%02X%02X\n", i, gx_lms.lightmap_buffer[0], gx_lms.lightmap_buffer[1], gx_lms.lightmap_buffer[2], gx_lms.lightmap_buffer[3], gx_lms.lightmap_buffer[4], gx_lms.lightmap_buffer[5], gx_lms.lightmap_buffer[6], gx_lms.lightmap_buffer[7]);
+        if( i < 3 ) GX_LOG("[LMDIAG] p%d px0=%02X%02X%02X%02X px1=%02X%02X%02X%02X\n", i, gx_lms.lightmap_buffer[0], gx_lms.lightmap_buffer[1], gx_lms.lightmap_buffer[2], gx_lms.lightmap_buffer[3], gx_lms.lightmap_buffer[4], gx_lms.lightmap_buffer[5], gx_lms.lightmap_buffer[6], gx_lms.lightmap_buffer[7]);
 
 		if( ++gx_lms.current_lightmap_texture == MAX_LIGHTMAPS )
 			gEngfuncs.Host_Error( "%s: full\n", __func__ );
@@ -1165,8 +1165,8 @@ static void R_BlendLightmaps( void )
 						glpoly2_t *pp = q->polys;
 						GX_LOG( "[LMDRAW]   s%d ls=%d lt=%d vbo=%d nv=%d", k, (int)q->light_s, (int)q->light_t, (int)q->info->reserved[0], pp ? pp->numverts : -1 );
 						if( pp && pp->numverts >= 3 )
-							gEngfuncs.Con_Printf( " uv0=%.3f,%.3f uv1=%.3f,%.3f uv2=%.3f,%.3f", pp->verts[0][5], pp->verts[0][6], pp->verts[1][5], pp->verts[1][6], pp->verts[2][5], pp->verts[2][6] );
-						gEngfuncs.Con_Printf( "\n" );
+							GX_LOG( " uv0=%.3f,%.3f uv1=%.3f,%.3f uv2=%.3f,%.3f", pp->verts[0][5], pp->verts[0][6], pp->verts[1][5], pp->verts[1][6], pp->verts[2][5], pp->verts[2][6] );
+						GX_LOG( "\n" );
 					}
 				}
 			}

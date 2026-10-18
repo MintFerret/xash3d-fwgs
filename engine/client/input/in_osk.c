@@ -18,6 +18,11 @@ GNU General Public License for more details.
 #include "client.h"
 
 CVAR_DEFINE_AUTO( osk_enable, "0", FCVAR_ARCHIVE | FCVAR_FILTERABLE, "enable built-in on-screen keyboard" );
+#if XASH_OGC
+// en Wii el teclado esta siempre disponible (se ignora osk_enable, que las
+// configuraciones viejas dejaron guardado en 0)
+CVAR_DEFINE_AUTO( wii_osk, "1", FCVAR_ARCHIVE, "on-screen keyboard for text input (console, chat, menus)" );
+#endif
 
 /* On-screen keyboard:
  *
@@ -83,6 +88,11 @@ static struct osk_s
 	int      curlayout;
 	qboolean shift;
 	qboolean sending;
+	qboolean suspended;   // hay un teclado USB en uso
+	qboolean inside;      // el puntero esta sobre el teclado
+	qboolean mouse_down;  // un clic del puntero fue consumido
+	double   last_select;
+	const char *hint;
 	struct
 	{
 		signed char x;
@@ -91,10 +101,176 @@ static struct osk_s
 	} curbutton;
 } osk;
 
+/*
+=============
+OSK_IsEnabled
+
+true if the keyboard replaces the platform's own text input
+=============
+*/
+qboolean OSK_IsEnabled( void )
+{
+#if XASH_OGC
+	return wii_osk.value != 0.0f;
+#else
+	return osk_enable.value != 0.0f;
+#endif
+}
+
+// enabled, and allowed to show up right now
+static qboolean OSK_Allowed( void )
+{
+	if( !osk.enable || !OSK_IsEnabled( ))
+		return false;
+
+#if XASH_OGC
+	// con un teclado USB se escribe directamente
+	if( osk.suspended )
+		return false;
+
+	// los menus clasicos no avisan cuando hay un campo de texto
+	if( cls.key_dest == key_menu && !gameui.use_extended_api )
+		return false;
+#endif
+	return true;
+}
+
+qboolean OSK_IsVisible( void )
+{
+	return OSK_Allowed() && osk.curbutton.val != 0;
+}
+
+void OSK_SetSuspended( qboolean suspended )
+{
+	osk.suspended = suspended;
+}
+
+void OSK_SetHint( const char *hint )
+{
+	osk.hint = hint;
+}
+
+/*
+=============
+OSK_Hover
+
+Pointer over the keyboard (x, y as fractions of the screen): selects the key
+under it. Returns whether the pointer is over the keyboard at all.
+=============
+*/
+#define X_START 0.1347475f
+#define Y_START 0.567f
+#define X_STEP  0.05625
+#define Y_STEP  0.0825
+
+qboolean OSK_Hover( float x, float y, qboolean move )
+{
+	int cx, cy;
+
+	osk.inside = false;
+
+	if( !OSK_IsVisible( ))
+		return false;
+
+	if( x < X_START || y < Y_START )
+		return false;
+
+	cx = (int)(( x - X_START ) / X_STEP );
+	cy = (int)(( y - Y_START ) / Y_STEP );
+
+	if( cx < 0 || cx >= MAX_OSK_ROWS || cy < 0 || cy >= MAX_OSK_LINES )
+		return false;
+
+	osk.inside = true;
+
+	if( move )
+	{
+		osk.curbutton.x = cx;
+		osk.curbutton.y = cy;
+		osk.curbutton.val = osk_keylayout[osk.curlayout][cy][cx];
+	}
+
+	return true;
+}
+
+qboolean OSK_KeyEvent( int key, int down );
+
+/*
+=============
+OSK_Action
+
+Controller-independent entry point: moves the cursor and types.
+=============
+*/
+void OSK_Action( int action, int down )
+{
+	if( !OSK_IsVisible( ))
+		return;
+
+	switch( action )
+	{
+	case OSK_ACT_UP:    OSK_KeyEvent( K_UPARROW, down ); break;
+	case OSK_ACT_DOWN:  OSK_KeyEvent( K_DOWNARROW, down ); break;
+	case OSK_ACT_LEFT:  OSK_KeyEvent( K_LEFTARROW, down ); break;
+	case OSK_ACT_RIGHT: OSK_KeyEvent( K_RIGHTARROW, down ); break;
+	case OSK_ACT_SELECT:
+		// el puntero puede mandar el mismo clic por dos caminos
+		if( down && host.realtime - osk.last_select < 0.08 )
+			break;
+		if( down )
+			osk.last_select = host.realtime;
+		OSK_KeyEvent( K_A_BUTTON, down );
+		break;
+	case OSK_ACT_BACKSPACE:
+		Key_Event( K_BACKSPACE, down );
+		break;
+	case OSK_ACT_SPACE:
+		if( down )
+			CL_CharEvent( ' ' );
+		break;
+	case OSK_ACT_SHIFT:
+		if( !down )
+			break;
+		osk.curlayout ^= 1;
+		osk.shift = ( osk.curlayout & 1 ) ? true : false;
+		osk.curbutton.val = osk_keylayout[osk.curlayout][osk.curbutton.y][osk.curbutton.x];
+		break;
+	case OSK_ACT_ENTER:
+		osk.sending = true;
+		Key_Event( K_ENTER, down );
+		osk.sending = false;
+		break;
+	}
+}
+
 qboolean OSK_KeyEvent( int key, int down )
 {
-	if( !osk.enable || !osk_enable.value )
+	if( !OSK_Allowed( ))
 		return false;
+
+	// clic del puntero (Wiimote o raton USB) sobre una tecla
+	if( key == K_MOUSE1 )
+	{
+		if( down && osk.inside && osk.curbutton.val != 0 )
+		{
+			osk.mouse_down = true;
+
+			// el mismo clic puede llegar tambien como boton del mando
+			if( host.realtime - osk.last_select < 0.08 )
+				return true;
+
+			osk.last_select = host.realtime;
+			key = K_A_BUTTON;
+		}
+		else if( !down && osk.mouse_down )
+		{
+			osk.mouse_down = false;
+			key = K_A_BUTTON;
+		}
+		else
+			return false;
+	}
+
 
 	if( osk.sending )
 	{
@@ -285,7 +461,7 @@ void OSK_Draw( void )
 	float      x, y;
 	int i, j;
 
-	if( !osk.enable || !osk_enable.value || !osk.curbutton.val )
+	if( !OSK_IsVisible( ))
 		return;
 
 	// draw keyboard
@@ -307,4 +483,7 @@ void OSK_Draw( void )
 void OSK_Init( void )
 {
 	Cvar_RegisterVariable( &osk_enable );
+#if XASH_OGC
+	Cvar_RegisterVariable( &wii_osk );
+#endif
 }
