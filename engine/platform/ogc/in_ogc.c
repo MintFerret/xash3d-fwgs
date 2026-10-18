@@ -549,7 +549,6 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 	float speed = 1.0f, dy = 0.0f, dp = 0.0f, ay, ap, ang;
 	qboolean moving;
     static double last_time = -1.0;
-    int i;
 
     // una sola vez por cuadro aunque input.c tambien la llame
     if( host.realtime == last_time )
