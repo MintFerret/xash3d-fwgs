@@ -364,6 +364,34 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 	*pitch += -ogc_look_filt[1] * wii_stick_pitchspeed.value * dt * speed + dp;
 }
 
+/*
+Zona muerta radial (no por eje, para que apuntar en diagonal no se vuelva
+escalonado) y curva de respuesta: el principio del recorrido es fino, el final
+rapido.
+*/
+static void OGC_ShapeLook( float x, float y, float *ox, float *oy )
+{
+        const float dz = 0.16f;
+        float m = sqrtf( x * x + y * y );
+        float k;
+
+        if( m < dz )
+        {
+                *ox = *oy = 0.0f;
+                return;
+        }
+
+        m = bound( 0.0f, m, 1.0f );
+        k = powf(( m - dz ) / ( 1.0f - dz ), bound( 1.0f, wii_stick_curve.value, 3.0f ));
+
+        // x / |v| es la direccion; sqrtf( x*x+y*y ) >= dz > 0 aqui
+        {
+                float len = sqrtf( x * x + y * y );
+                *ox = x / len * k;
+                *oy = y / len * k;
+        }
+}
+
 static void OGC_PollSticks( u32 wpad_type );
 
 void OGC_ButtonsFrame( void )
