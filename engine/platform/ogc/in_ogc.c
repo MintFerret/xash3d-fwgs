@@ -157,6 +157,10 @@ aim around.
 */
 enum { OGC_SRC_WII, OGC_SRC_GC, OGC_SRC_CLASSIC, OGC_SRC_MOUSE };
 static int ogc_src = OGC_SRC_WII;
+
+/* Forward declarations para evitar warnings de "implicit declaration" */
+static qboolean OGC_AssistActive( void );
+static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, float *dpitch, float *angle );
 // mirada de la palanca derecha (-1..1, x derecha, y arriba) ya con zona muerta y curva
 static float ogc_look_raw[2];
 static float ogc_look_filt[2];
