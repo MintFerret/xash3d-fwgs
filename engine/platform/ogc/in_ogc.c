@@ -58,7 +58,7 @@ static CVAR_DEFINE_AUTO( wii_aimassist, "1", FCVAR_ARCHIVE, "aim assist for ever
 static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.5", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
 static CVAR_DEFINE_AUTO( wii_aimassist_cone, "5", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
 static CVAR_DEFINE_AUTO( wii_aimassist_range, "1800", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
-static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also bends the shot of the Wii remote pointer" );
+static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also steers the camera towards enemies near the Wii remote pointer" );
 #ifdef XASH_OGC_INPUTTEST
 #define WII_SHOWINPUT_DEFAULT "1"	// input test build: on with nothing to configure
 #else
@@ -107,7 +107,7 @@ static const ogc_btn_t ogc_map_wiimote[] =
 {
     { WPAD_BUTTON_LEFT,      K_DPAD_LEFT   }, // invprev
     { WPAD_BUTTON_RIGHT,     K_DPAD_RIGHT  }, // invnext
-    { WPAD_BUTTON_DOWN,      K_DPAD_DOWN   }, // lastinv
+    { WPAD_BUTTON_DOWN,      K_R2_BUTTON   }, // +attack2
     { WPAD_BUTTON_UP,        K_Y_BUTTON    }, // flashlight
 
     { WPAD_NUNCHUK_BUTTON_C, K_B_BUTTON    }, // +use
@@ -120,7 +120,7 @@ static const ogc_btn_t ogc_map_wiimote[] =
     { WPAD_BUTTON_MINUS,     K_X_BUTTON    }, // +reload
 
     { WPAD_BUTTON_A,         K_A_BUTTON    }, // +jump
-    { WPAD_BUTTON_B,         K_R2_BUTTON   }, // +attack2
+    { WPAD_BUTTON_B,         K_L1_BUTTON   }, // +duck
 
     { WPAD_BUTTON_HOME,      OGC_ACT_HOME  }, // ESC (mantenido: consola)
 };
@@ -548,6 +548,13 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 	float k = ( tau > 0.0f ) ? 1.0f - expf( -dt / tau ) : 1.0f;
 	float speed = 1.0f, dy = 0.0f, dp = 0.0f, ay, ap, ang;
 	qboolean moving;
+    static double last_time = -1.0;
+    int i;
+
+    // una sola vez por cuadro aunque input.c tambien la llame
+    if( host.realtime == last_time )
+        return;
+    last_time = host.realtime;
 	int i;
 
 	if( ogc_src != OGC_SRC_CLASSIC && ogc_src != OGC_SRC_GC )
@@ -581,7 +588,7 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 		{
 			float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
 			float f = bound( 0.0f, 1.0f - ang / bound( 0.5f, wii_aimassist_cone.value, 20.0f ), 1.0f );
-			float pull = str * f * 70.0f * dt;	// grados de atraccion por frame
+			float pull = str * f * 110.0f * dt;	// grados de atraccion por frame
 
 			speed = 1.0f - str * 0.65f * f;
 			dy = bound( -pull, ay, pull );
@@ -989,7 +996,8 @@ void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemo
 	// force a fixed pointer offset so the two ends can be compared
 	ogc_pointer[0] = 0.5f; ogc_pointer[1] = 0.0f;
 #endif
-    ogc_aim_delta[0] = ogc_aim_delta[1] = 0.0f;
+    // el cliente leyo camara + desvio anterior (pfnGetViewAngles): quitarlo antes de aplicar el nuevo
+    OGC_RestoreAim( viewangles );
 	if( !OGC_GetPointerAngles( &dyaw, &dpitch ))
 		return;
 
@@ -1170,6 +1178,24 @@ void OGC_PointerMove( float *pitch, float *yaw )
 
     ogc_pointer[0] = nx;
     ogc_pointer[1] = ny;
+
+    // ayuda de punteria con el puntero: gira la CAMARA hacia el enemigo (el disparo
+    // sigue saliendo exactamente donde apunta el puntero)
+    if( wii_aimassist_ir.value && OGC_AssistActive( ))
+    {
+        vec3_t aim = { cl.viewangles[PITCH] + ogc_aim_delta[1], cl.viewangles[YAW] + ogc_aim_delta[0], 0.0f };
+        float ay, ap, ang, dt = bound( 0.0f, (float)host.realframetime, 0.1f );
+
+        if( OGC_FindAssistTarget( aim, &ay, &ap, &ang ))
+        {
+            float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
+            float f = bound( 0.0f, 1.0f - ang / bound( 0.5f, wii_aimassist_cone.value, 20.0f ), 1.0f );
+            float pull = str * f * 110.0f * dt;
+
+            *yaw   += bound( -pull, ay, pull );
+            *pitch += bound( -pull, ap, pull );
+        }
+    }
 
     deadzone = bound( 0.0f, wii_ir_deadzone.value, 0.95f );
     scale = 1.0f - deadzone;
@@ -1646,6 +1672,9 @@ Adds the USB mouse's motion since the last call to the view angles.
 void OGC_MouseMove( float *pitch, float *yaw )
 {
 	float s;
+
+   // palanca derecha (Classic / GameCube): se aplica aqui para no depender de input.c
+   OGC_StickLookMove( pitch, yaw );
 
 	if( ogc_mouse_dx == 0.0f && ogc_mouse_dy == 0.0f )
 		return;

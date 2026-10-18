@@ -54,7 +54,12 @@ void GX_ReloadProjectionMtx( float zbias )
 {
     Mtx44 biased;
     memcpy( biased, gx_projection_mtx, sizeof( Mtx44 ));
-    biased[2][3] -= zbias;
+    /* zbias > 0 acerca a la camara. En perspectiva el desplazamiento va en [2][2]
+     * (constante en espacio NDC, como glPolygonOffset); en ortografica en [2][3] */
+    if( gx_projection_type == GX_PERSPECTIVE )
+        biased[2][2] += zbias;
+    else
+        biased[2][3] -= zbias;
     GX_LoadProjectionMtx( biased, gx_projection_type );
 }
 

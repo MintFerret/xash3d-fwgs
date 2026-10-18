@@ -382,10 +382,10 @@ void GX_PushPolygonOffset( float factor, float units )
 	glState.polyoffset_state[glState.num_polyoffsets].units  = units;
 	glState.num_polyoffsets++;
 
-	const float z_bias_scale = 1.0f / 65536.0f;
+	const float z_bias_scale = 1.0f / 32768.0f;
 	float total_bias = 0.0f;
 	for( int i = 0; i < glState.num_polyoffsets; i++ )
-		total_bias += glState.polyoffset_state[i].units * z_bias_scale;
+		total_bias -= glState.polyoffset_state[i].units * z_bias_scale;
 
 	GX_ReloadProjectionMtx( total_bias );
 }
@@ -401,9 +401,9 @@ void GX_PopPolygonOffset( void )
 	glState.num_polyoffsets--;
 
 	float total_bias = 0.0f;
-	const float z_bias_scale = 1.0f / 65536.0f;
+	const float z_bias_scale = 1.0f / 32768.0f;
 	for( int i = 0; i < glState.num_polyoffsets; i++ )
-		total_bias += glState.polyoffset_state[i].units * z_bias_scale;
+		total_bias -= glState.polyoffset_state[i].units * z_bias_scale;
 
 	GX_ReloadProjectionMtx( total_bias );
 }

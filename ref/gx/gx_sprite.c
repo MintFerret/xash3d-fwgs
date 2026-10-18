@@ -328,7 +328,7 @@ static qboolean R_SpriteAllowLerping( cl_entity_t *e, msprite_t *psprite )
 	return true;
 }
 
-void R_DrawSpriteModel( cl_entity_t *e )
+static void R_DrawSpriteModelInt( cl_entity_t *e )
 {
 	if( FBitSet( RI.rvp.flags, RF_DRAW_CUBEMAP ))
 		return;
@@ -548,4 +548,13 @@ void R_DrawSpriteModel( cl_entity_t *e )
 		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
 	}
+}
+void R_DrawSpriteModel( cl_entity_t *e )
+{
+	/* los sprites pegados a la pared (humo, impactos) peleaban con la profundidad */
+	qboolean bias = gl_polyoffset.value && e->curstate.rendermode != kRenderGlow;
+
+	if( bias ) GX_PushPolygonOffset( -1.0f, -gl_polyoffset.value * 2.0f );
+	R_DrawSpriteModelInt( e );
+	if( bias ) GX_PopPolygonOffset();
 }
