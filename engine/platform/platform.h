@@ -136,6 +136,8 @@ void OGC_GetPointer( float *x, float *y );
 qboolean OGC_AimIsPointer( void );
 void OGC_ApplyPointerToViewModel( struct cl_entity_s *view );
 void OGC_GetAimDelta( float *dyaw, float *dpitch );
+void OGC_RestoreAim( vec3_t viewangles );
+void OGC_StickLookMove( float *pitch, float *yaw );
 void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemove );
 qboolean OGC_WantVisiblePointer( void );
 #endif

@@ -735,9 +735,23 @@ static void CL_UpdateClientData( void )
 		.fov = cl.local.scr_fov,
 	};
 
+#if XASH_OGC
+	float aim_dy = 0.0f, aim_dp = 0.0f;
+	if( OGC_AimIsPointer( ))
+	{
+		OGC_GetAimDelta( &aim_dy, &aim_dp );
+		cdat.viewangles[YAW] += aim_dy;
+		cdat.viewangles[PITCH] += aim_dp;
+	}
+#endif
+
 	if( clgame.dllFuncs.pfnUpdateClientData( &cdat, cl.time ))
 	{
 		// grab changes if successful
+#if XASH_OGC
+		cdat.viewangles[YAW] -= aim_dy;
+		cdat.viewangles[PITCH] -= aim_dp;
+#endif
 		VectorCopy( cdat.viewangles, cl.viewangles );
 		cl.local.scr_fov = cdat.fov;
 	}
@@ -810,6 +824,8 @@ static void CL_CreateCmd( void )
 	// the shot follows the pointer; the camera does not
 	if( active )
 		OGC_ApplyPointerToAim( cmd->viewangles, &cmd->forwardmove, &cmd->sidemove );
+	else
+		OGC_RestoreAim( cmd->viewangles );
 #endif
 
 	CL_PopPMStates();
@@ -1828,7 +1844,7 @@ CL_LocalServers_f
 */
 static void CL_LocalServers_f( void )
 {
-	Con_Printf( "Scanning for servers on the local network area...\n" );
+	Con_DPrintf( "Scanning for servers on the local network area...\n" );
 	NET_Config( true, true ); // allow remote
 
 	for( int i = 0; i < 10; i++ )

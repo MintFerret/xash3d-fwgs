@@ -31,7 +31,7 @@ extern double g_gx_cpu_time_ms;
 extern void GX_DbgWait( const char *tag );
 extern void GX_MemReport( const char *tag );
 
-#define GXT( s ) do { static int _n; if( _n++ < 1 ) gEngfuncs.Con_Printf( "[GX] " s "\n" ); } while( 0 )
+#define GXT( s ) do { static int _n; if( _n++ < 1 ) GX_LOG( "[GX] " s "\n" ); } while( 0 )
 
 #define IsLiquidContents( cnt ) ( cnt == CONTENTS_WATER || cnt == CONTENTS_SLIME || cnt == CONTENTS_LAVA )
 
@@ -872,71 +872,6 @@ void R_RenderScene( void )
             }
         }
     }
-    /* gxtest.txt = 21: diagnostico de dlights (log cada 60 frames)
-       gxtest.txt = 22: igual, y ademas fuerza una luz blanca de radio 300 en la camara
-       (si con 22 el mundo se ilumina, el renderizador funciona y el fallo esta en la creacion
-       de la luz: r_dynamic, EF_DIMLIGHT, etc.; si no se ilumina, el fallo es del renderizador) */
-    if(( gx_testmode == 21 || gx_testmode == 22 ) && FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
-    {
-        static int dl_log;
-
-        if( gx_testmode == 22 )
-        {
-            dlight_t *fl = &gp_dlights[MAX_DLIGHTS - 1];
-            VectorCopy( RI.rvp.vieworigin, fl->origin );
-            fl->radius = 300.0f;
-            fl->die = gp_cl->time + 1.0f;
-            fl->color.r = fl->color.g = fl->color.b = 255;
-            fl->minlight = 0.0f;
-        }
-
-        if(( dl_log++ % 60 ) == 0 )
-        {
-            int active = 0, first = -1;
-            for( int i = 0; i < MAX_DLIGHTS; i++ )
-            {
-                if( gp_dlights[i].die >= gp_cl->time && gp_dlights[i].radius > 0.0f )
-                {
-                    active++;
-                    if( first < 0 ) first = i;
-                }
-            }
-            gEngfuncs.Con_Printf( "[DLIGHT] r_dynamic=%d active=%d", (int)r_dynamic->value, active );
-            if( first >= 0 )
-                gEngfuncs.Con_Printf( " first=%d rad=%.0f col=%d,%d,%d min=%.0f org=%.0f,%.0f,%.0f",
-                    first, gp_dlights[first].radius, gp_dlights[first].color.r, gp_dlights[first].color.g,
-                    gp_dlights[first].color.b, gp_dlights[first].minlight,
-                    gp_dlights[first].origin[0], gp_dlights[first].origin[1], gp_dlights[first].origin[2] );
-            gEngfuncs.Con_Printf( "\n" );
-        }
-    }
-
-    /* gxtest.txt = 23: diagnostico de estilos de luz (interruptores/luces que se apagan).
-       Cada ~60 frames: r_dynamic, estilos con valor distinto de normal (256) y cuantas
-       superficies revisaron/reconstruyeron su lightmap desde el ultimo log. */
-    if( gx_testmode == 23 && FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
-    {
-        extern int gx_dbg_ls_rebuilds, gx_dbg_ls_checked;
-        static int ls_frame;
-
-        if(( ls_frame++ % 60 ) == 0 )
-        {
-            int changed = 0, first = -1;
-            for( int i = 0; i < MAX_LIGHTSTYLES; i++ )
-            {
-                if( g_lightstylevalue[i] != 256 )
-                {
-                    changed++;
-                    if( first < 0 ) first = i;
-                }
-            }
-            gEngfuncs.Con_Printf( "[LSTYLE] r_dynamic=%d estilos!=256: %d (primero=%d valor=%d) revisadas=%d reconstruidas=%d\n",
-                (int)r_dynamic->value, changed, first, first >= 0 ? (int)g_lightstylevalue[first] : -1,
-                gx_dbg_ls_checked, gx_dbg_ls_rebuilds );
-            gx_dbg_ls_checked = gx_dbg_ls_rebuilds = 0;
-        }
-    }
-
     tr.dlightframecount = R_PushDlights( WORLDMODEL, tr.framecount );
 
     R_SetupFrustum();
@@ -1010,7 +945,7 @@ void R_BeginFrame( qboolean clearScene )
 {
 	GX_ResetRenderState();
 	static int bf;
-	if( bf < 5 ) gEngfuncs.Con_Printf( "[GX] BeginFrame %d\n", bf );
+	if( bf < 5 ) GX_LOG( "[GX] BeginFrame %d\n", bf );
 	bf++;
 	GX_DbgWait( "beginframe start" );
 
@@ -1085,10 +1020,10 @@ void R_RenderFrame( const ref_viewpass_t *rvp )
 void R_EndFrame( void )
 {
 	static int ef;
-	if( ef < 5 ) gEngfuncs.Con_Printf( "[GX] EndFrame %d\n", ef );
+	if( ef < 5 ) GX_LOG( "[GX] EndFrame %d\n", ef );
 	R_Set2DMode( false );
 	gEngfuncs.GL_SwapBuffers();
-	if( ef < 5 ) gEngfuncs.Con_Printf( "[GX] EndFrame %d done\n", ef );
+	if( ef < 5 ) GX_LOG( "[GX] EndFrame %d done\n", ef );
 	ef++;
 }
 

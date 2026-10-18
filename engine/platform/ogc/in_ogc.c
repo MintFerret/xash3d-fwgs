@@ -50,6 +50,15 @@ static CVAR_DEFINE_AUTO( wii_gun_tilt, "1", FCVAR_ARCHIVE, "weapon rolls with th
 static CVAR_DEFINE_AUTO( wii_gun_tilt_max, "55", FCVAR_ARCHIVE, "maximum weapon roll in degrees" );
 static CVAR_DEFINE_AUTO( wii_gun_pitch, "1", FCVAR_ARCHIVE, "weapon follows the remote pitch when the pointer is lost (0 = off, negative = inverted)" );
 static CVAR_DEFINE_AUTO( wii_mouse_sens, "2", FCVAR_ARCHIVE, "USB mouse look speed" );
+static CVAR_DEFINE_AUTO( wii_stick_smooth, "0.07", FCVAR_ARCHIVE, "Classic/GameCube look smoothing in seconds (0 = off)" );
+static CVAR_DEFINE_AUTO( wii_stick_curve, "1.7", FCVAR_ARCHIVE, "Classic/GameCube look response curve (1 = linear, higher = finer aim near the centre)" );
+static CVAR_DEFINE_AUTO( wii_stick_yawspeed, "190", FCVAR_ARCHIVE, "Classic/GameCube turn speed at full stick, degrees per second" );
+static CVAR_DEFINE_AUTO( wii_stick_pitchspeed, "120", FCVAR_ARCHIVE, "Classic/GameCube pitch speed at full stick, degrees per second" );
+static CVAR_DEFINE_AUTO( wii_aimassist, "1", FCVAR_ARCHIVE, "aim assist for every controller (0 = off)" );
+static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.5", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
+static CVAR_DEFINE_AUTO( wii_aimassist_cone, "5", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
+static CVAR_DEFINE_AUTO( wii_aimassist_range, "1800", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
+static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also bends the shot of the Wii remote pointer" );
 #ifdef XASH_OGC_INPUTTEST
 #define WII_SHOWINPUT_DEFAULT "1"	// input test build: on with nothing to configure
 #else
@@ -148,6 +157,9 @@ aim around.
 */
 enum { OGC_SRC_WII, OGC_SRC_GC, OGC_SRC_CLASSIC, OGC_SRC_MOUSE };
 static int ogc_src = OGC_SRC_WII;
+// mirada de la palanca derecha (-1..1, x derecha, y arriba) ya con zona muerta y curva
+static float ogc_look_raw[2];
+static float ogc_look_filt[2];
 
 // set by OGC_Init: reading the queues of a device that failed to start would
 // walk an uninitialised list
@@ -202,6 +214,15 @@ Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_gun_tilt_max );
 	Cvar_RegisterVariable( &wii_gun_pitch );
 	Cvar_RegisterVariable( &wii_mouse_sens );
+	Cvar_RegisterVariable( &wii_stick_smooth );
+	Cvar_RegisterVariable( &wii_stick_curve );
+	Cvar_RegisterVariable( &wii_stick_yawspeed );
+	Cvar_RegisterVariable( &wii_stick_pitchspeed );
+	Cvar_RegisterVariable( &wii_aimassist );
+	Cvar_RegisterVariable( &wii_aimassist_strength );
+	Cvar_RegisterVariable( &wii_aimassist_cone );
+	Cvar_RegisterVariable( &wii_aimassist_range );
+	Cvar_RegisterVariable( &wii_aimassist_ir );
 
 
 #if XASH_OGC_AIMTEST
@@ -277,6 +298,68 @@ static void OGC_EmitButtons( const ogc_btn_t *map, int count, u32 held, u32 *pre
 	}
 }
 static void OGC_PollNunchuk(void);
+/*
+============
+OGC_StickLookMove
+
+Mirada con la palanca derecha del Classic Controller y del mando de GameCube:
+filtro de paso bajo (los cambios bruscos de la palanca no sacuden la camara),
+velocidad maxima propia por eje y ayuda de punteria (friccion y atraccion
+suave) cuando hay un enemigo cerca de la mira.
+============
+*/
+void OGC_StickLookMove( float *pitch, float *yaw )
+{
+	float dt = bound( 0.0f, (float)host.realframetime, 0.1f );
+	float tau = bound( 0.0f, wii_stick_smooth.value, 0.5f );
+	float k = ( tau > 0.0f ) ? 1.0f - expf( -dt / tau ) : 1.0f;
+	float speed = 1.0f, dy = 0.0f, dp = 0.0f, ay, ap, ang;
+	qboolean moving;
+	int i;
+
+	if( ogc_src != OGC_SRC_CLASSIC && ogc_src != OGC_SRC_GC )
+	{
+		ogc_look_filt[0] = ogc_look_filt[1] = 0.0f;
+		return;
+	}
+
+	// en los menus las palancas no giran la camara
+	if( cls.key_dest != key_game )
+	{
+		ogc_look_filt[0] = ogc_look_filt[1] = 0.0f;
+		return;
+	}
+
+	for( i = 0; i < 2; i++ )
+	{
+		ogc_look_filt[i] += ( ogc_look_raw[i] - ogc_look_filt[i] ) * k;
+		if( fabsf( ogc_look_filt[i] ) < 0.002f && ogc_look_raw[i] == 0.0f )
+			ogc_look_filt[i] = 0.0f;
+	}
+
+	moving = fabsf( ogc_look_filt[0] ) > 0.02f || fabsf( ogc_look_filt[1] ) > 0.02f;
+
+	// ayuda de punteria: mas lento cerca del enemigo y un empujon hacia el
+	if( moving && OGC_AssistActive( ))
+	{
+		vec3_t aim = { cl.viewangles[PITCH], cl.viewangles[YAW], 0.0f };
+
+		if( OGC_FindAssistTarget( aim, &ay, &ap, &ang ))
+		{
+			float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
+			float f = bound( 0.0f, 1.0f - ang / bound( 0.5f, wii_aimassist_cone.value, 20.0f ), 1.0f );
+			float pull = str * f * 70.0f * dt;	// grados de atraccion por frame
+
+			speed = 1.0f - str * 0.65f * f;
+			dy = bound( -pull, ay, pull );
+			dp = bound( -pull, ap, pull );
+		}
+	}
+
+	*yaw   += -ogc_look_filt[0] * wii_stick_yawspeed.value * dt * speed + dy;
+	*pitch += -ogc_look_filt[1] * wii_stick_pitchspeed.value * dt * speed + dp;
+}
+
 static void OGC_PollSticks( u32 wpad_type );
 
 void OGC_ButtonsFrame( void )
@@ -440,6 +523,167 @@ in - the command carries the pointer angles while cl.viewangles, which the
 camera renders from, is left alone.
 ============
 */
+/*
+============
+Aim assist
+
+Looks for the enemy closest to where the player is aiming and reports how far
+off it is. The sticks use it to slow down and drift towards the target, the
+Wii remote pointer to bend the shot a little. Only live, visible, solid
+characters count; line of sight is checked against the world with a cache so
+it costs at most a few traces per second.
+============
+*/
+#ifndef PM_WORLD_ONLY
+#define PM_WORLD_ONLY 0x00000008
+#endif
+
+static qboolean OGC_AssistActive( void )
+{
+	return wii_aimassist.value > 0.0f && cls.state == ca_active && cls.signon == SIGNONS
+		&& cls.key_dest == key_game && !cl.paused && !cls.demoplayback;
+}
+
+static float OGC_AngleDiff( float a, float b )
+{
+	float d = a - b;
+
+	while( d >  180.0f ) d -= 360.0f;
+	while( d < -180.0f ) d += 360.0f;
+	return d;
+}
+
+// the client cannot tell friendly NPCs from enemies, so go by model name
+static qboolean OGC_IsFriendlyModel( const model_t *mod )
+{
+	static const char *friends[] = { "scientist", "barney", "otis", "construction", "cleansuit" };
+	size_t i;
+
+	if( !mod || !mod->name[0] )
+		return false;
+
+	for( i = 0; i < ARRAYSIZE( friends ); i++ )
+		if( Q_stristr( mod->name, friends[i] ))
+			return true;
+
+	return false;
+}
+
+/*
+Finds the best target within the capture cone around aim_angles.
+Returns the angular offset to it (dyaw, dpitch) and how far off centre it is.
+*/
+static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, float *dpitch, float *angle )
+{
+	static int los_ent = -1;
+	static double los_time = 0.0;
+	static qboolean los_ok = false;
+
+	const float cone = bound( 0.5f, wii_aimassist_cone.value, 20.0f );
+	const float range = bound( 100.0f, wii_aimassist_range.value, 8192.0f );
+	const float costh = cosf( DEG2RAD( cone ));
+	cl_entity_t *local;
+	vec3_t eye, fwd, best_pt, to;
+	float best_dot = costh;
+	int best = -1, i;
+
+	if( !clgame.entities || !clgame.pmove || clgame.pmove->numphysent <= 0 )
+		return false;
+
+	local = CL_GetEntityByIndex( cl.playernum + 1 );
+
+	VectorAdd( cl.simorg, cl.viewheight, eye );
+	AngleVectors( aim_angles, fwd, NULL, NULL );
+
+	for( i = 1; i < clgame.maxEntities; i++ )
+	{
+		cl_entity_t *ent = clgame.entities + i;
+		vec3_t mins, maxs, pt;
+		float dist, dot;
+
+		if( ent == local || ent->curstate.messagenum != cl.parsecount )
+			continue;
+		if( ent->curstate.solid != SOLID_SLIDEBOX || FBitSet( ent->curstate.effects, EF_NODRAW ))
+			continue;
+		if( !ent->model || ent->model->type != mod_studio )
+			continue;
+
+		// other players: only in the opposite team when teams are in use
+		if( CL_IsPlayerIndex( i ))
+		{
+			if( local && ent->curstate.team != 0 && ent->curstate.team == local->curstate.team )
+				continue;
+		}
+		else if( OGC_IsFriendlyModel( ent->model ))
+			continue;
+
+		if( ent->curstate.maxs[2] > ent->curstate.mins[2] )
+		{
+			VectorCopy( ent->curstate.mins, mins );
+			VectorCopy( ent->curstate.maxs, maxs );
+		}
+		else
+		{
+			VectorCopy( ent->model->mins, mins );
+			VectorCopy( ent->model->maxs, maxs );
+		}
+
+		if( maxs[2] <= mins[2] )
+			continue;
+
+		// chest height rather than the middle of the box
+		pt[0] = ent->origin[0] + ( mins[0] + maxs[0] ) * 0.5f;
+		pt[1] = ent->origin[1] + ( mins[1] + maxs[1] ) * 0.5f;
+		pt[2] = ent->origin[2] + ( mins[2] + maxs[2] ) * 0.5f + ( maxs[2] - mins[2] ) * 0.2f;
+
+		VectorSubtract( pt, eye, to );
+		dist = VectorLength( to );
+		if( dist < 24.0f || dist > range )
+			continue;
+
+		dot = DotProduct( fwd, to ) / dist;
+		if( dot <= best_dot )
+			continue;
+
+		best_dot = dot;
+		best = i;
+		VectorCopy( pt, best_pt );
+	}
+
+	if( best < 0 )
+	{
+		los_ent = -1;
+		return false;
+	}
+
+	if( best != los_ent || host.realtime - los_time > 0.1 )
+	{
+		pmtrace_t tr = CL_TraceLine( eye, best_pt, PM_WORLD_ONLY );
+
+		los_ok = !tr.allsolid && tr.fraction >= 0.99f;
+		los_ent = best;
+		los_time = host.realtime;
+	}
+
+	if( !los_ok )
+		return false;
+
+	{
+		float len, yaw, pitch;
+
+		VectorSubtract( best_pt, eye, to );
+		len = VectorLength( to );
+		yaw = RAD2DEG( atan2f( to[1], to[0] ));
+		pitch = -RAD2DEG( asinf( bound( -1.0f, to[2] / len, 1.0f )));
+
+		*dyaw = OGC_AngleDiff( yaw, aim_angles[YAW] );
+		*dpitch = pitch - aim_angles[PITCH];
+		*angle = RAD2DEG( acosf( bound( -1.0f, best_dot, 1.0f )));
+	}
+
+	return true;
+}
+
 static float ogc_aim_delta[2];
 
 /*
@@ -456,6 +700,24 @@ void OGC_GetAimDelta( float *dyaw, float *dpitch )
 {
 	*dyaw = ogc_aim_delta[0];
 	*dpitch = ogc_aim_delta[1];
+}
+
+/*
+============
+OGC_RestoreAim
+
+The client dll reads the view angles through pfnGetViewAngles, which on the
+Wiimote returns camera + aim offset (so its weapon prediction, egon beam, etc.
+follow the pointer like the server does). The usercmd it builds therefore
+carries the offset too: take it back out so the camera angles are clean again.
+============
+*/
+void OGC_RestoreAim( vec3_t viewangles )
+{
+	viewangles[YAW]   -= ogc_aim_delta[0];
+	viewangles[PITCH] -= ogc_aim_delta[1];
+	VectorCopy( viewangles, cl.viewangles );
+	ogc_aim_delta[0] = ogc_aim_delta[1] = 0.0f;
 }
 
 void OGC_ApplyPointerToAim( vec3_t viewangles, float *forwardmove, float *sidemove )
@@ -1222,8 +1484,10 @@ static void OGC_PollSticks( u32 wpad_type )
         // convencion de SDL que usa el motor: arriba es negativo en Y
         out[0] = OGC_StickToAxis( lx, false );
         out[1] = OGC_StickToAxis( -ly, false );
-        out[2] = OGC_StickToAxis( rx, true );
-        out[3] = OGC_StickToAxis( -ry, true );
+        // la mirada no pasa por el motor: se suaviza en OGC_StickLookMove
+        OGC_ShapeLook( rx, ry, &ogc_look_raw[0], &ogc_look_raw[1] );
+        out[2] = ( ogc_look_raw[0] != 0.0f ) ? 1 : 0;
+        out[3] = ( ogc_look_raw[1] != 0.0f ) ? 1 : 0;
 
         // mover una palanca tambien pasa el control a ese mando
         for( i = 0; i < 4; i++ )
@@ -1239,6 +1503,9 @@ static void OGC_PollSticks( u32 wpad_type )
 
         for( i = 0; i < 4; i++ )
         {
+                // los ejes de mirada se quedan en 0 para que el motor no los aplique otra vez
+                out[2] = out[3] = 0;
+
                 if( out[i] != last[i] )
                 {
                         Joy_AxisMotionEvent( axes[i], out[i] );

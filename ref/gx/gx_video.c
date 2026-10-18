@@ -145,14 +145,14 @@ void GX_Present( void )
 	if( gx_testmode == 2 )
 		GX_TestBars();
 
-	if( n < 5 ) gEngfuncs.Con_Printf( "[GX] present %d: DrawDone\n", n );
+	if( n < 5 ) GX_LOG( "[GX] present %d: DrawDone\n", n );
 	GX_DrawDone();
 	/* GX_CopyDisp(clear=TRUE) solo limpia color/alpha/Z si sus escrituras estan habilitadas en ese momento. */
 	/* Si el ultimo dibujo dejo Z-write o color-update apagado, el EFB no se limpia y el frame anterior se acumula. */
 	GX_SetColorUpdate( GX_TRUE );
 	GX_SetAlphaUpdate( GX_TRUE );
 	GX_SetZMode( GX_TRUE, GX_ALWAYS, GX_TRUE );
-	if( n < 5 ) gEngfuncs.Con_Printf( "[GX] present %d: CopyDisp\n", n );
+	if( n < 5 ) GX_LOG( "[GX] present %d: CopyDisp\n", n );
 	GX_CopyDisp( gxvid.xfb[gxvid.fb], GX_TRUE );
 	GX_DrawDone(); /* esperar a que la copia EFB->XFB termine antes de mostrarla (evita tearing) */
 
@@ -161,7 +161,7 @@ void GX_Present( void )
 	VIDEO_WaitVSync();
 	if( gxvid.rmode && FBitSet( gxvid.rmode->viTVMode, VI_NON_INTERLACE ))
 		VIDEO_WaitVSync();
-	if( n < 5 ) gEngfuncs.Con_Printf( "[GX] present %d: vsync ok\n", n );
+	if( n < 5 ) GX_LOG( "[GX] present %d: vsync ok\n", n );
 
 	gxvid.fb ^= 1;
 	n++;
@@ -316,6 +316,7 @@ static void GX_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &r_studio_sort_textures );
 	gEngfuncs.Cvar_RegisterVariable( &r_studio_drawelements );
 	gEngfuncs.Cvar_RegisterVariable( &r_studio_builtin_renderer );
+	gEngfuncs.Cvar_RegisterVariable( &gx_studio_maxdist );
 	gEngfuncs.Cvar_RegisterVariable( &r_ripple );
 	gEngfuncs.Cvar_RegisterVariable( &r_ripple_updatetime );
 	gEngfuncs.Cvar_RegisterVariable( &r_ripple_spawntime );
@@ -398,7 +399,7 @@ void GX_OnContextCreated( void )
 			if( fscanf( tf, "%d", &c ) == 1 && c >= 0 && c < 100 ) gx_testmode = c;
 			fclose( tf );
 		}
-		gEngfuncs.Con_Printf( "[GX] testmode = %d\n", gx_testmode );
+		GX_LOG( "[GX] testmode = %d\n", gx_testmode );
 	}
 
 	// console_init() replaces devoptab stdout/stderr with libogc's on-screen
@@ -467,7 +468,7 @@ void GX_OnContextCreated( void )
 	GX_InitExtensions();
 	GX_SetDefaultState();
 	GX_SetDefaults();
-	gEngfuncs.Con_Printf( "[GX] defaults OK\n" );
+	GX_LOG( "[GX] defaults OK\n" );
 }
 
 /* Neutralizado: duplicado con gx_rmain.c */

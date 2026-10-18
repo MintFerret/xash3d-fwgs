@@ -2110,6 +2110,17 @@ return interpolated angles from previous frame
 static void GAME_EXPORT pfnGetViewAngles( float *angles )
 {
 	if( angles ) VectorCopy( cl.viewangles, angles );
+#if XASH_OGC
+	// Wiimote: the client dll's weapon code must see the aim direction (the one
+	// the server fires along), not the camera
+	if( angles && OGC_AimIsPointer( ))
+	{
+		float dy, dp;
+		OGC_GetAimDelta( &dy, &dp );
+		angles[YAW] += dy;
+		angles[PITCH] += dp;
+	}
+#endif
 }
 
 /*
@@ -2122,6 +2133,15 @@ return interpolated angles from previous frame
 static void GAME_EXPORT pfnSetViewAngles( float *angles )
 {
 	if( angles ) VectorCopy( angles, cl.viewangles );
+#if XASH_OGC
+	if( angles && OGC_AimIsPointer( ))
+	{
+		float dy, dp;
+		OGC_GetAimDelta( &dy, &dp );
+		cl.viewangles[YAW] -= dy;
+		cl.viewangles[PITCH] -= dp;
+	}
+#endif
 }
 
 /*

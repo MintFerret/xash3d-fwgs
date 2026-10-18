@@ -35,7 +35,6 @@ static void R_StudioRenderShadow( int isprite, float *p1, float *p2, float *p3, 
 
 
 
-static void R_LightStrength( int bone, vec3_t localpos, vec4_t light[MAX_LOCALLIGHTS] );
 typedef struct
 {
 	char		name[MAX_OSPATH];
@@ -124,6 +123,8 @@ typedef struct
 CVAR_DEFINE_AUTO( r_studio_sort_textures, "0", FCVAR_GLCONFIG, "change draw order for additive meshes" );
 CVAR_DEFINE_AUTO( r_studio_drawelements, "1", FCVAR_GLCONFIG, "use glDrawElements for studiomodels" );
 CVAR_DEFINE_AUTO( r_studio_builtin_renderer, "0", 0, "use built-in studio model renderer instead of the one provided by client library (debugging)" );
+CVAR_DEFINE_AUTO( gx_studio_maxdist, "0", FCVAR_ARCHIVE, "do not draw monsters and players farther than this many units (0 = always draw)" );
+CVAR_DEFINE_AUTO( gx_studio_maxdist, "0", FCVAR_ARCHIVE, "do not draw monsters and players farther than this many units (0 = always draw)" );
 static cvar_t			*cl_righthand = NULL;
 
 static r_studio_interface_t	*pStudioDraw;
@@ -994,6 +995,17 @@ static int R_StudioCheckBBox( void )
 	if( !RI.currententity || !RI.currentmodel )
 		return false;
 
+	// con muchos enemigos lejanos cada modelo cuesta huesos + vertices + GX:
+	// no dibujar los que estan mas alla de la distancia configurada
+	if( gx_studio_maxdist.value > 64.0f && RI.currententity != tr.viewent )
+	{
+		vec3_t d;
+
+		VectorSubtract( RI.currententity->origin, RI.rvp.vieworigin, d );
+		if( DotProduct( d, d ) > gx_studio_maxdist.value * gx_studio_maxdist.value )
+			return false;
+	}
+
 	return R_StudioComputeBBox( NULL );
 }
 
@@ -1200,6 +1212,17 @@ static void R_StudioSetColorArray( short *ptricmds, vec3_t *pstudionorms, byte *
 	float	*lv = (float *)g_studio.lightvalues[ptricmds[1]];
 
 	color[3] = tr.blend * 255;
+
+	if( likely( !g_studio.numlocallights ))
+	{
+		const byte *c = g_studio.arraycolor[ptricmds[1]];
+
+		color[0] = c[0];
+		color[1] = c[1];
+		color[2] = c[2];
+		return;
+	}
+
 	R_LightLambert( g_studio.lightpos[ptricmds[0]], pstudionorms[ptricmds[1]], lv, color );
 }
 
@@ -1414,7 +1437,6 @@ static void R_StudioDrawPoints( void )
 		{
 			R_StudioComputeSkinMatrix( &pvertweight[i], skinMat );
 			Matrix3x4_VectorTransform( skinMat, pstudioverts[i], g_studio.verts[i] );
-			R_LightStrength( pvertbone[i], pstudioverts[i], g_studio.lightpos[i] );
 		}
 
 		for( int i = 0; i < numnorms; i++ )
@@ -1427,9 +1449,6 @@ static void R_StudioDrawPoints( void )
 	{
 		for( int i = 0; i < numverts; i++ )
 			Matrix3x4_VectorTransform( g_studio.bonestransform[pvertbone[i]], pstudioverts[i], g_studio.verts[i] );
-
-		for( int i = 0; i < numverts; i++ )
-			R_LightStrength( pvertbone[i], pstudioverts[i], g_studio.lightpos[i] );
 	}
 
 	if( RI.currententity->curstate.renderfx == kRenderFxGlowShell )
@@ -1473,6 +1492,18 @@ static void R_StudioDrawPoints( void )
 					R_StudioSetupChrome( g_studio.chrome[k], *pnormbone, (float *)pstudionorms );
 				VectorScale( g_studio.lightcolor, lv_tmp, g_studio.lightvalues[k] );
 			}
+		}
+	}
+
+	// sin luces locales el color final depende solo de la normal: calcularlo una
+	// vez por normal en vez de una vez por cada vertice de cada triangulo
+	if( !g_studio.numlocallights )
+	{
+		for( int n = 0; n < k; n++ )
+		{
+			g_studio.arraycolor[n][0] = (byte)( g_studio.lightvalues[n][0] * 255.0f );
+			g_studio.arraycolor[n][1] = (byte)( g_studio.lightvalues[n][1] * 255.0f );
+			g_studio.arraycolor[n][2] = (byte)( g_studio.lightvalues[n][2] * 255.0f );
 		}
 	}
 
