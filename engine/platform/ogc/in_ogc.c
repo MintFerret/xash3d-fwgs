@@ -353,14 +353,12 @@ static void OGC_SendAction( int act, qboolean down )
 		if( !down && scores_down )
 		{
 			scores_down = false;
-			Cbuf_AddText( "-showscores
-" );
+		Cbuf_AddText( "-showscores\n" );
 		}
 		else if( down && cls.key_dest == key_game && Cmd_Exists( "+showscores" ))
 		{
 			scores_down = true;
-			Cbuf_AddText( "+showscores
-" );
+		Cbuf_AddText( "+showscores\n" );
 		}
 		else
 			Key_Event( K_TAB, down );	// autocompletar en la consola, o el bind de TAB
@@ -368,14 +366,12 @@ static void OGC_SendAction( int act, qboolean down )
 
 	case OGC_ACT_QUICKSAVE:
 		if( down && cls.key_dest == key_game && Cmd_Exists( "savequick" ))
-			Cbuf_AddText( "savequick
-" );
+		Cbuf_AddText( "savequick\n" );
 		break;
 
 	case OGC_ACT_CHAT:
 		if( down && cls.key_dest == key_game && Cmd_Exists( "messagemode" ))
-			Cbuf_AddText( "messagemode
-" );
+		Cbuf_AddText( "messagemode\n" );
 		break;
 
 	case OGC_ACT_HOME:
@@ -415,8 +411,7 @@ static void OGC_SendKey( int key, qboolean down )
 	if( key == K_ESCAPE && cls.key_dest == key_game )
 	{
 		if( down )
-			Cbuf_AddText( "escape
-" );
+		Cbuf_AddText( "escape\n" );
 		return;
 	}
 
@@ -429,8 +424,7 @@ static void OGC_HomeFrame( void )
 	if( ogc_home.down && !ogc_home.used && host.realtime - ogc_home.time >= OGC_HOME_LONG )
 	{
 		ogc_home.used = true;
-		Cbuf_AddText( "toggleconsole
-" );
+		Cbuf_AddText( "toggleconsole\n" );
 	}
 }
 
