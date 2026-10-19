@@ -987,10 +987,10 @@ lejos del centro, sin saltos. offset = distancia angular al objetivo.
 */
 static float OGC_AssistBlend( float offset, float dt )
 {
-\tfloat str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
-\tfloat f = bound( 0.0f, 1.0f - offset / bound( 0.5f, wii_aimassist_cone.value, 30.0f ), 1.0f );
+    float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
+    float f = bound( 0.0f, 1.0f - offset / bound( 0.5f, wii_aimassist_cone.value, 30.0f ), 1.0f );
 
-\treturn bound( 0.0f, str * f * 14.0f * dt, 0.6f );
+    return bound( 0.0f, str * f * 14.0f * dt, 0.6f );
 }
 
 static float ogc_aim_delta[2];
