@@ -33,6 +33,8 @@ CVAR_DEFINE_AUTO( gl_keeptjunctions, "1", FCVAR_GLCONFIG, "removing tjuncs cause
 CVAR_DEFINE_AUTO( gl_check_errors, "1", FCVAR_GLCONFIG, "ignore video engine errors" );
 CVAR_DEFINE_AUTO( gl_polyoffset, "2", FCVAR_GLCONFIG, "polygon offset for decals" );
 CVAR_DEFINE_AUTO( gl_polyoffset_bmodels, "2", FCVAR_GLCONFIG, "polygon offset for brush models" );
+CVAR_DEFINE_AUTO( gx_fx_reset, "1", 0, "debug: reload the world matrices before drawing effects (0 = off)" );
+CVAR_DEFINE_AUTO( gx_fx_noz, "0", 0, "debug: draw beams and translucent TriAPI ignoring depth (1 = on)" );
 CVAR_DEFINE_AUTO( gl_wireframe, "0", FCVAR_GLCONFIG|FCVAR_SPONLY, "show wireframe overlay" );
 CVAR_DEFINE_AUTO( gl_finish, "0", FCVAR_GLCONFIG, "use GX_DrawDone instead of a plain flush" );
 CVAR_DEFINE_AUTO( gl_nosort, "0", FCVAR_GLCONFIG, "disable sorting of translucent surfaces" );
@@ -347,6 +349,8 @@ static void GX_InitCommands( void )
 
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset );
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset_bmodels );
+	gEngfuncs.Cvar_RegisterVariable( &gx_fx_reset );
+	gEngfuncs.Cvar_RegisterVariable( &gx_fx_noz );
 
 	/* r_dynamic es FCVAR_ARCHIVE: un 0 guardado en un config.cfg viejo apaga
 	   lightstyles y luces dinamicas para siempre (el log mostraba r_dynamic=0).

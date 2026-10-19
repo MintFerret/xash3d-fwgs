@@ -60,6 +60,7 @@ static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.7", FCVAR_ARCHIVE, "aim assi
 
 static CVAR_DEFINE_AUTO( wii_aimassist_cone, "10", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
 static CVAR_DEFINE_AUTO( wii_aimassist_range, "2500", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
+static CVAR_DEFINE_AUTO( wii_aimassist_idle, "0.6", FCVAR_ARCHIVE, "stick aim assist strength while the stick is not moving, as a fraction of wii_aimassist_strength (0 = only while moving)" );
 static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also steers the camera towards enemies near the Wii remote pointer" );
 #ifdef XASH_OGC_INPUTTEST
 #define WII_SHOWINPUT_DEFAULT "1"	// input test build: on with nothing to configure
@@ -297,6 +298,7 @@ Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_aimassist_strength );
 	Cvar_RegisterVariable( &wii_aimassist_cone );
 	Cvar_RegisterVariable( &wii_aimassist_range );
+	Cvar_RegisterVariable( &wii_aimassist_idle );
 	Cvar_RegisterVariable( &wii_aimassist_ir );
 
 
@@ -582,8 +584,9 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 
 	moving = fabsf( ogc_look_filt[0] ) > 0.02f || fabsf( ogc_look_filt[1] ) > 0.02f;
 
-	// ayuda de punteria: mas lento cerca del enemigo y un empujon hacia el
-	if( moving && OGC_AssistActive( ))
+	// ayuda de punteria: mas lento cerca del enemigo y un empujon hacia el;
+	// con la palanca quieta tambien actua (wii_aimassist_idle)
+	if( OGC_AssistActive( ) && ( moving || wii_aimassist_idle.value > 0.0f ))
 	{
 		vec3_t aim = { cl.viewangles[PITCH], cl.viewangles[YAW], 0.0f };
 
@@ -593,7 +596,11 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 			float f = bound( 0.0f, 1.0f - ang / bound( 0.5f, wii_aimassist_cone.value, 20.0f ), 1.0f );
             float blend = OGC_AssistBlend( ang, dt );
 
-			speed = 1.0f - str * 0.65f * f;
+            if( moving )
+                speed = 1.0f - str * 0.65f * f;
+            else
+                blend *= bound( 0.0f, wii_aimassist_idle.value, 1.0f );
+
             dy = ay * blend;
             dp = ap * blend;
 		}
@@ -915,6 +922,24 @@ static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, floa
 
 		if( maxs[2] <= mins[2] )
 			continue;
+
+		// cadaveres: el juego les deja una caja de ~1 unidad de alto al terminar de
+		// morir; durante la animacion de muerte se detecta por la salud (solo si el
+		// servidor la envia: antes se vio con salud > 0 la misma entidad)
+		if( maxs[2] - mins[2] < 8.0f )
+			continue;
+
+		{
+			static const model_t *alive_model[2048];
+
+			if( i < (int)ARRAYSIZE( alive_model ))
+			{
+				if( ent->curstate.health > 0 )
+					alive_model[i] = ent->model;
+				else if( alive_model[i] == ent->model )
+					continue;
+			}
+		}
 
 		// chest height rather than the middle of the box
 		pt[0] = ent->origin[0] + ( mins[0] + maxs[0] ) * 0.5f;

@@ -998,6 +998,7 @@ static void R_BeamDrawCustomEntity( cl_entity_t *ent )
 
 void CL_DrawBeams( int fTrans, BEAM *active_beams )
 {
+	GX_ResetEffectState();
 	GX_SetZMode( GX_TRUE, GX_LEQUAL, fTrans ? GX_FALSE : GX_TRUE );
 
 	for( int i = 0; i < tr.draw_list->num_beam_entities; i++ )

@@ -280,6 +280,7 @@ extern float gx_pending_texcoord[MAX_TEXTURE_UNITS][2];
 
 void GX_SaveProjectionMtx( const Mtx44 src, u8 type );
 void GX_ReloadProjectionMtx( float zbias );
+void GX_ResetEffectState( void );
 
 /*
  * Con la prueba alfa activa el test de profundidad NO puede ir antes del
@@ -656,6 +657,8 @@ extern convar_t	gl_round_down;
 extern convar_t	gl_wireframe;
 extern convar_t	gl_polyoffset;
 extern convar_t	gl_polyoffset_bmodels;
+extern convar_t	gx_fx_reset;
+extern convar_t	gx_fx_noz;
 extern convar_t	gl_finish;
 extern convar_t	gl_nosort;
 extern convar_t	gl_test;

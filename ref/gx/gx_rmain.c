@@ -514,6 +514,7 @@ static void R_SetupFrame( void )
                sizeof( cl_entity_t* ), R_TransEntityCompare );
     }
 
+    GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
         R_FindViewLeaf();
 }
@@ -739,6 +740,29 @@ void R_DrawFog( void )
     glState.isFogEnabled = true;
 }
 
+/*
+ * Estado conocido antes de dibujar efectos en el mundo (beams, sprites, particulas,
+ * TriAPI del cliente): matriz de vista del mundo, proyeccion sin sesgo de profundidad,
+ * rango de profundidad completo y generacion de coordenadas de textura normal.
+ * Lo que dejaban los modelos, el arma o el pase de lightmaps no debe condicionarlos.
+ */
+void GX_ResetEffectState( void )
+{
+    if( !gx_fx_reset.value )
+        return;
+
+    glState.num_polyoffsets = 0;
+    tr.modelviewIdentity = false;
+    R_LoadIdentity();
+
+    GX_ReloadProjectionMtx( 0.0f );
+    GX_SetCurrentMtx( GX_PNMTX0 );
+    GX_SetDepthRange( gldepthmin, gldepthmax );
+
+    GX_SetNumTexGens( 1 );
+    GX_SetTexCoordGen( GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY );
+}
+
 static void R_DrawEntitiesOnList( void )
 {
     tr.blend = 1.0f;
@@ -764,6 +788,7 @@ static void R_DrawEntitiesOnList( void )
     }
 
     R_DrawAlphaTextureChains();
+    GX_ResetEffectState();
 
     for( int i = 0; i < tr.draw_list->num_solid_entities && !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ); i++ )
     {
@@ -780,9 +805,11 @@ static void R_DrawEntitiesOnList( void )
             R_DrawSpriteModel( RI.currententity );
     }
 
+    GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
         gEngfuncs.CL_DrawEFX( tr.frametime, false );
 
+    GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
         gEngfuncs.pfnDrawNormalTriangles();
 
@@ -813,12 +840,14 @@ static void R_DrawEntitiesOnList( void )
         }
     }
 
+    GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
     {
         GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
         gEngfuncs.pfnDrawTransparentTriangles();
     }
 
+    GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
     {
         R_AllowFog( false );
@@ -828,6 +857,7 @@ static void R_DrawEntitiesOnList( void )
 
     GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 
+    GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
         R_DrawViewModel();
     gEngfuncs.CL_ExtraUpdate();
@@ -884,6 +914,7 @@ void R_RenderScene( void )
 
     R_MarkLeaves();
     R_DrawFog();
+    GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
         R_AnimateRipples();
 
@@ -1013,6 +1044,7 @@ void R_RenderFrame( const ref_viewpass_t *rvp )
     }
 
     tr.fCustomRendering = false;
+    GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
         R_RunViewmodelEvents();
 

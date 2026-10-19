@@ -551,6 +551,7 @@ static void R_DrawSpriteModelInt( cl_entity_t *e )
 }
 void R_DrawSpriteModel( cl_entity_t *e )
 {
+	tr.modelviewIdentity = false;	// recargar siempre la matriz del mundo
 	/* los sprites pegados a la pared (humo, impactos) peleaban con la profundidad */
 	qboolean bias = gl_polyoffset.value && e->curstate.rendermode != kRenderGlow;
 
