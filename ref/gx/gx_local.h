@@ -280,6 +280,16 @@ extern float gx_pending_texcoord[MAX_TEXTURE_UNITS][2];
 
 void GX_SaveProjectionMtx( const Mtx44 src, u8 type );
 void GX_ReloadProjectionMtx( float zbias );
+
+/*
+ * Con la prueba alfa activa el test de profundidad NO puede ir antes del
+ * texturizado: los texels transparentes descartados por el alfa escribian
+ * profundidad igualmente y dejaban rectangulos "fantasma" que tapaban lo que
+ * se dibuja detras (laseres, sprites, decals). GX_SetAlphaCompare ajusta
+ * GX_SetZCompLoc segun haya prueba alfa o no.
+ */
+void GX_SetAlphaCompareZ( u8 comp0, u8 ref0, u8 aop, u8 comp1, u8 ref1 );
+#define GX_SetAlphaCompare( c0, r0, op, c1, r1 ) GX_SetAlphaCompareZ(( c0 ), ( r0 ), ( op ), ( c1 ), ( r1 ))
 void Matrix4x4_ToMtx44( Mtx44 dst, const matrix4x4 src );
 void Matrix4x4_ToMtx( Mtx dst, const matrix4x4 src );
 

@@ -370,6 +370,14 @@ void GX_SetRenderMode( int mode )
 	}
 }
 
+void GX_SetAlphaCompareZ( u8 comp0, u8 ref0, u8 aop, u8 comp1, u8 ref1 )
+{
+\t( GX_SetAlphaCompare )( comp0, ref0, aop, comp1, ref1 );
+
+\t// sin prueba alfa se puede probar la profundidad antes de texturizar (mas rapido)
+\tGX_SetZCompLoc(( comp0 == GX_ALWAYS && comp1 == GX_ALWAYS ) ? GX_TRUE : GX_FALSE );
+}
+
 void GX_PushPolygonOffset( float factor, float units )
 {
 	if( glState.num_polyoffsets >= ARRAYSIZE( glState.polyoffset_state ))

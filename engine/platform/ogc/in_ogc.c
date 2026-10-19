@@ -50,14 +50,14 @@ static CVAR_DEFINE_AUTO( wii_gun_tilt, "1", FCVAR_ARCHIVE, "weapon rolls with th
 static CVAR_DEFINE_AUTO( wii_gun_tilt_max, "55", FCVAR_ARCHIVE, "maximum weapon roll in degrees" );
 static CVAR_DEFINE_AUTO( wii_gun_pitch, "1", FCVAR_ARCHIVE, "weapon follows the remote pitch when the pointer is lost (0 = off, negative = inverted)" );
 static CVAR_DEFINE_AUTO( wii_mouse_sens, "2", FCVAR_ARCHIVE, "USB mouse look speed" );
-static CVAR_DEFINE_AUTO( wii_stick_smooth, "0.07", FCVAR_ARCHIVE, "Classic/GameCube look smoothing in seconds (0 = off)" );
+static CVAR_DEFINE_AUTO( wii_stick_smooth, "0.035", FCVAR_ARCHIVE, "Classic/GameCube look smoothing in seconds (0 = off)" );
 static CVAR_DEFINE_AUTO( wii_stick_curve, "1.7", FCVAR_ARCHIVE, "Classic/GameCube look response curve (1 = linear, higher = finer aim near the centre)" );
 static CVAR_DEFINE_AUTO( wii_stick_yawspeed, "190", FCVAR_ARCHIVE, "Classic/GameCube turn speed at full stick, degrees per second" );
 static CVAR_DEFINE_AUTO( wii_stick_pitchspeed, "120", FCVAR_ARCHIVE, "Classic/GameCube pitch speed at full stick, degrees per second" );
 static CVAR_DEFINE_AUTO( wii_aimassist, "1", FCVAR_ARCHIVE, "aim assist for every controller (0 = off)" );
-static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.5", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
-static CVAR_DEFINE_AUTO( wii_aimassist_cone, "5", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
-static CVAR_DEFINE_AUTO( wii_aimassist_range, "1800", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
+static CVAR_DEFINE_AUTO( wii_input_tune, "1", FCVAR_ARCHIVE, "input tuning revision (internal)" );\nstatic CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.7", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
+static CVAR_DEFINE_AUTO( wii_aimassist_cone, "10", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
+static CVAR_DEFINE_AUTO( wii_aimassist_range, "2500", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
 static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also steers the camera towards enemies near the Wii remote pointer" );
 #ifdef XASH_OGC_INPUTTEST
 #define WII_SHOWINPUT_DEFAULT "1"	// input test build: on with nothing to configure
@@ -228,6 +228,7 @@ static int ogc_src = OGC_SRC_WII;
 /* Forward declarations para evitar warnings de "implicit declaration" */
 static qboolean OGC_AssistActive( void );
 static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, float *dpitch, float *angle );
+static float OGC_AssistBlend( float offset, float dt );
 // mirada de la palanca derecha (-1..1, x derecha, y arriba) ya con zona muerta y curva
 static float ogc_look_raw[2];
 static float ogc_look_filt[2];
@@ -289,6 +290,7 @@ Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_stick_curve );
 	Cvar_RegisterVariable( &wii_stick_yawspeed );
 	Cvar_RegisterVariable( &wii_stick_pitchspeed );
+    Cvar_RegisterVariable( &wii_input_tune );
 	Cvar_RegisterVariable( &wii_aimassist );
 	Cvar_RegisterVariable( &wii_aimassist_strength );
 	Cvar_RegisterVariable( &wii_aimassist_cone );
@@ -543,18 +545,18 @@ suave) cuando hay un enemigo cerca de la mira.
 */
 void OGC_StickLookMove( float *pitch, float *yaw )
 {
-	float dt = bound( 0.0f, (float)host.realframetime, 0.1f );
-	float tau = bound( 0.0f, wii_stick_smooth.value, 0.5f );
-	float k = ( tau > 0.0f ) ? 1.0f - expf( -dt / tau ) : 1.0f;
-	float speed = 1.0f, dy = 0.0f, dp = 0.0f, ay, ap, ang;
-	qboolean moving;
+    float dt = bound( 0.0f, (float)host.realframetime, 0.1f );
+    float tau = bound( 0.0f, wii_stick_smooth.value, 0.5f );
+    float k = ( tau > 0.0f ) ? 1.0f - expf( -dt / tau ) : 1.0f;
+    float speed = 1.0f, dy = 0.0f, dp = 0.0f, ay, ap, ang;
+    qboolean moving;
     static double last_time = -1.0;
+    int i;
 
     // una sola vez por cuadro aunque input.c tambien la llame
     if( host.realtime == last_time )
         return;
     last_time = host.realtime;
-	int i;
 
 	if( ogc_src != OGC_SRC_CLASSIC && ogc_src != OGC_SRC_GC )
 	{
@@ -587,11 +589,11 @@ void OGC_StickLookMove( float *pitch, float *yaw )
 		{
 			float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
 			float f = bound( 0.0f, 1.0f - ang / bound( 0.5f, wii_aimassist_cone.value, 20.0f ), 1.0f );
-			float pull = str * f * 110.0f * dt;	// grados de atraccion por frame
+            float blend = OGC_AssistBlend( ang, dt );
 
 			speed = 1.0f - str * 0.65f * f;
-			dy = bound( -pull, ay, pull );
-			dp = bound( -pull, ap, pull );
+            dy = ay * blend;
+            dp = ap * blend;
 		}
 	}
 
@@ -632,6 +634,23 @@ static void OGC_PollSticks( u32 wpad_type );
 void OGC_ButtonsFrame( void )
 {
 	u32 type = WPAD_EXP_NONE;
+
+    static qboolean tuned;
+
+    // una sola vez, con la configuracion ya cargada: los valores guardados de
+    // versiones anteriores pisaban los nuevos por defecto de suavizado y autoapuntado
+    if( !tuned )
+    {
+        tuned = true;
+        if( wii_input_tune.value < 2.0f )
+        {
+            Cvar_DirectSet( &wii_stick_smooth, "0.035" );
+            Cvar_DirectSet( &wii_aimassist_strength, "0.7" );
+            Cvar_DirectSet( &wii_aimassist_cone, "10" );
+            Cvar_DirectSet( &wii_aimassist_range, "2500" );
+            Cvar_DirectSet( &wii_input_tune, "2" );
+        }
+    }
 
 	// teclado y raton USB, y la vibracion, no dependen de wii_buttons
 	OGC_KeyboardFrame();
@@ -844,12 +863,11 @@ static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, floa
 	static double los_time = 0.0;
 	static qboolean los_ok = false;
 
-	const float cone = bound( 0.5f, wii_aimassist_cone.value, 20.0f );
+    const float cone = bound( 0.5f, wii_aimassist_cone.value, 30.0f );
 	const float range = bound( 100.0f, wii_aimassist_range.value, 8192.0f );
-	const float costh = cosf( DEG2RAD( cone ));
 	cl_entity_t *local;
 	vec3_t eye, fwd, best_pt, to;
-	float best_dot = costh;
+    float best_eff = cone, best_ang = 0.0f;
 	int best = -1, i;
 
 	if( !clgame.entities || !clgame.pmove || clgame.pmove->numphysent <= 0 )
@@ -906,13 +924,26 @@ static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, floa
 		if( dist < 24.0f || dist > range )
 			continue;
 
-		dot = DotProduct( fwd, to ) / dist;
-		if( dot <= best_dot )
-			continue;
+            dot = DotProduct( fwd, to ) / dist;
+            if( dot <= 0.0f )
+                continue;
 
-		best_dot = dot;
-		best = i;
-		VectorCopy( pt, best_pt );
+            {
+                // el enemigo cuenta con su tamano: si la mira esta sobre su cuerpo
+                // la distancia angular es cero, de cerca o de lejos
+                float hw = ( ( maxs[0] - mins[0] ) + ( maxs[1] - mins[1] )) * 0.25f;
+                float a = RAD2DEG( acosf( bound( -1.0f, dot, 1.0f )));
+                float eff = Q_max( 0.0f, a - RAD2DEG( atan2f( hw, dist )));
+
+                if( eff > best_eff || ( eff == best_eff && best >= 0 && a >= best_ang ))
+                    continue;
+
+                best_eff = eff;
+                best_ang = a;
+            }
+
+            best = i;
+            VectorCopy( pt, best_pt );
 	}
 
 	if( best < 0 )
@@ -943,10 +974,23 @@ static qboolean OGC_FindAssistTarget( const vec3_t aim_angles, float *dyaw, floa
 
 		*dyaw = OGC_AngleDiff( yaw, aim_angles[YAW] );
 		*dpitch = pitch - aim_angles[PITCH];
-		*angle = RAD2DEG( acosf( bound( -1.0f, best_dot, 1.0f )));
+        *angle = best_eff;
 	}
 
 	return true;
+}
+
+/*
+Acercamiento suave hacia el objetivo: cada cuadro cubre una fraccion del error
+(aproximacion exponencial), asi corrige poco si ya casi apunta y mucho si esta
+lejos del centro, sin saltos. offset = distancia angular al objetivo.
+*/
+static float OGC_AssistBlend( float offset, float dt )
+{
+\tfloat str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
+\tfloat f = bound( 0.0f, 1.0f - offset / bound( 0.5f, wii_aimassist_cone.value, 30.0f ), 1.0f );
+
+\treturn bound( 0.0f, str * f * 14.0f * dt, 0.6f );
 }
 
 static float ogc_aim_delta[2];
@@ -1187,12 +1231,10 @@ void OGC_PointerMove( float *pitch, float *yaw )
 
         if( OGC_FindAssistTarget( aim, &ay, &ap, &ang ))
         {
-            float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
-            float f = bound( 0.0f, 1.0f - ang / bound( 0.5f, wii_aimassist_cone.value, 20.0f ), 1.0f );
-            float pull = str * f * 110.0f * dt;
+            float blend = OGC_AssistBlend( ang, dt );
 
-            *yaw   += bound( -pull, ay, pull );
-            *pitch += bound( -pull, ap, pull );
+            *yaw   += ay * blend;
+            *pitch += ap * blend;
         }
     }
 
