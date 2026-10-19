@@ -473,8 +473,9 @@ static void R_DrawSpriteModelInt( cl_entity_t *e )
 		break;
 	}
 
-	if( psprite->facecull == SPR_CULL_NONE )
-		GX_Cull( XASH_CULL_NONE );
+	/* el culling nunca se hereda: en GL el estado normal es GL_FRONT, y los sprites con cara
+	 * unica desaparecian segun lo que se hubiera dibujado antes (orden por distancia = titileo) */
+	GX_Cull( psprite->facecull == SPR_CULL_NONE ? XASH_CULL_NONE : XASH_CULL_FRONT );
 
 	GXColor matColor;
 	matColor.r = (u8)(color[0] * 255.0f);
@@ -532,8 +533,7 @@ static void R_DrawSpriteModelInt( cl_entity_t *e )
 		GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 	}
 
-	if( psprite->facecull == SPR_CULL_NONE )
-		GX_Cull( XASH_CULL_BACK );
+	GX_Cull( XASH_CULL_FRONT );
 
 	GX_SetAlphaCompare( GX_ALWAYS, 0, GX_AOP_AND, GX_ALWAYS, 0 );
 	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );

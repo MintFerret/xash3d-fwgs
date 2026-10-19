@@ -153,7 +153,7 @@ void TriBegin( int mode )
 	case TRI_QUADS:          ds.primitive = GX_QUADS; break;
 	case TRI_LINES:          ds.primitive = GX_LINES; break;
 	case TRI_TRIANGLE_STRIP: ds.primitive = GX_TRIANGLESTRIP; break;
-	case TRI_QUAD_STRIP:     ds.primitive = GX_QUADS; break;
+	case TRI_QUAD_STRIP:     ds.primitive = GX_TRIANGLESTRIP; break; /* mismo orden de vertices que GL_QUAD_STRIP */
 	case TRI_POLYGON:
 	default:                 ds.primitive = GX_TRIANGLEFAN; break;
 	}

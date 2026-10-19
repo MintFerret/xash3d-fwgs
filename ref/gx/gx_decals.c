@@ -793,7 +793,7 @@ void DrawSurfaceDecals( msurface_t *fa, qboolean single, qboolean reverse )
 			GX_PopPolygonOffset();
 
 		if( e->curstate.rendermode == kRenderTransTexture || e->curstate.rendermode == kRenderTransAdd )
-			GX_Cull( XASH_CULL_BACK );
+			GX_Cull( XASH_CULL_FRONT );
 
 		if( e->curstate.rendermode == kRenderTransAdd || e->curstate.rendermode == kRenderGlow )
 			GX_SetBlendMode( GX_BM_BLEND, GX_BL_SRCALPHA, GX_BL_ONE, GX_LO_CLEAR );
@@ -838,7 +838,7 @@ void DrawDecalsBatch( void )
 		GX_PopPolygonOffset();
 
 	if( e->curstate.rendermode == kRenderTransTexture || e->curstate.rendermode == kRenderTransAdd )
-		GX_Cull( XASH_CULL_BACK );
+		GX_Cull( XASH_CULL_FRONT );
 
 	tr.num_draw_decals = 0;
 }

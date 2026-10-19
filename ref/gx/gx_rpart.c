@@ -74,7 +74,7 @@ void CL_DrawParticles( double frametime, particle_t *cl_active_particles, float 
 
 	if( totalVerts == 0 )
 	{
-		GX_Cull( XASH_CULL_BACK );
+		GX_Cull( XASH_CULL_FRONT );
 		return;
 	}
 
@@ -142,7 +142,7 @@ void CL_DrawParticles( double frametime, particle_t *cl_active_particles, float 
 	GX_End();
 
 	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
-	GX_Cull( XASH_CULL_BACK );
+	GX_Cull( XASH_CULL_FRONT );
 }
 
 static qboolean CL_CullTracer( particle_t *p, const vec3_t start, const vec3_t end )
@@ -233,7 +233,7 @@ void CL_DrawTracers( double frametime, particle_t *cl_active_tracers )
 
 	if( totalVerts == 0 )
 	{
-		GX_Cull( XASH_CULL_BACK );
+		GX_Cull( XASH_CULL_FRONT );
 		R_AllowFog( true );
 		return;
 	}
@@ -318,7 +318,7 @@ void CL_DrawTracers( double frametime, particle_t *cl_active_tracers )
 	GX_End();
 
 	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
-	GX_Cull( XASH_CULL_BACK );
+	GX_Cull( XASH_CULL_FRONT );
 	R_AllowFog( true );
 }
 

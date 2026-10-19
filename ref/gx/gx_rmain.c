@@ -748,6 +748,10 @@ void R_DrawFog( void )
  */
 void GX_ResetEffectState( void )
 {
+    /* estado normal de GL (GL_FRONT): modelos, sprites y particulas dejaban BACK/NONE
+     * y los quads de TriAPI del cliente (laseres) solo se veian desde un lado */
+    GX_Cull( XASH_CULL_FRONT );
+
     if( !gx_fx_reset.value )
         return;
 
