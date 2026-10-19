@@ -1052,6 +1052,9 @@ void OGC_RestoreAim( vec3_t viewangles )
 {
 	viewangles[YAW]   -= ogc_aim_delta[0];
 	viewangles[PITCH] -= ogc_aim_delta[1];
+	// la camara nunca pasa de +-89: sin esto el DLL (suma camara+desvio) la dejaba
+	// acumular y se podia girar hacia arriba/abajo sin limite
+	viewangles[PITCH] = bound( -89.0f, viewangles[PITCH], 89.0f );
 	VectorCopy( viewangles, cl.viewangles );
 	ogc_aim_delta[0] = ogc_aim_delta[1] = 0.0f;
 }

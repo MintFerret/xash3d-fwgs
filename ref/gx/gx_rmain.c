@@ -748,9 +748,10 @@ void R_DrawFog( void )
  */
 void GX_ResetEffectState( void )
 {
-    /* estado normal de GL (GL_FRONT): modelos, sprites y particulas dejaban BACK/NONE
-     * y los quads de TriAPI del cliente (laseres) solo se veian desde un lado */
-    GX_Cull( XASH_CULL_FRONT );
+    /* los modelos dejaban el culling en BACK: los quads de TriAPI del cliente (laseres)
+     * y los beams solo se veian desde un lado. Efectos siempre a doble cara
+     * (no se toca glState.faceCull, que usa el culling por CPU de entidades brush) */
+    GX_SetCullMode( GX_CULL_NONE );
 
     if( !gx_fx_reset.value )
         return;
