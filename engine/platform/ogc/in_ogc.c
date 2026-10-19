@@ -68,6 +68,8 @@ static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also 
 #define WII_SHOWINPUT_DEFAULT "0"
 #endif
 static CVAR_DEFINE_AUTO( wii_showinput, WII_SHOWINPUT_DEFAULT, 0, "print raw controller state whenever it changes" );
+// diagnostico de disparos: imprime cada comando con IN_ATTACK (cliente y servidor)
+static CVAR_DEFINE_AUTO( wii_debugfire, "0", 0, "debug: print every usercmd carrying +attack (client and server)" );
 
 /*
 SDL synthesises a gamepad mapping for whatever it finds on the WPAD channel,
@@ -284,6 +286,7 @@ void OGC_InputInit( void )
 Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_buttons );
 	Cvar_RegisterVariable( &wii_showinput );
+	Cvar_RegisterVariable( &wii_debugfire );
 	Cvar_RegisterVariable( &wii_rumble );
 	Cvar_RegisterVariable( &wii_gun_tilt );
 	Cvar_RegisterVariable( &wii_gun_tilt_max );

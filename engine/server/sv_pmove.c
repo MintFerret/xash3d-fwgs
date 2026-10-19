@@ -953,6 +953,10 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd, int random_seed )
 	clent->v.light_level = ucmd->lightlevel;
 	if( ucmd->impulse ) clent->v.impulse = ucmd->impulse;
 
+	if( FBitSet( ucmd->buttons, IN_ATTACK ) && Cvar_VariableInteger( "wii_debugfire" ))
+		Con_Printf( "^2[FIRE-SV]^7 time=%.3f ms=%d real=%.3f\n", cl->timebase, ucmd->msec, host.realtime );
+#endif
+
 	svgame.globals->time = cl->timebase;
 	svgame.dllFuncs.pfnPlayerPreThink( clent );
 	SV_PlayerRunThink( clent, frametime, cl->timebase );
