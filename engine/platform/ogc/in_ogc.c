@@ -55,7 +55,9 @@ static CVAR_DEFINE_AUTO( wii_stick_curve, "1.7", FCVAR_ARCHIVE, "Classic/GameCub
 static CVAR_DEFINE_AUTO( wii_stick_yawspeed, "190", FCVAR_ARCHIVE, "Classic/GameCube turn speed at full stick, degrees per second" );
 static CVAR_DEFINE_AUTO( wii_stick_pitchspeed, "120", FCVAR_ARCHIVE, "Classic/GameCube pitch speed at full stick, degrees per second" );
 static CVAR_DEFINE_AUTO( wii_aimassist, "1", FCVAR_ARCHIVE, "aim assist for every controller (0 = off)" );
-static CVAR_DEFINE_AUTO( wii_input_tune, "1", FCVAR_ARCHIVE, "input tuning revision (internal)" );\nstatic CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.7", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
+static CVAR_DEFINE_AUTO( wii_input_tune, "1", FCVAR_ARCHIVE, "input tuning revision (internal)" );
+static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.7", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
+
 static CVAR_DEFINE_AUTO( wii_aimassist_cone, "10", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
 static CVAR_DEFINE_AUTO( wii_aimassist_range, "2500", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
 static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also steers the camera towards enemies near the Wii remote pointer" );
