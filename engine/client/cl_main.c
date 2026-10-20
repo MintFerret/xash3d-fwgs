@@ -801,7 +801,9 @@ static void CL_CreateCmd( void )
 	int       i = cls.netchan.outgoing_sequence & CL_UPDATE_MASK;
 	pcmd = &cl.commands[i];
 
-	if( active && FBitSet( cmd->buttons, IN_ATTACK ) && Cvar_VariableInteger( "wii_debugfire" ))
+
+#if XASH_OGC
+	if( FBitSet( cmd->buttons, IN_ATTACK ) && Cvar_VariableInteger( "wii_debugfire" ))
 		Con_Printf( "^3[FIRE-CL]^7 t=%.3f ms=%d seq=%d\n", host.realtime, ms, cls.netchan.outgoing_sequence );
 #endif
 
