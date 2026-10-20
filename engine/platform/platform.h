@@ -129,6 +129,7 @@ void OGC_InputInit( void );
 void OGC_PointerMove( float *pitch, float *yaw );
 void OGC_MouseMove( float *pitch, float *yaw );
 void OGC_Rumble( float power, float seconds );
+void OGC_FireLog( int server, double t, double t2, int ms );
 extern int ogc_usb_kbd_ok;
 extern int ogc_usb_mouse_ok;
 void OGC_ButtonsFrame( void );

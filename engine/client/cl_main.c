@@ -828,6 +828,9 @@ static void CL_CreateCmd( void )
 		OGC_ApplyPointerToAim( cmd->viewangles, &cmd->forwardmove, &cmd->sidemove );
 	else
 		OGC_RestoreAim( cmd->viewangles );
+	// diagnostico (se lee con wii_firestats): no imprime nada durante el juego
+	if( cmd && active && FBitSet( cmd->buttons, IN_ATTACK ))
+		OGC_FireLog( 0, host.realtime, 0.0, ms );
 #endif
 
 	CL_PopPMStates();

@@ -263,6 +263,57 @@ static qboolean OGC_GetPointerAngles( float *dyaw, float *dpitch );
 static float ogc_mouse_dx, ogc_mouse_dy;
 static float ogc_mouse_x, ogc_mouse_y;
 static void OGC_RumbleFrame( void );
+/*
+Diagnostico de disparos sin imprimir nada mientras se juega: cada comando con
++attack deja una entrada en memoria (cliente: instante y ms; servidor: tiempo
+del jugador, instante real y ms). "wii_firestats" las muestra y las borra.
+*/
+#define OGC_FIRELOG_MAX 96
+static struct { byte server; int ms; double t, t2; } ogc_firelog[OGC_FIRELOG_MAX];
+static int ogc_firelog_n;
+
+void OGC_FireLog( int server, double t, double t2, int ms )
+{
+	if( ogc_firelog_n >= OGC_FIRELOG_MAX )
+		return;
+
+	ogc_firelog[ogc_firelog_n].server = server ? 1 : 0;
+	ogc_firelog[ogc_firelog_n].t = t;
+	ogc_firelog[ogc_firelog_n].t2 = t2;
+	ogc_firelog[ogc_firelog_n].ms = ms;
+	ogc_firelog_n++;
+}
+
+static void OGC_FireStats_f( void )
+{
+	double base_real = -1.0, base_time = -1.0;
+	int i, ncl = 0, nsv = 0;
+
+	for( i = 0; i < ogc_firelog_n; i++ )
+	{
+		if( ogc_firelog[i].server ) nsv++; else ncl++;
+
+		if( base_real < 0.0 )
+			base_real = ogc_firelog[i].server ? ogc_firelog[i].t2 : ogc_firelog[i].t;
+		if( base_time < 0.0 && ogc_firelog[i].server )
+			base_time = ogc_firelog[i].t;
+	}
+
+	Con_Printf( "firestats: %d cmds cliente, %d servidor\n", ncl, nsv );
+	Con_Printf( "  C = cliente (real, ms)   S = servidor (tiempo jugador, real, ms)\n" );
+
+	for( i = 0; i < ogc_firelog_n; i++ )
+	{
+		if( ogc_firelog[i].server )
+			Con_Printf( "S %.3f %.3f %d\n", ogc_firelog[i].t - base_time,
+				ogc_firelog[i].t2 - base_real, ogc_firelog[i].ms );
+		else
+			Con_Printf( "C %.3f %d\n", ogc_firelog[i].t - base_real, ogc_firelog[i].ms );
+	}
+
+	ogc_firelog_n = 0;
+}
+
 static void OGC_GetRemoteTilt( float *roll, float *pitch );
 static void OGC_KeyboardFrame( void );
 static void OGC_MouseFrame( void );
@@ -284,6 +335,7 @@ void OGC_InputInit( void )
 Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_buttons );
 	Cvar_RegisterVariable( &wii_showinput );
+	Cmd_AddCommand( "wii_firestats", OGC_FireStats_f, "show (and clear) the +attack usercmd log" );
 	Cvar_RegisterVariable( &wii_rumble );
 	Cvar_RegisterVariable( &wii_gun_tilt );
 	Cvar_RegisterVariable( &wii_gun_tilt_max );
