@@ -802,10 +802,6 @@ static void CL_CreateCmd( void )
 	pcmd = &cl.commands[i];
 
 
-#if XASH_OGC
-	if( FBitSet( cmd->buttons, IN_ATTACK ) && Cvar_VariableInteger( "wii_debugfire" ))
-		Con_Printf( "^3[FIRE-CL]^7 t=%.3f ms=%d seq=%d\n", host.realtime, ms, cls.netchan.outgoing_sequence );
-#endif
 
 	if( !cls.demoplayback )
 	{
