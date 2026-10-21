@@ -675,24 +675,25 @@ void Host_Frame( double time )
 		Con_DPrintf( "Time to first frame: %.3f seconds\n", t1 - host.starttime );
 
 #if XASH_OGC
-	double tp = Platform_DoubleTime();
-	Host_InputFrame ();  // input frame
-	OGC_ProfAdd( 5, Platform_DoubleTime() - tp );
-	Host_ClientBegin (); // begin client
-	Host_GetCommands (); // dedicated in
-	tp = Platform_DoubleTime();
-	Host_ServerFrame (); // server frame
-	OGC_ProfAdd( 1, Platform_DoubleTime() - tp );
-	tp = Platform_DoubleTime();
-	Host_ClientFrame (); // client frame
-#endif
-	OGC_ProfAdd( 2, Platform_DoubleTime() - tp );
+    double tp = Platform_DoubleTime();
+    Host_InputFrame ();  // input frame
+    OGC_ProfAdd( 5, Platform_DoubleTime() - tp );
+    Host_ClientBegin (); // begin client
+    Host_GetCommands (); // dedicated in
+    tp = Platform_DoubleTime();
+    Host_ServerFrame (); // server frame
+    OGC_ProfAdd( 1, Platform_DoubleTime() - tp );
+    tp = Platform_DoubleTime();
+    Host_ClientFrame (); // client frame
+    OGC_ProfAdd( 2, Platform_DoubleTime() - tp );
 #else
-	Host_InputFrame ();  // input frame
-	Host_ClientBegin (); // begin client
-	Host_GetCommands (); // dedicated in
-	Host_ServerFrame (); // server frame
-	Host_ClientFrame (); // client frame
+    Host_InputFrame ();  // input frame
+    Host_ClientBegin (); // begin client
+    Host_GetCommands (); // dedicated in
+    Host_ServerFrame (); // server frame
+    Host_ClientFrame (); // client frame
+#endif
+
 	HTTP_Run();			 // both server and client
 	XRcon_Frame();
 
