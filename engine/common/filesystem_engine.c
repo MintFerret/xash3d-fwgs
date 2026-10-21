@@ -326,30 +326,37 @@ static qboolean OGC_FindBase( const char *first, const char *second )
 
 qboolean OGC_MountSD( void )
 {
-	static int mounted = -1;
+    static int mounted = -1;
 
-	if( mounted < 0 )
-		mounted = fatInitDefault() ? 1 : 0;
+    if( mounted < 0 )
+    {
+        const qboolean from_usb = ogc_argv0 && !Q_strnicmp( ogc_argv0, "usb", 3 );
+        const char *first = from_usb ? "usb" : "sd";
+        const char *second = from_usb ? "sd" : "usb";
+        int tries;
 
-		if( !OGC_FindBase( first, second ))
-		{
-			// fatInitDefault no siempre deja el USB listo a la primera
-			for( tries = 0; tries < 8; tries++ )
-			{
-				if( OGC_IsDir( "usb:/" ) || fatMountSimple( "usb", &__io_usbstorage ))
-				{
-					if( OGC_FindBase( first, second ))
-					{
-						mounted = 1;
-						break;
-					}
-				}
+        mounted = fatInitDefault() ? 1 : 0;
 
-				usleep( 500000 );
-			}
-		}
+        if( !OGC_FindBase( first, second ))
+        {
+            // fatInitDefault no siempre deja el USB listo a la primera
+            for( tries = 0; tries < 8; tries++ )
+            {
+                if( OGC_IsDir( "usb:/" ) || fatMountSimple( "usb", &__io_usbstorage ))
+                {
+                    if( OGC_FindBase( first, second ))
+                    {
+                        mounted = 1;
+                        break;
+                    }
+                }
 
-	return mounted == 1 ? true : false;
+                usleep( 500000 );
+            }
+        }
+    }
+
+    return mounted == 1 ? true : false;
 }
 #endif
 
