@@ -27,6 +27,13 @@ GNU General Public License for more details.
 #include "library.h"
 #include "platform/platform.h"
 
+#if XASH_OGC
+#include <fat.h>
+#include <ogc/usbstorage.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 #if XASH_WIN32
 #include <direct.h>
 #endif
@@ -272,12 +279,75 @@ base directory lookup need it. Whichever runs first does the mount; the other
 gets the cached answer.
 ==================
 */
+// carpeta de datos (sd:/xash3d o usb:/xash3d) elegida al montar
+static char ogc_basedir[32] = "sd:/xash3d";
+static const char *ogc_argv0;
+
+void OGC_SetArgv0( const char *argv0 )
+{
+	ogc_argv0 = argv0;
+}
+
+const char *OGC_BaseDir( void )
+{
+	return ogc_basedir;
+}
+
+static qboolean OGC_IsDir( const char *path )
+{
+	struct stat st;
+
+	return stat( path, &st ) == 0 && S_ISDIR( st.st_mode );
+}
+
+// busca xash3d/valve (o al menos xash3d) en los dispositivos, en el orden dado
+static qboolean OGC_FindBase( const char *first, const char *second )
+{
+	const char *devs[2] = { first, second };
+	int pass, i;
+	char path[40];
+
+	for( pass = 0; pass < 2; pass++ )
+	{
+		for( i = 0; i < 2; i++ )
+		{
+			Q_snprintf( path, sizeof( path ), "%s:/xash3d%s", devs[i], pass == 0 ? "/valve" : "" );
+
+			if( OGC_IsDir( path ))
+			{
+				Q_snprintf( ogc_basedir, sizeof( ogc_basedir ), "%s:/xash3d", devs[i] );
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 qboolean OGC_MountSD( void )
 {
 	static int mounted = -1;
 
 	if( mounted < 0 )
 		mounted = fatInitDefault() ? 1 : 0;
+
+		if( !OGC_FindBase( first, second ))
+		{
+			// fatInitDefault no siempre deja el USB listo a la primera
+			for( tries = 0; tries < 8; tries++ )
+			{
+				if( OGC_IsDir( "usb:/" ) || fatMountSimple( "usb", &__io_usbstorage ))
+				{
+					if( OGC_FindBase( first, second ))
+					{
+						mounted = 1;
+						break;
+					}
+				}
+
+				usleep( 500000 );
+			}
+		}
 
 	return mounted == 1 ? true : false;
 }
@@ -304,7 +374,7 @@ static qboolean FS_DetermineRootDirectory( char *out, size_t size )
 #elif XASH_OGC
 	if( OGC_MountSD( ))
 	{
-		Q_strncpy( out, "sd:/xash3d", size );
+		Q_strncpy( out, OGC_BaseDir(), size );
 		return true;
 	}
 	Sys_Error( "couldn't find %s data directory", XASH_ENGINE_NAME );

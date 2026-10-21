@@ -932,6 +932,10 @@ Change the server to a new map, taking all connected
 clients along with it.
 ================
 */
+#if XASH_OGC
+void OGC_LoadMark( int what );
+#endif
+
 qboolean SV_SpawnServer( const char *mapname, const char *startspot, qboolean background )
 {
 	int		i;
@@ -1110,11 +1114,17 @@ State machine exec new map
 void SV_ExecLoadLevel( void )
 {
 	SV_SetStringArrayMode( false );
+#if XASH_OGC
+	OGC_LoadMark( 0 );
+#endif
 	if( SV_SpawnServer( GameState->levelName, NULL, GameState->backgroundMap ))
 	{
 		SV_SpawnEntities( GameState->levelName );
 		SV_ActivateServer( true );
 	}
+#if XASH_OGC
+   OGC_LoadMark( 1 );
+#endif
 }
 
 /*
@@ -1126,12 +1136,18 @@ State machine exec load saved game
 */
 void SV_ExecLoadGame( void )
 {
+#if XASH_OGC
+	OGC_LoadMark( 0 );
+#endif
 	if( SV_SpawnServer( GameState->levelName, NULL, false ))
 	{
 		if( !SV_LoadGameState( GameState->levelName ))
 			SV_SpawnEntities( GameState->levelName );
 		SV_ActivateServer( false );
 	}
+#if XASH_OGC
+   OGC_LoadMark( 1 );
+#endif
 }
 
 /*
@@ -1143,5 +1159,11 @@ State machine exec changelevel path
 */
 void SV_ExecChangeLevel( void )
 {
+#if XASH_OGC
+	OGC_LoadMark( 0 );
+#endif
 	SV_ChangeLevel( GameState->loadGame, GameState->levelName, GameState->landmarkName, GameState->backgroundMap );
+#if XASH_OGC
+	OGC_LoadMark( 1 );
+#endif
 }
