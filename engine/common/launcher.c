@@ -31,29 +31,6 @@ GNU General Public License for more details.
 #define XASH_GAMEDIR "valve" // !!! Replace with your default (base) game directory !!!
 #endif
 
-#if XASH_OGC
-/* Flash de color en pantalla antes de tener devoptabs. */
-static void OGC_ColorFlash( u32 color, int vsync_count )
-{
-    VIDEO_Init();
-    GXRModeObj *rmode = VIDEO_GetPreferredMode( NULL );
-    if( !rmode ) return;
-
-    VIDEO_Configure( rmode );
-    void *xfb = MEM_K0_TO_K1( SYS_AllocateFramebuffer( rmode ));
-    if( !xfb ) return;
-
-    VIDEO_ClearFrameBuffer( rmode, xfb, color );
-    VIDEO_SetNextFramebuffer( xfb );
-    VIDEO_SetBlack( FALSE );
-    VIDEO_Flush();
-    VIDEO_WaitVSync();
-    VIDEO_WaitVSync();
-
-    for( int i = 0; i < vsync_count; i++ )
-        VIDEO_WaitVSync();
-}
-#endif
 
 static int  szArgc;
 static char **szArgv;
@@ -66,18 +43,9 @@ static void Sys_ChangeGame( const char *progname )
 int main( int argc, char **argv )
 {
 #if XASH_OGC
-    /* ============================================================
-     * DIAGNÓSTICO: flashes de color para ubicar el crash.
-     *   ROJO  -> main() arrancó
-     *   VERDE -> llegamos justo antes de OGC_EarlyInit()
-     *   NEGRO persistente después de un color -> crashea tras ese punto
-     *   NEGRO desde el principio -> crashea ANTES de main()
-     * ============================================================ */
-    OGC_ColorFlash( COLOR_RED, 60 );
-
-    // bring up the debug console before anything can crash
-    OGC_ColorFlash( COLOR_GREEN, 60 );
+    // consola de depuracion antes que nada, por si algo falla al arrancar
     OGC_EarlyInit();
+    OGC_SetArgv0(( argc > 0 && argv ) ? argv[0] : NULL );
 #endif
 
 #if XASH_PSVITA

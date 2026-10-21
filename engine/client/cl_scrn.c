@@ -34,7 +34,7 @@ static CVAR_DEFINE_AUTO( net_speeds, "0", FCVAR_ARCHIVE, "show network packets" 
 double g_gx_frame_time_ms = 0.0;
 double g_gx_cpu_time_ms = 0.0;
 
-static CVAR_DEFINE_AUTO( cl_showfps, "3", FCVAR_ARCHIVE, "show client fps" );
+static CVAR_DEFINE_AUTO( cl_showfps, "0", FCVAR_ARCHIVE, "show client fps" );
 static CVAR_DEFINE_AUTO( cl_showpos, "0", FCVAR_ARCHIVE, "show local player position and velocity" );
 static CVAR_DEFINE_AUTO( cl_showents, "0", FCVAR_ARCHIVE | FCVAR_CHEAT, "show entities information (largely undone)" );
 static CVAR_DEFINE_AUTO( cl_showcmd, "0", 0, "visualize usercmd button presses" );
@@ -63,7 +63,7 @@ void SCR_DrawFPS( int height )
 	char		fpsstring[64];
 	int		offset;
 
-	if( cls.state != ca_active || cl.background )  /* TEST: sin check de cvar */
+	if( !cl_showfps.value || cl.background )
 		return;
 
 	switch( cls.scrshot_action )
@@ -105,7 +105,7 @@ void SCR_DrawFPS( int height )
 		if( cl_showfps.value == 2 )
 			Q_snprintf( fpsstring, sizeof( fpsstring ), "fps: ^1%4i min, ^3%4i cur, ^2%4i max", minfps, curfps, maxfps );
 #if XASH_OGC
-		else if( 1 )  /* TEST: forzar siempre */
+		else if( cl_showfps.value == 3 )
 		{
 			float frame_ms = 1000.0f / ( calc + 0.001f );
 			Q_snprintf( fpsstring, sizeof( fpsstring ), "%4i fps | frame: %.1f ms", curfps, frame_ms );
