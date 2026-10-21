@@ -272,7 +272,7 @@ del jugador, instante real y ms). "wii_firestats" las muestra y las borra.
 static struct { byte server; int ms; double t, t2; } ogc_firelog[OGC_FIRELOG_MAX];
 static int ogc_firelog_n;
 
-void OGC_FireLog( int server, double t, double t2, int ms )
+__attribute__((visibility("default"))) void OGC_FireLog( int server, double t, double t2, int ms )
 {
 	if( ogc_firelog_n >= OGC_FIRELOG_MAX )
 		return;
@@ -282,6 +282,65 @@ void OGC_FireLog( int server, double t, double t2, int ms )
 	ogc_firelog[ogc_firelog_n].t2 = t2;
 	ogc_firelog[ogc_firelog_n].ms = ms;
 	ogc_firelog_n++;
+}
+
+/*
+Perfil silencioso (no imprime durante el juego): tiempo medio y maximo de cada parte
+del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
+  0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
+  4 sonido           5 entrada
+*/
+#define OGC_PROF_N 6
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "pantalla", "sonido", "entrada" };
+static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
+static int ogc_prof_cnt[OGC_PROF_N];
+static double ogc_load_t0, ogc_load_server, ogc_load_total;
+
+__attribute__((visibility("default"))) void OGC_ProfAdd( int bucket, double dt )
+{
+	if( bucket < 0 || bucket >= OGC_PROF_N )
+		return;
+
+	ogc_prof_sum[bucket] += dt;
+	ogc_prof_cnt[bucket]++;
+	if( dt > ogc_prof_max[bucket] )
+		ogc_prof_max[bucket] = dt;
+}
+
+// 0 = empieza la carga, 1 = servidor listo, 2 = el cliente ya esta jugando
+__attribute__((visibility("default"))) void OGC_LoadMark( int what )
+{
+	double now = Platform_DoubleTime();
+
+	if( what == 0 )
+	{
+		ogc_load_t0 = now;
+		ogc_load_server = ogc_load_total = 0.0;
+	}
+	else if( what == 1 && ogc_load_t0 > 0.0 )
+		ogc_load_server = now - ogc_load_t0;
+	else if( what == 2 && ogc_load_t0 > 0.0 && ogc_load_total == 0.0 )
+		ogc_load_total = now - ogc_load_t0;
+}
+
+static void OGC_Prof_f( void )
+{
+	int i;
+
+	Con_Printf( "wii_prof (ms: media / maximo / cuadros)\n" );
+	for( i = 0; i < OGC_PROF_N; i++ )
+	{
+		if( !ogc_prof_cnt[i] )
+			continue;
+
+		Con_Printf( "  %-8s %6.2f / %6.1f / %d\n", ogc_prof_name[i],
+			ogc_prof_sum[i] * 1000.0 / ogc_prof_cnt[i], ogc_prof_max[i] * 1000.0, ogc_prof_cnt[i] );
+		ogc_prof_sum[i] = ogc_prof_max[i] = 0.0;
+		ogc_prof_cnt[i] = 0;
+	}
+
+	if( ogc_load_total > 0.0 )
+		Con_Printf( "  carga de nivel: servidor %.2f s, hasta jugar %.2f s\n", ogc_load_server, ogc_load_total );
 }
 
 static void OGC_FireStats_f( void )
@@ -336,6 +395,7 @@ Cvar_RegisterVariable( &wii_nunchuk_sens );
 	Cvar_RegisterVariable( &wii_buttons );
 	Cvar_RegisterVariable( &wii_showinput );
 	Cmd_AddCommand( "wii_firestats", OGC_FireStats_f, "show (and clear) the +attack usercmd log" );
+	Cmd_AddCommand( "wii_prof", OGC_Prof_f, "show (and reset) the frame / level load timing profile" );
 	Cvar_RegisterVariable( &wii_rumble );
 	Cvar_RegisterVariable( &wii_gun_tilt );
 	Cvar_RegisterVariable( &wii_gun_tilt_max );
