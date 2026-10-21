@@ -40,7 +40,7 @@ static void OGC_DebugSync(int force)
 
     if (!force && now == last) return;
     last = now;
-    OGC_DebugSync(fmt[0] == '[' && fmt[1] == 'E');
+    fsync(fileno(g_log_fp));
 }
 
 void OGC_DebugPrint(const char *fmt, ...)
