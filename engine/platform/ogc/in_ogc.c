@@ -1680,6 +1680,7 @@ static struct
 static void OGC_KeyboardFrame( void )
 {
 	keyboard_event ev;
+	qboolean look;
 	int guard = 0;
 
 	if( !ogc_usb_kbd_ok )
