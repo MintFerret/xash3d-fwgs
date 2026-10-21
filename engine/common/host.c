@@ -674,6 +674,20 @@ void Host_Frame( double time )
 	if( host.framecount == 0 )
 		Con_DPrintf( "Time to first frame: %.3f seconds\n", t1 - host.starttime );
 
+#if XASH_OGC
+	double tp = Platform_DoubleTime();
+	Host_InputFrame ();  // input frame
+	OGC_ProfAdd( 5, Platform_DoubleTime() - tp );
+	Host_ClientBegin (); // begin client
+	Host_GetCommands (); // dedicated in
+	tp = Platform_DoubleTime();
+	Host_ServerFrame (); // server frame
+	OGC_ProfAdd( 1, Platform_DoubleTime() - tp );
+	tp = Platform_DoubleTime();
+	Host_ClientFrame (); // client frame
+#endif
+	OGC_ProfAdd( 2, Platform_DoubleTime() - tp );
+#else
 	Host_InputFrame ();  // input frame
 	Host_ClientBegin (); // begin client
 	Host_GetCommands (); // dedicated in
@@ -690,6 +704,9 @@ void Host_Frame( double time )
 
 	host.framecount++;
 	host.pureframetime = Platform_DoubleTime() - t1;
+#if XASH_OGC
+	OGC_ProfAdd( 0, host.pureframetime );
+#endif
 }
 
 /*

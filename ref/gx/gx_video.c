@@ -396,7 +396,12 @@ void GX_OnContextCreated( void )
 	gxvid.fb = 0;
 
 	{
-		FILE *tf = fopen( "sd:/xash3d/gxtest.txt", "r" );
+		extern const char *OGC_BaseDir( void );
+		char tpath[64];
+		FILE *tf;
+
+		snprintf( tpath, sizeof( tpath ), "%s/gxtest.txt", OGC_BaseDir( ));
+		tf = fopen( tpath, "r" );
 		if( tf )
 		{
 			int c = 0;

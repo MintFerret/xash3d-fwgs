@@ -90,10 +90,11 @@ void Sys_InitLog( void )
 	// closes the file, so an engine level error still lands on the card.
 	{
 		extern qboolean OGC_MountSD( void );
+		extern const char *OGC_BaseDir( void );
 
 		if( OGC_MountSD( ))
 		{
-			Q_strncpy( s_ld.log_path, "sd:/xash3d/engine.log", sizeof( s_ld.log_path ));
+			Q_snprintf( s_ld.log_path, sizeof( s_ld.log_path ), "%s/engine.log", OGC_BaseDir( ));
 			s_ld.log_active = true;
 		}
 	}

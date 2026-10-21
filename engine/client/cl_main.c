@@ -327,6 +327,9 @@ static void CL_CheckClientState( void )
 	if(( cls.state == ca_connected || cls.state == ca_validate ) && ( cls.signon == SIGNONS ))
 	{
 		cls.state = ca_active;
+#if XASH_OGC
+		OGC_LoadMark( 2 );
+#endif
 		cls.changelevel = false;		// changelevel is done
 		cls.changedemo = false;		// changedemo is done
 		cl.first_frame = true;		// first rendering frame
@@ -3765,6 +3768,10 @@ Host_ClientFrame
 */
 void Host_ClientFrame( void )
 {
+#if XASH_OGC
+	double tp = Platform_DoubleTime();
+#endif
+
 	// if client is not active, do nothing
 	if( !cls.initialized ) return;
 	if( cls.key_dest == key_game && cls.state == ca_active && !Con_Visible() )
@@ -3807,8 +3814,17 @@ void Host_ClientFrame( void )
 	// catch changes video settings
 	VID_CheckChanges();
 
+#if XASH_OGC
+	OGC_ProfAdd( 3, Platform_DoubleTime() - tp );
+	tp = Platform_DoubleTime();
+#endif
+
 	// update the screen
 	SCR_UpdateScreen ();
+
+#if XASH_OGC
+	OGC_ProfAdd( 4, Platform_DoubleTime() - tp );
+#endif
 
 	// update audio
 	SND_UpdateSound ();

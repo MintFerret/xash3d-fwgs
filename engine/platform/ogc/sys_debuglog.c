@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <fat.h>
+#include <time.h>
 #include <sys/iosupport.h>
 
 static FILE *g_log_fp = NULL;
@@ -25,6 +26,22 @@ static void OGC_DebugOpen(void)
 }
 
 void OGC_DebugInit(void) { OGC_DebugOpen(); }
+
+/*
+fsync despues de CADA mensaje costaba decenas de ms en la SD/USB (FAT): cada linea
+de consola, incluidas las de carga de nivel, paraba el juego. fflush deja el dato
+en el cache de libfat; el fsync completo se hace como mucho una vez por segundo y
+siempre en los errores.
+*/
+static void OGC_DebugSync(int force)
+{
+    static time_t last;
+    time_t now = time(NULL);
+
+    if (!force && now == last) return;
+    last = now;
+    OGC_DebugSync(fmt[0] == '[' && fmt[1] == 'E');
+}
 
 void OGC_DebugPrint(const char *fmt, ...)
 {
@@ -48,7 +65,7 @@ static ssize_t OGC_SDWrite(struct _reent *r, void *fd, const char *ptr, size_t l
 
     fwrite(ptr, 1, len, g_log_fp);
     fflush(g_log_fp);
-    fsync(fileno(g_log_fp));
+    OGC_DebugSync(0);
     return len;
 }
 

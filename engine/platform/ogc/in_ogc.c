@@ -1784,6 +1784,7 @@ static void OGC_MouseFrame( void )
 	static qboolean placed;
 	static int was_connected, retries, total_events;
 	static double next_retry;
+	qboolean look;
 	mouse_event ev;
 	int guard = 0;
 
