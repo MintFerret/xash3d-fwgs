@@ -854,6 +854,11 @@ static void R_BeamDraw( BEAM *pbeam, float frametime )
 		TriColor4f( pbeam->r, pbeam->g, pbeam->b, ( 1.0f - pbeam->t ) * pbeam->brightness );
 	else TriColor4f( pbeam->r, pbeam->g, pbeam->b, pbeam->brightness );
 
+	// los beams son tiras de quads que miran a la camara: se dibujan siempre a doble cara.
+	// Sin esto heredaban el culling que dejara el beam anterior (FRONT, ver abajo) y
+	// solo se veia el primero de cada cuadro, o solo desde algunas posiciones
+	GX_SetCullMode( GX_CULL_NONE );
+
 	switch( pbeam->type )
 	{
 	case TE_BEAMTORUS:
@@ -893,7 +898,10 @@ static void R_BeamDraw( BEAM *pbeam, float frametime )
 		break;
 	}
 
-	GX_Cull( XASH_CULL_FRONT );
+	// el estado de CPU vuelve a FRONT (lo usa el culling de caras de las entidades brush),
+	// pero la GPU se queda en doble cara: FRONT esconderia el siguiente beam
+	glState.faceCull = XASH_CULL_FRONT;
+	GX_SetCullMode( GX_CULL_NONE );
 	r_stats.c_view_beams_count++;
 }
 

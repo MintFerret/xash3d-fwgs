@@ -2142,6 +2142,12 @@ void R_DrawBrushModel( cl_entity_t *e )
 	int old_rendermode = e->curstate.rendermode;
 	gx_lms.dynamic_surfaces = NULL;
 
+	// el culling de caras por CPU (R_CullSurface) solo actua si faceCull != NONE. Sprites, TriAPI
+	// del cliente y beams lo dejan en NONE/BACK/FRONT: con NONE se dibujaban tambien las caras
+	// traseras de los cristales (brush transparente) y se veian dobles/oscuros
+	int old_facecull = glState.faceCull;
+	glState.faceCull = XASH_CULL_FRONT;
+
 	if( rotated )
 	{
 		R_RotateForEntity( e );
@@ -2255,6 +2261,7 @@ void R_DrawBrushModel( cl_entity_t *e )
 		R_AllowFog( true );
 
 	e->curstate.rendermode = old_rendermode;
+	glState.faceCull = old_facecull;
 	GX_SetAlphaCompare( GX_ALWAYS, 0, GX_AOP_AND, GX_ALWAYS, 0 );
 	GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 	GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
