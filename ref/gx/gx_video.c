@@ -32,6 +32,7 @@ CVAR_DEFINE_AUTO( gl_lightmap_nearest, "0", FCVAR_GLCONFIG, "disable lightmap fi
 CVAR_DEFINE_AUTO( gl_keeptjunctions, "1", FCVAR_GLCONFIG, "removing tjuncs causes blinking pixels" );
 CVAR_DEFINE_AUTO( gl_check_errors, "1", FCVAR_GLCONFIG, "ignore video engine errors" );
 CVAR_DEFINE_AUTO( gl_polyoffset, "2", FCVAR_GLCONFIG, "polygon offset for decals" );
+CVAR_DEFINE_AUTO( gx_decal_offset, "0.25", FCVAR_GLCONFIG, "units decals are pushed out of the wall (fixes z-fighting)" );
 CVAR_DEFINE_AUTO( gl_polyoffset_bmodels, "2", FCVAR_GLCONFIG, "polygon offset for brush models" );
 CVAR_DEFINE_AUTO( gx_fx_reset, "1", 0, "debug: reload the world matrices before drawing effects (0 = off)" );
 CVAR_DEFINE_AUTO( gx_fx_noz, "0", 0, "debug: draw beams and translucent TriAPI ignoring depth (1 = on)" );
@@ -348,6 +349,7 @@ static void GX_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &gl_litwater_force );
 
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset );
+	gEngfuncs.Cvar_RegisterVariable( &gx_decal_offset );
 	gEngfuncs.Cvar_RegisterVariable( &gl_polyoffset_bmodels );
 	gEngfuncs.Cvar_RegisterVariable( &gx_fx_reset );
 	gEngfuncs.Cvar_RegisterVariable( &gx_fx_noz );

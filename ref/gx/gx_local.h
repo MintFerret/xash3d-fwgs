@@ -656,6 +656,7 @@ extern convar_t	gl_keeptjunctions;
 extern convar_t	gl_round_down;
 extern convar_t	gl_wireframe;
 extern convar_t	gl_polyoffset;
+extern convar_t	gx_decal_offset;
 extern convar_t	gl_polyoffset_bmodels;
 extern convar_t	gx_fx_reset;
 extern convar_t	gx_fx_noz;

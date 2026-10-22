@@ -689,7 +689,7 @@ float *R_DecalSetupVerts( decal_t *pDecal, msurface_t *surf, int texture, int *o
 	return v;
 }
 
-static void GX_DrawDecalPolygon( float *verts, int numVerts )
+static void GX_DrawDecalPolygon( float *verts, int numVerts, const vec3_t offset )
 {
 	if( numVerts < 3 ) return;
 
@@ -703,7 +703,7 @@ static void GX_DrawDecalPolygon( float *verts, int numVerts )
 
 	for( int i = 0; i < numVerts; i++, verts += VERTEXSIZE )
 	{
-		GX_Position3f32( verts[0], verts[1], verts[2] );
+		GX_Position3f32( verts[0] + offset[0], verts[1] + offset[1], verts[2] + offset[2] );
 		GX_TexCoord2f32( verts[3], verts[4] );
 	}
 
@@ -732,7 +732,21 @@ void DrawSingleDecal( decal_t *pDecal, msurface_t *fa )
 	else
 		GX_SetBlendMode( GX_BM_BLEND, GX_BL_SRCALPHA, GX_BL_INVSRCALPHA, GX_LO_CLEAR );
 
-	GX_DrawDecalPolygon( v, numVerts );
+	/* el decal esta en el mismo plano que la pared y el desplazamiento de profundidad por
+	 * proyeccion rinde poco de cerca (crece con el cuadrado de la distancia), asi que se
+	 * adelanta un poco hacia fuera de la pared en espacio de mundo: ya no pelea con ella */
+	vec3_t offset;
+	float off = gx_decal_offset.value;
+
+	if( off > 0.0f && fa->plane )
+	{
+		VectorScale( fa->plane->normal, off, offset );
+		if( FBitSet( fa->flags, SURF_PLANEBACK ))
+			VectorNegate( offset, offset );
+	}
+	else VectorClear( offset );
+
+	GX_DrawDecalPolygon( v, numVerts, offset );
 }
 
 void DrawSurfaceDecals( msurface_t *fa, qboolean single, qboolean reverse )
