@@ -1014,6 +1014,87 @@ static int Delta_ClampIntegerField( delta_t *pField, int iValue, int signbit, in
 
 /*
 =====================
+Delta_LoadInt / Delta_StoreInt
+
+integer fields are accessed with the width of the real struct member, not with
+the width the delta table declares: when they differ (skin and solid are
+shorts, but a table may declare them as integers) the 32-bit access only worked
+on little endian CPUs; on the Wii it read or wrote the wrong half of the value
+(beams lost their end entity, among other things)
+=====================
+*/
+static uint Delta_LoadInt( const void *base, const delta_t *pField, qboolean sign )
+{
+    const uint8_t *p = (const uint8_t *)base + pField->offset;
+    int size = pField->size;
+
+    if( size != 1 && size != 2 && size != 4 )
+    {
+        if( pField->flags & DT_BYTE ) size = 1;
+        else if( pField->flags & DT_SHORT ) size = 2;
+        else size = 4;
+    }
+
+    switch( size )
+    {
+    case 1:
+    {
+        uint8_t v;
+        memcpy( &v, p, sizeof( v ));
+        return sign ? (uint)(int)(int8_t)v : (uint)v;
+    }
+    case 2:
+    {
+        uint16_t v;
+        memcpy( &v, p, sizeof( v ));
+        return sign ? (uint)(int)(int16_t)v : (uint)v;
+    }
+    default:
+    {
+        uint32_t v;
+        memcpy( &v, p, sizeof( v ));
+        return v;
+    }
+    }
+}
+
+static void Delta_StoreInt( void *base, const delta_t *pField, uint value )
+{
+    uint8_t *p = (uint8_t *)base + pField->offset;
+    int size = pField->size;
+
+    if( size != 1 && size != 2 && size != 4 )
+    {
+        if( pField->flags & DT_BYTE ) size = 1;
+        else if( pField->flags & DT_SHORT ) size = 2;
+        else size = 4;
+    }
+
+    switch( size )
+    {
+    case 1:
+    {
+        uint8_t v = (uint8_t)value;
+        memcpy( p, &v, sizeof( v ));
+        break;
+    }
+    case 2:
+    {
+        uint16_t v = (uint16_t)value;
+        memcpy( p, &v, sizeof( v ));
+        break;
+    }
+    default:
+    {
+        uint32_t v = value;
+        memcpy( p, &v, sizeof( v ));
+        break;
+    }
+    }
+}
+
+/*
+=====================
 Delta_CompareField
 
 compare fields by offsets
@@ -1035,62 +1116,10 @@ static qboolean Delta_CompareField( delta_t *pField, const void *from, const voi
 
 	fromF = toF = 0;
 
-	if( pField->flags & DT_BYTE )
+	if( pField->flags & ( DT_BYTE|DT_SHORT|DT_INTEGER ))
 	{
-		if( signbit )
-		{
-			fromF = *(int8_t *)((int8_t *)from + pField->offset );
-			toF = *(int8_t *)((int8_t *)to + pField->offset );
-		}
-		else
-		{
-			fromF = *(uint8_t *)((int8_t *)from + pField->offset );
-			toF = *(uint8_t *)((int8_t *)to + pField->offset );
-		}
-
-		if( !Q_equal(pField->multiplier, 1.0f ))
-		{
-			fromF *= pField->multiplier;
-			toF *= pField->multiplier;
-		}
-
-		fromF = Delta_ClampIntegerField( pField, fromF, signbit, pField->bits );
-		toF = Delta_ClampIntegerField( pField, toF, signbit, pField->bits );
-	}
-	else if( pField->flags & DT_SHORT )
-	{
-		if( signbit )
-		{
-			fromF = *(int16_t *)((int8_t *)from + pField->offset );
-			toF = *(int16_t *)((int8_t *)to + pField->offset );
-		}
-		else
-		{
-			fromF = *(uint16_t *)((int8_t *)from + pField->offset );
-			toF = *(uint16_t *)((int8_t *)to + pField->offset );
-		}
-
-		if( !Q_equal(pField->multiplier, 1.0f ))
-		{
-			fromF *= pField->multiplier;
-			toF *= pField->multiplier;
-		}
-
-		fromF = Delta_ClampIntegerField( pField, fromF, signbit, pField->bits );
-		toF = Delta_ClampIntegerField( pField, toF, signbit, pField->bits );
-	}
-	else if( pField->flags & DT_INTEGER )
-	{
-		if( signbit )
-		{
-			fromF = *(int32_t *)((int8_t *)from + pField->offset );
-			toF = *(int32_t *)((int8_t *)to + pField->offset );
-		}
-		else
-		{
-			fromF = *(uint32_t *)((int8_t *)from + pField->offset );
-			toF = *(uint32_t *)((int8_t *)to + pField->offset );
-		}
+		fromF = (int)Delta_LoadInt( from, pField, signbit );
+		toF = (int)Delta_LoadInt( to, pField, signbit );
 
 		if( !Q_equal(pField->multiplier, 1.0f ))
 		{
@@ -1203,38 +1232,9 @@ static void Delta_WriteField_( sizebuf_t *msg, delta_t *pField, const void *from
 	int dt;
 	const char	*pStr;
 
-	if( pField->flags & DT_BYTE )
+	if( pField->flags & ( DT_BYTE|DT_SHORT|DT_INTEGER ))
 	{
-		if( signbit )
-			iValue = *(int8_t *)((int8_t *)to + pField->offset );
-		else
-			iValue = *(uint8_t *)((int8_t *)to + pField->offset );
-
-		if( !Q_equal( pField->multiplier, 1.0 ))
-			iValue *= pField->multiplier;
-
-		iValue = Delta_ClampIntegerField( pField, iValue, signbit, pField->bits );
-		MSG_WriteBitLong( msg, iValue, pField->bits, signbit );
-	}
-	else if( pField->flags & DT_SHORT )
-	{
-		if( signbit )
-			iValue = *(int16_t *)((int8_t *)to + pField->offset );
-		else
-			iValue = *(uint16_t *)((int8_t *)to + pField->offset );
-
-		if( !Q_equal( pField->multiplier, 1.0 ))
-			iValue *= pField->multiplier;
-
-		iValue = Delta_ClampIntegerField( pField, iValue, signbit, pField->bits );
-		MSG_WriteBitLong( msg, iValue, pField->bits, signbit );
-	}
-	else if( pField->flags & DT_INTEGER )
-	{
-		if( signbit )
-			iValue = *(int32_t *)((int8_t *)to + pField->offset );
-		else
-			iValue = *(uint32_t *)((int8_t *)to + pField->offset );
+		iValue = Delta_LoadInt( to, pField, signbit );
 
 		if( !Q_equal( pField->multiplier, 1.0 ))
 			iValue *= pField->multiplier;
@@ -1305,26 +1305,9 @@ static void Delta_CopyField( delta_t *pField, const void *from, void *to, double
 	uint8_t *to_field = (uint8_t *)to + pField->offset;
 	uint8_t *from_field = (uint8_t *)from + pField->offset;
 
-	if( FBitSet( pField->flags, DT_BYTE ))
+	if( FBitSet( pField->flags, DT_BYTE|DT_SHORT|DT_INTEGER ))
 	{
-		if( bSigned )
-			*(int8_t *)( to_field ) = *(int8_t *)( from_field );
-		else
-			*(uint8_t *)( to_field ) = *(uint8_t *)( from_field );
-	}
-	else if( FBitSet( pField->flags, DT_SHORT ))
-	{
-		if( bSigned )
-			*(int16_t *)( to_field ) = *(int16_t *)( from_field );
-		else
-			*(uint16_t *)( to_field ) = *(uint16_t *)( from_field );
-	}
-	else if( FBitSet( pField->flags, DT_INTEGER ))
-	{
-		if( bSigned )
-			*(int32_t *)( to_field ) = *(int32_t *)( from_field );
-		else
-			*(uint32_t *)( to_field ) = *(uint32_t *)( from_field );
+		Delta_StoreInt( to, pField, Delta_LoadInt( from, pField, bSigned ));
 	}
 	else if( FBitSet( pField->flags, DT_FLOAT|DT_ANGLE|DT_TIMEWINDOW_8|DT_TIMEWINDOW_BIG ))
 	{
@@ -1358,7 +1341,7 @@ static void Delta_ReadField_( sizebuf_t *msg, delta_t *pField, void *to, double 
 
 	Assert( pField->multiplier != 0.0f );
 
-	if( pField->flags & DT_BYTE )
+	if( pField->flags & ( DT_BYTE|DT_SHORT|DT_INTEGER ))
 	{
 		iValue = MSG_ReadBitLong( msg, pField->bits, bSigned );
 		if( !Q_equal( pField->multiplier, 1.0 ))
@@ -1367,38 +1350,7 @@ static void Delta_ReadField_( sizebuf_t *msg, delta_t *pField, void *to, double 
 		if( !Q_equal( pField->post_multiplier, 1.0 ))
 			iValue *= pField->post_multiplier;
 
-		if( bSigned )
-			*(int8_t *)((uint8_t *)to + pField->offset ) = iValue;
-		else
-			*(uint8_t *)((uint8_t *)to + pField->offset ) = iValue;
-	}
-	else if( pField->flags & DT_SHORT )
-	{
-		iValue = MSG_ReadBitLong( msg, pField->bits, bSigned );
-		if( !Q_equal( pField->multiplier, 1.0 ))
-			iValue /= pField->multiplier;
-
-		if( !Q_equal( pField->post_multiplier, 1.0 ))
-			iValue *= pField->post_multiplier;
-
-		if( bSigned )
-			*(int16_t *)((uint8_t *)to + pField->offset ) = iValue;
-		else
-			*(uint16_t *)((uint8_t *)to + pField->offset ) = iValue;
-	}
-	else if( pField->flags & DT_INTEGER )
-	{
-		iValue = MSG_ReadBitLong( msg, pField->bits, bSigned );
-		if( !Q_equal( pField->multiplier, 1.0 ))
-			iValue /= pField->multiplier;
-
-		if( !Q_equal( pField->post_multiplier, 1.0 ))
-			iValue *= pField->post_multiplier;
-
-		if( bSigned )
-			*(int32_t *)((uint8_t *)to + pField->offset ) = iValue;
-		else
-			*(uint32_t *)((uint8_t *)to + pField->offset ) = iValue;
+		Delta_StoreInt( to, pField, iValue );
 	}
 	else if( pField->flags & DT_FLOAT )
 	{

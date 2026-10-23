@@ -1145,7 +1145,13 @@ static void R_BlendLightmaps( void )
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_FALSE );
 		GX_SetAlphaCompare( GX_ALWAYS, 0, GX_AOP_AND, GX_ALWAYS, 0 );
 
-		for( int i = 0; i < MAX_LIGHTMAPS; i++ )
+		/* el pase de lightmap repite la geometria del pase difuso con prueba LEQUAL: un error de
+   redondeo en la profundidad dejaba pixeles sin multiplicar (lineas claras en las
+   costuras de los poligonos). Un empujon minimo hacia la camara lo evita. */
+if( gx_lm_bias.value > 0.0f )
+    GX_PushPolygonOffset( -1.0f, -gx_lm_bias.value );
+
+for( int i = 0; i < MAX_LIGHTMAPS; i++ )
 		{
 			msurface_t *surf;
 			if( !gx_lms.lightmap_surfaces[i] )
@@ -1181,7 +1187,10 @@ static void R_BlendLightmaps( void )
 		/* lightmaps dinamicos (linterna, dlights, estilos animados) */
 		R_BlendDynamicLightmapsSingle();
 
-		GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
+		if( gx_lm_bias.value > 0.0f )
+    GX_PopPolygonOffset();
+
+GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 		GX_SetZMode( GX_TRUE, GX_LEQUAL, GX_TRUE );
 		GX_SetNumTexGens( 1 );
 		GX_SetTexCoordGen( GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY );
