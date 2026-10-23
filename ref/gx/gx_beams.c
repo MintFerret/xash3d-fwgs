@@ -1004,8 +1004,49 @@ static void R_BeamDrawCustomEntity( cl_entity_t *ent )
 	R_BeamDraw( &beam, tr.frametime );
 }
 
+/*
+gx_beamdiag 1: vuelca una vez en la consola los rayos del servidor (ET_BEAM) y los
+temporales (TE_BEAM*) con sus extremos, para comparar con Android
+*/
+static void R_BeamDiagDump( BEAM *active_beams )
+{
+    int n = 0;
+
+    gEngfuncs.Con_Printf( "gx_beamdiag: %i beam entities\n", tr.draw_list->num_beam_entities );
+    for( int i = 0; i < tr.draw_list->num_beam_entities; i++ )
+    {
+        cl_entity_t *e = tr.draw_list->beam_entities[i];
+        vec3_t a, b;
+
+        VectorCopy( e->origin, a );
+        VectorCopy( e->curstate.angles, b );
+        if(( e->curstate.rendermode & 0x0F ) == BEAM_ENTS || ( e->curstate.rendermode & 0x0F ) == BEAM_ENTPOINT )
+        {
+            if( e->curstate.sequence ) R_BeamComputePoint( e->curstate.sequence, a );
+            if( e->curstate.skin ) R_BeamComputePoint( e->curstate.skin, b );
+        }
+        gEngfuncs.Con_Printf( " E%i mode %02x seq %i skin %i  (%.0f %.0f %.0f) -> (%.0f %.0f %.0f)\n", e->index,
+            e->curstate.rendermode, e->curstate.sequence, e->curstate.skin, a[0], a[1], a[2], b[0], b[1], b[2] );
+    }
+
+    for( BEAM *p = active_beams; p; p = p->next, n++ )
+    {
+        if( n >= 40 ) break;
+        gEngfuncs.Con_Printf( " T type %i fl %x ent %i/%i  (%.0f %.0f %.0f) -> (%.0f %.0f %.0f)\n", p->type, p->flags,
+            p->startEntity, p->endEntity, p->source[0], p->source[1], p->source[2], p->target[0], p->target[1], p->target[2] );
+    }
+    gEngfuncs.Con_Printf( "gx_beamdiag: %i temp beams listed\n", n );
+}
+
 void CL_DrawBeams( int fTrans, BEAM *active_beams )
 {
+    if( fTrans && gx_beamdiag.value )
+    {
+        gEngfuncs.Cvar_SetValue( "gx_beamdiag", 0.0f );
+        R_BeamDiagDump( active_beams );
+    }
+
+
 	GX_ResetEffectState();
 	GX_SetZMode( GX_TRUE, GX_LEQUAL, fTrans ? GX_FALSE : GX_TRUE );
 

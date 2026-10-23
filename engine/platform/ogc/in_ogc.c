@@ -59,11 +59,11 @@ static CVAR_DEFINE_AUTO( wii_stick_yawspeed, "190", FCVAR_ARCHIVE, "Classic/Game
 static CVAR_DEFINE_AUTO( wii_stick_pitchspeed, "120", FCVAR_ARCHIVE, "Classic/GameCube pitch speed at full stick, degrees per second" );
 static CVAR_DEFINE_AUTO( wii_aimassist, "1", FCVAR_ARCHIVE, "aim assist for every controller (0 = off)" );
 static CVAR_DEFINE_AUTO( wii_input_tune, "1", FCVAR_ARCHIVE, "input tuning revision (internal)" );
-static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.7", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
+static CVAR_DEFINE_AUTO( wii_aimassist_strength, "0.35", FCVAR_ARCHIVE, "aim assist strength (0..1)" );
 
-static CVAR_DEFINE_AUTO( wii_aimassist_cone, "10", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
+static CVAR_DEFINE_AUTO( wii_aimassist_cone, "6", FCVAR_ARCHIVE, "aim assist capture angle in degrees" );
 static CVAR_DEFINE_AUTO( wii_aimassist_range, "2500", FCVAR_ARCHIVE, "aim assist maximum distance in map units" );
-static CVAR_DEFINE_AUTO( wii_aimassist_idle, "0.6", FCVAR_ARCHIVE, "stick aim assist strength while the stick is not moving, as a fraction of wii_aimassist_strength (0 = only while moving)" );
+static CVAR_DEFINE_AUTO( wii_aimassist_idle, "0.3", FCVAR_ARCHIVE, "stick aim assist strength while the stick is not moving, as a fraction of wii_aimassist_strength (0 = only while moving)" );
 static CVAR_DEFINE_AUTO( wii_aimassist_ir, "1", FCVAR_ARCHIVE, "aim assist also steers the camera towards enemies near the Wii remote pointer" );
 #ifdef XASH_OGC_INPUTTEST
 #define WII_SHOWINPUT_DEFAULT "1"	// input test build: on with nothing to configure
@@ -715,7 +715,7 @@ void OGC_StickLookMove( float *pitch, float *yaw )
             float blend = OGC_AssistBlend( ang, dt );
 
             if( moving )
-                speed = 1.0f - str * 0.65f * f;
+                speed = 1.0f - str * 0.5f * f;
             else
                 blend *= bound( 0.0f, wii_aimassist_idle.value, 1.0f );
 
@@ -790,6 +790,15 @@ void OGC_ButtonsFrame( void )
             // el suavizado de 0.035 s daba sensacion de retardo en Classic y GameCube
             Cvar_DirectSet( &wii_stick_smooth, "0.012" );
             Cvar_DirectSet( &wii_input_tune, "4" );
+        }
+
+        if( wii_input_tune.value < 5.0f )
+        {
+            // el autoapuntado era demasiado duro: menos fuerza, cono mas cerrado
+            Cvar_DirectSet( &wii_aimassist_strength, "0.35" );
+            Cvar_DirectSet( &wii_aimassist_cone, "6" );
+            Cvar_DirectSet( &wii_aimassist_idle, "0.3" );
+            Cvar_DirectSet( &wii_input_tune, "5" );
         }
     }
 
@@ -1149,7 +1158,7 @@ static float OGC_AssistBlend( float offset, float dt )
     float str = bound( 0.0f, wii_aimassist_strength.value, 1.0f );
     float f = bound( 0.0f, 1.0f - offset / bound( 0.5f, wii_aimassist_cone.value, 30.0f ), 1.0f );
 
-    return bound( 0.0f, str * f * 14.0f * dt, 0.6f );
+    return bound( 0.0f, str * f * 8.0f * dt, 0.25f );
 }
 
 static float ogc_aim_delta[2];
