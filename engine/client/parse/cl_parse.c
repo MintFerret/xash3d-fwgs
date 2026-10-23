@@ -877,6 +877,7 @@ static void CL_ParseServerData( sizebuf_t *msg, connprotocol_t proto )
 		if( cl.worldmapCRC != cl.checksum )
 		{
 			Con_Printf( S_ERROR "Your map [%s] differs from the server's.\n", clgame.mapname );
+			Con_Printf( "map crc: client %08x, server %08x (%s)\n", (unsigned int)cl.worldmapCRC, (unsigned int)cl.checksum, mapfile );
 			CL_Disconnect_f(); // for local game, call EndGame
 			Host_AbortCurrentFrame(); // to avoid svc_bad
 		}

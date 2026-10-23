@@ -53,7 +53,7 @@ static CVAR_DEFINE_AUTO( wii_mouse_sens, "2", FCVAR_ARCHIVE, "USB mouse look spe
 static CVAR_DEFINE_AUTO( wii_mouse_invert, "0", FCVAR_ARCHIVE, "invert the USB mouse vertical look" );
 static CVAR_DEFINE_AUTO( wii_mouse_zoom, "1", FCVAR_ARCHIVE, "slow the USB mouse down when the field of view is zoomed in" );
 static CVAR_DEFINE_AUTO( wii_mouse_menu_sens, "1", FCVAR_ARCHIVE, "USB mouse cursor speed in the menus" );
-static CVAR_DEFINE_AUTO( wii_stick_smooth, "0.035", FCVAR_ARCHIVE, "Classic/GameCube look smoothing in seconds (0 = off)" );
+static CVAR_DEFINE_AUTO( wii_stick_smooth, "0.012", FCVAR_ARCHIVE, "Classic/GameCube look smoothing in seconds (0 = off)" );
 static CVAR_DEFINE_AUTO( wii_stick_curve, "1.7", FCVAR_ARCHIVE, "Classic/GameCube look response curve (1 = linear, higher = finer aim near the centre)" );
 static CVAR_DEFINE_AUTO( wii_stick_yawspeed, "190", FCVAR_ARCHIVE, "Classic/GameCube turn speed at full stick, degrees per second" );
 static CVAR_DEFINE_AUTO( wii_stick_pitchspeed, "120", FCVAR_ARCHIVE, "Classic/GameCube pitch speed at full stick, degrees per second" );
@@ -771,7 +771,7 @@ void OGC_ButtonsFrame( void )
         tuned = true;
         if( wii_input_tune.value < 2.0f )
         {
-            Cvar_DirectSet( &wii_stick_smooth, "0.035" );
+            Cvar_DirectSet( &wii_stick_smooth, "0.012" );
             Cvar_DirectSet( &wii_aimassist_strength, "0.7" );
             Cvar_DirectSet( &wii_aimassist_cone, "10" );
             Cvar_DirectSet( &wii_aimassist_range, "2500" );
@@ -783,7 +783,15 @@ void OGC_ButtonsFrame( void )
             // el contador de FPS quedaba guardado en "3" en configs viejas
             Cvar_Set( "cl_showfps", "0" );
             Cvar_DirectSet( &wii_input_tune, "3" );
-        }    }
+        }
+
+        if( wii_input_tune.value < 4.0f )
+        {
+            // el suavizado de 0.035 s daba sensacion de retardo en Classic y GameCube
+            Cvar_DirectSet( &wii_stick_smooth, "0.012" );
+            Cvar_DirectSet( &wii_input_tune, "4" );
+        }
+    }
 
 	// teclado y raton USB, y la vibracion, no dependen de wii_buttons
 	OGC_KeyboardFrame();
