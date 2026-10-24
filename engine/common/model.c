@@ -438,7 +438,12 @@ Loads in a model for the given name
 */
 model_t *Mod_ForName( const char *name, qboolean crash, qboolean trackCRC )
 {
-    model_t *mod = Mod_FindName( name, trackCRC );
+    model_t *mod;
+
+    if( COM_StringEmptyOrNULL( name ))
+        return NULL;
+
+    mod = Mod_FindName( name, trackCRC );
 
     if( !mod )
         return NULL;
@@ -452,12 +457,6 @@ model_t *Mod_ForName( const char *name, qboolean crash, qboolean trackCRC )
 #else
     return Mod_LoadModel( mod, crash );
 #endif
-}
-	if( COM_StringEmptyOrNULL( name ))
-		return NULL;
-
-	model_t *mod = Mod_FindName( name, trackCRC );
-	return Mod_LoadModel( mod, crash );
 }
 
 /*
