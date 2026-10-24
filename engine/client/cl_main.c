@@ -3827,7 +3827,13 @@ void Host_ClientFrame( void )
 #endif
 
 	// update audio
+#if XASH_OGC
+	tp = Platform_DoubleTime();
+#endif
 	SND_UpdateSound ();
+#if XASH_OGC
+	OGC_ProfAdd( 6, Platform_DoubleTime() - tp );
+#endif
 
 	// play avi-files
 	SCR_RunCinematic ();

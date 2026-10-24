@@ -15,6 +15,7 @@ GNU General Public License for more details.
 
 #include <math.h>
 #include "imagelib.h"
+#include "platform/platform.h"
 
 #define DEBUG_LOOKUPS_COUNT 0
 //#if !XASH_OGC
@@ -406,7 +407,22 @@ FS_LoadImage
 loading and unpack to rgba any known image
 ================
 */
+static rgbdata_t *FS_LoadImage_impl( const char *filename, const byte *buffer, size_t size );
+
 rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
+{
+#if XASH_OGC
+    double t0 = Platform_DoubleTime();
+    rgbdata_t *ret = FS_LoadImage_impl( filename, buffer, size );
+
+    OGC_ProfAdd( 11, Platform_DoubleTime() - t0 );
+    return ret;
+#else
+    return FS_LoadImage_impl( filename, buffer, size );
+#endif
+}
+
+static rgbdata_t *FS_LoadImage_impl( const char *filename, const byte *buffer, size_t size )
 {
 	const char	*ext = COM_FileExtension( filename );
 	string		loadname;

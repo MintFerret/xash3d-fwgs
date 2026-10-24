@@ -45,6 +45,41 @@ static CVAR_DEFINE_AUTO( fs_mount_l10n, "0", FCVAR_PRIVILEGED, "mount localizati
 static CVAR_DEFINE_AUTO( ui_language, "english", FCVAR_PRIVILEGED, "selected game language" );
 
 fs_api_t g_fsapi;
+#if XASH_OGC
+// perfil de lecturas (wii_prof): se envuelven LoadFile y Read del filesystem
+static byte *(*fs_real_LoadFile)( const char *path, fs_offset_t *filesizeptr, qboolean gamedironly );
+static fs_offset_t (*fs_real_Read)( file_t *file, void *buffer, size_t buffersize );
+
+static byte *OGC_FS_LoadFile( const char *path, fs_offset_t *filesizeptr, qboolean gamedironly )
+{
+    double t0 = Platform_DoubleTime();
+    fs_offset_t size = 0;
+    byte *buf = fs_real_LoadFile( path, &size, gamedironly );
+
+    if( filesizeptr ) *filesizeptr = size;
+    OGC_ProfAdd( 8, Platform_DoubleTime() - t0 );
+    if( buf ) OGC_ProfBytes( 8, (double)size );
+    return buf;
+}
+
+static fs_offset_t OGC_FS_Read( file_t *file, void *buffer, size_t buffersize )
+{
+    double t0 = Platform_DoubleTime();
+    fs_offset_t n = fs_real_Read( file, buffer, buffersize );
+
+    OGC_ProfAdd( 9, Platform_DoubleTime() - t0 );
+    if( n > 0 ) OGC_ProfBytes( 9, (double)n );
+    return n;
+}
+
+static void OGC_HookFS( void )
+{
+    fs_real_LoadFile = g_fsapi.LoadFile;
+    fs_real_Read = g_fsapi.Read;
+    g_fsapi.LoadFile = OGC_FS_LoadFile;
+    g_fsapi.Read = OGC_FS_Read;
+}
+#endif
 fs_globals_t *FI;
 
 static pfnCreateInterface_t fs_pfnCreateInterface;
@@ -68,19 +103,7 @@ file_t *FS_Open( const char *filepath, const char *mode, qboolean gamedironly )
 
 byte *FS_LoadFile( const char *path, fs_offset_t *filesizeptr, qboolean gamedironly )
 {
-	#if XASH_OGC
-    // perfil de lecturas (wii_prof): tiempo y bytes de cada archivo cargado entero
-    double t0 = Platform_DoubleTime();
-    fs_offset_t size = 0;
-    byte *buf = g_fsapi.LoadFile( path, &size, gamedironly );
-
-    if( filesizeptr ) *filesizeptr = size;
-    OGC_ProfAdd( 6, Platform_DoubleTime() - t0 );
-    if( buf ) OGC_ProfBytes( 6, (double)size );
-    return buf;
-#else
     return g_fsapi.LoadFile( path, filesizeptr, gamedironly );
-#endif
 }
 
 byte *FS_LoadDirectFile( const char *path, fs_offset_t *filesizeptr )
@@ -269,6 +292,10 @@ static qboolean FS_LoadProgs( void )
 		Sys_Error( "%s: can't initialize filesystem API: wrong version\n", __func__ );
 		return false;
 	}
+
+#if XASH_OGC
+	OGC_HookFS();
+#endif
 
 	if( !( fs_pfnCreateInterface = (pfnCreateInterface_t)COM_GetProcAddress( fs_hInstance, "CreateInterface" )))
 	{

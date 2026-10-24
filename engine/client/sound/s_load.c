@@ -113,15 +113,10 @@ wavdata_t *S_LoadSound( sfx_t *sfx )
 
 	if( !sfx ) return NULL;
 
-	// see if still in memory
-	if( sfx->cache )
-    {
-#if XASH_OGC
-        OGC_ProfAdd( 7, Platform_DoubleTime() - prof_t0 );
-        if( sc ) OGC_ProfBytes( 7, (double)sc->size );
-#endif
+	    // see if still in memory
+    if( sfx->cache )
         return sfx->cache;
-    }
+
 
 
 	if( COM_StringEmptyOrNULL( sfx->name ))
@@ -154,6 +149,11 @@ wavdata_t *S_LoadSound( sfx_t *sfx )
 		Sound_Process( &sc, SOUND_44k, sc->width, sc->channels, SOUND_RESAMPLE );
 
 	sfx->cache = sc;
+
+#if XASH_OGC
+	OGC_ProfAdd( 7, Platform_DoubleTime() - prof_t0 );
+	if( sc ) OGC_ProfBytes( 7, (double)sc->size );
+#endif
 
 	return sfx->cache;
 }

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 #include "common.h"
+#include "platform/platform.h"
 #include "mod_local.h"
 #include "sprite.h"
 #include "xash3d_mathlib.h"
@@ -437,6 +438,16 @@ Loads in a model for the given name
 */
 model_t *Mod_ForName( const char *name, qboolean crash, qboolean trackCRC )
 {
+#if XASH_OGC
+    double t0 = Platform_DoubleTime();
+    model_t *ret = Mod_LoadModel( mod, crash );
+
+    OGC_ProfAdd( 10, Platform_DoubleTime() - t0 );
+    return ret;
+#else
+    return Mod_LoadModel( mod, crash );
+#endif
+}
 	if( COM_StringEmptyOrNULL( name ))
 		return NULL;
 

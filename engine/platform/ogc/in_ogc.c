@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 8
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "pantalla", "sonido", "entrada", "archivos", "cargasnd" };
+#define OGC_PROF_N 12
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
