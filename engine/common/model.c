@@ -438,6 +438,11 @@ Loads in a model for the given name
 */
 model_t *Mod_ForName( const char *name, qboolean crash, qboolean trackCRC )
 {
+    model_t *mod = Mod_FindName( name, trackCRC );
+
+    if( !mod )
+        return NULL;
+
 #if XASH_OGC
     double t0 = Platform_DoubleTime();
     model_t *ret = Mod_LoadModel( mod, crash );
