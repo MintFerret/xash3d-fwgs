@@ -293,11 +293,18 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 6
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "pantalla", "sonido", "entrada" };
+#define OGC_PROF_N 8
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "pantalla", "sonido", "entrada", "archivos", "cargasnd" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
+static double ogc_prof_bytes[OGC_PROF_N];
 static double ogc_load_t0, ogc_load_server, ogc_load_total;
+
+__attribute__((visibility("default"))) __attribute__((visibility("default"))) void OGC_ProfBytes( int bucket, double bytes )
+{
+	if( bucket >= 0 && bucket < OGC_PROF_N )
+		ogc_prof_bytes[bucket] += bytes;
+}
 
 __attribute__((visibility("default"))) void OGC_ProfAdd( int bucket, double dt )
 {
@@ -336,9 +343,18 @@ static void OGC_Prof_f( void )
 		if( !ogc_prof_cnt[i] )
 			continue;
 
-		Con_Printf( "  %-8s %6.2f / %6.1f / %d\n", ogc_prof_name[i],
+		Con_Printf( "  %-8s %6.2f / %6.1f / %d", ogc_prof_name[i],
 			ogc_prof_sum[i] * 1000.0 / ogc_prof_cnt[i], ogc_prof_max[i] * 1000.0, ogc_prof_cnt[i] );
-		ogc_prof_sum[i] = ogc_prof_max[i] = 0.0;
+		if( i >= 6 )
+		{
+			// tiempo total de la categoria desde el ultimo wii_prof, y datos leidos
+			Con_Printf( "  total %.2f s", ogc_prof_sum[i] );
+			if( ogc_prof_bytes[i] > 0.0 )
+				Con_Printf( ", %.1f MB (%.2f MB/s)", ogc_prof_bytes[i] / 1048576.0,
+					ogc_prof_sum[i] > 0.0 ? ogc_prof_bytes[i] / 1048576.0 / ogc_prof_sum[i] : 0.0 );
+		}
+		Con_Printf( "\n" );
+		ogc_prof_sum[i] = ogc_prof_max[i] = ogc_prof_bytes[i] = 0.0;
 		ogc_prof_cnt[i] = 0;
 	}
 

@@ -16,6 +16,7 @@ GNU General Public License for more details.
 #include "common.h"
 #include "client.h"
 #include "sound.h"
+#include "platform/platform.h"
 
 // during registration it is possible to have more sounds
 // than could actually be referenced during gameplay,
@@ -106,15 +107,27 @@ S_LoadSound
 wavdata_t *S_LoadSound( sfx_t *sfx )
 {
 	wavdata_t	*sc = NULL;
+#if XASH_OGC
+	double		prof_t0;
+#endif
 
 	if( !sfx ) return NULL;
 
 	// see if still in memory
 	if( sfx->cache )
-		return sfx->cache;
+	#if XASH_OGC
+	OGC_ProfAdd( 7, Platform_DoubleTime() - prof_t0 );
+	OGC_ProfBytes( 7, (double)sc->size );
+#endif
+
+	return sfx->cache;
 
 	if( COM_StringEmptyOrNULL( sfx->name ))
 		return NULL;
+
+#if XASH_OGC
+	prof_t0 = Platform_DoubleTime();
+#endif
 
 	// load it from disk
 	if( Q_stricmp( sfx->name, "*default" ))

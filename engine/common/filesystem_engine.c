@@ -68,7 +68,19 @@ file_t *FS_Open( const char *filepath, const char *mode, qboolean gamedironly )
 
 byte *FS_LoadFile( const char *path, fs_offset_t *filesizeptr, qboolean gamedironly )
 {
-	return g_fsapi.LoadFile( path, filesizeptr, gamedironly );
+	#if XASH_OGC
+    // perfil de lecturas (wii_prof): tiempo y bytes de cada archivo cargado entero
+    double t0 = Platform_DoubleTime();
+    fs_offset_t size = 0;
+    byte *buf = g_fsapi.LoadFile( path, &size, gamedironly );
+
+    if( filesizeptr ) *filesizeptr = size;
+    OGC_ProfAdd( 6, Platform_DoubleTime() - t0 );
+    if( buf ) OGC_ProfBytes( 6, (double)size );
+    return buf;
+#else
+    return g_fsapi.LoadFile( path, filesizeptr, gamedironly );
+#endif
 }
 
 byte *FS_LoadDirectFile( const char *path, fs_offset_t *filesizeptr )
