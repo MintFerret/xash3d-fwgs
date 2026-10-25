@@ -300,6 +300,17 @@ static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
 static double ogc_load_t0, ogc_load_server, ogc_load_total;
 
+/*
+Tirones: histograma del tiempo de cada cuadro y registro de los ultimos cuadros lentos
+(mas de 30 ms) con el desglose de lo que paso en ese cuadro. Se ve con "wii_prof".
+*/
+#define OGC_HITCH_MS 30.0
+#define OGC_HITCH_N 40
+static double ogc_frame_acc[OGC_PROF_N];
+static int ogc_hist[6];	// <=18, <=34, <=50, <=100, <=250, >250 ms
+static struct { double ms, v[OGC_PROF_N]; int frame; } ogc_hitch[OGC_HITCH_N];
+static int ogc_hitch_total, ogc_frames_seen;
+
 __attribute__((visibility("default"))) __attribute__((visibility("default"))) void OGC_ProfBytes( int bucket, double bytes )
 {
 	if( bucket >= 0 && bucket < OGC_PROF_N )
@@ -315,6 +326,31 @@ __attribute__((visibility("default"))) void OGC_ProfAdd( int bucket, double dt )
 	ogc_prof_cnt[bucket]++;
 	if( dt > ogc_prof_max[bucket] )
 		ogc_prof_max[bucket] = dt;
+
+	if( bucket != 0 )
+	{
+		ogc_frame_acc[bucket] += dt;
+	}
+	else
+	{
+		// fin de cuadro: clasificar y, si fue lento, guardar el desglose
+		double ms = dt * 1000.0;
+		int h = ms <= 18.0 ? 0 : ms <= 34.0 ? 1 : ms <= 50.0 ? 2 : ms <= 100.0 ? 3 : ms <= 250.0 ? 4 : 5;
+
+		ogc_hist[h]++;
+		ogc_frames_seen++;
+		if( ms > OGC_HITCH_MS )
+		{
+			int k = ogc_hitch_total % OGC_HITCH_N, i;
+
+			ogc_hitch[k].ms = ms;
+			ogc_hitch[k].frame = ogc_frames_seen;
+			for( i = 1; i < OGC_PROF_N; i++ )
+				ogc_hitch[k].v[i] = ogc_frame_acc[i] * 1000.0;
+			ogc_hitch_total++;
+		}
+		memset( ogc_frame_acc, 0, sizeof( ogc_frame_acc ));
+	}
 }
 
 // 0 = empieza la carga, 1 = servidor listo, 2 = el cliente ya esta jugando
@@ -356,6 +392,31 @@ static void OGC_Prof_f( void )
 		Con_Printf( "\n" );
 		ogc_prof_sum[i] = ogc_prof_max[i] = ogc_prof_bytes[i] = 0.0;
 		ogc_prof_cnt[i] = 0;
+	}
+
+	if( ogc_frames_seen )
+	{
+		Con_Printf( "  cuadros (ms): <=18 %d, <=34 %d, <=50 %d, <=100 %d, <=250 %d, >250 %d\n",
+			ogc_hist[0], ogc_hist[1], ogc_hist[2], ogc_hist[3], ogc_hist[4], ogc_hist[5] );
+		if( ogc_hitch_total )
+		{
+			int n = ogc_hitch_total < OGC_HITCH_N ? ogc_hitch_total : OGC_HITCH_N;
+			int first = ogc_hitch_total - n;
+
+			Con_Printf( "  cuadros lentos (>%d ms): %d, ultimos %d\n", (int)OGC_HITCH_MS, ogc_hitch_total, n );
+			Con_Printf( "  cuadro total | srv prev dibujo snd | sonido lect modelo imagen (ms)\n" );
+			for( i = 0; i < n; i++ )
+			{
+				int k = ( first + i ) % OGC_HITCH_N;
+
+				Con_Printf( "  #%d %6.1f | %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f %4.1f %4.1f\n",
+					ogc_hitch[k].frame, ogc_hitch[k].ms, ogc_hitch[k].v[1], ogc_hitch[k].v[3],
+					ogc_hitch[k].v[4], ogc_hitch[k].v[6], ogc_hitch[k].v[7], ogc_hitch[k].v[9],
+					ogc_hitch[k].v[10], ogc_hitch[k].v[11] );
+			}
+		}
+		memset( ogc_hist, 0, sizeof( ogc_hist ));
+		ogc_hitch_total = ogc_frames_seen = 0;
 	}
 
 	if( ogc_load_total > 0.0 )
