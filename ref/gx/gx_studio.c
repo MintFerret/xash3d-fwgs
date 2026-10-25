@@ -2309,6 +2309,7 @@ static void R_StudioProcessGait( entity_state_t *pplayer )
 
 static int R_StudioDrawPlayer( int flags, entity_state_t *pplayer )
 {
+	double prof_t;
 	alight_t	lighting;
 	vec3_t	dir;
 
@@ -2413,8 +2414,11 @@ static int R_StudioDrawPlayer( int flags, entity_state_t *pplayer )
 		if( g_nBottomColor > 360 ) g_nBottomColor = 360;
 
 		R_StudioSetRemapColors( g_nTopColor, g_nBottomColor );
+		OGC_ProfAdd( 22, Platform_DoubleTime() - prof_t ); // luz (trazado de luz del mapa)
 
+		prof_t = Platform_DoubleTime();
 		R_StudioRenderModel( );
+		OGC_ProfAdd( 23, Platform_DoubleTime() - prof_t ); // malla (transformar vertices + enviarlos)
 		m_pPlayerInfo = NULL;
 
 		if( pplayer->weaponmodel )
