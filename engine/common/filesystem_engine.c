@@ -398,7 +398,7 @@ qboolean OGC_MountSD( void )
         const char *second = from_usb ? "sd" : "usb";
         int tries;
 
-        mounted = fatInitDefault() ? 1 : 0;
+        mounted = fatInit( 32, true ) ? 1 : 0; // cache grande, ver sys_debuglog.c
 
         if( !OGC_FindBase( first, second ))
         {

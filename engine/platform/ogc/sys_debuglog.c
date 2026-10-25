@@ -14,8 +14,11 @@ static void OGC_DebugOpen(void)
 {
     if (g_log_fp) return;
 
-    /* la SD no está montada cuando corren los constructores: montarla ahora */
-    fatInitDefault();
+    /* la SD no está montada cuando corren los constructores: montarla ahora.
+       Cache de libfat de 32 paginas (~128 KB, antes 4 paginas): con la
+       cache por defecto las lecturas grandes (texturas, modelos) expulsan los
+       directorios y cada busqueda de archivo vuelve a leerlos de la SD. */
+    fatInit( 32, true );
 
     g_log_fp = fopen("sd:/xash_debug.log", "w");
     if (!g_log_fp) g_log_fp = fopen("usb:/xash_debug.log", "w");
