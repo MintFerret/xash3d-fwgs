@@ -816,7 +816,10 @@ static void CL_ParseServerData( sizebuf_t *msg, connprotocol_t proto )
 		MSG_ReadBytes( msg, clientdllmd5, sizeof( clientdllmd5 ), sizeof( clientdllmd5 ));
 		cl.maxclients = MSG_ReadByte( msg );
 		cl.playernum = MSG_ReadByte( msg );
+		// UnMunge trabaja sobre los bytes tal como llegaron (little-endian)
+		cl.checksum = LittleLong( cl.checksum );
 		COM_UnMunge3((byte *)&cl.checksum, sizeof( cl.checksum ), ( 0xff - cl.playernum ) & 0xff );
+		cl.checksum = LittleLong( cl.checksum );
 
 		MSG_SeekToBit( msg, sizeof( uint8_t ) << 3, SEEK_CUR ); // quake leftover, coop flag
 

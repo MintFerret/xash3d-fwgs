@@ -2394,6 +2394,7 @@ static int R_StudioDrawPlayer( int flags, entity_state_t *pplayer )
 		if( !( !gpGlobals->developer && gp_cl->maxclients == 1 ) && ( RI.currentmodel == RI.currententity->model ))
 			RI.currententity->curstate.body = 1;
 
+		prof_t = Platform_DoubleTime();
 		lighting.plightvec = dir;
 		R_EntityDynamicLight( RI.currententity, &lighting, FBitSet( RI.rvp.flags, RF_DRAW_WORLD ), g_studio.time, g_studio.lightspot, g_studio.lightvec );
 
@@ -2479,11 +2480,13 @@ static int R_StudioDrawModel( int flags )
 			return 1;
 	}
 
+	double prof_t = Platform_DoubleTime();
 	if( RI.currententity->curstate.movetype == MOVETYPE_FOLLOW )
 		R_StudioMergeBones( RI.currententity, RI.currentmodel );
 	else R_StudioSetupBones( RI.currententity );
 
 	R_StudioSaveBones();
+	OGC_ProfAdd( 21, Platform_DoubleTime() - prof_t ); // huesos (animacion)
 
 	if( flags & STUDIO_EVENTS )
 	{
@@ -2510,8 +2513,11 @@ static int R_StudioDrawModel( int flags )
 		g_nBottomColor = (RI.currententity->curstate.colormap & 0xFF00) >> 8;
 
 		R_StudioSetRemapColors( g_nTopColor, g_nBottomColor );
+		OGC_ProfAdd( 22, Platform_DoubleTime() - prof_t ); // luz (trazado de luz del mapa)
 
+		prof_t = Platform_DoubleTime();
 		R_StudioRenderModel();
+		OGC_ProfAdd( 23, Platform_DoubleTime() - prof_t ); // malla (transformar vertices + enviarlos)
 	}
 
 	return 1;
