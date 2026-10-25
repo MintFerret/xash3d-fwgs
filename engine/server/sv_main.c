@@ -696,10 +696,23 @@ void Host_ServerFrame( void )
 	SV_CheckTimeouts ();
 
 	// let everything in the world think and move
+#if XASH_OGC
+	double prof_t = Platform_DoubleTime();
+	qboolean prof_ran = SV_RunGameFrame ();
+	OGC_ProfAdd( 19, Platform_DoubleTime() - prof_t );
+	if( !prof_ran ) return;
+#else
 	if( !SV_RunGameFrame ()) return;
+#endif
 
 	// send messages back to the clients that had packets read this frame
+#if XASH_OGC
+	prof_t = Platform_DoubleTime();
 	SV_SendClientMessages ();
+	OGC_ProfAdd( 20, Platform_DoubleTime() - prof_t );
+#else
+	SV_SendClientMessages ();
+#endif
 
 	// clear edict flags for next frame
 	SV_PrepWorldFrame ();

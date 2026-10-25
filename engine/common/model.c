@@ -184,6 +184,12 @@ void Mod_Init( void )
 
 	Cmd_AddCommand( "mapstats", Mod_PrintWorldStats_f, "show stats for currently loaded map" );
 	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
+#if XASH_OGC
+	{
+		extern void Mod_MapCRC_f( void );
+		Cmd_AddCommand( "wii_mapcrc", Mod_MapCRC_f, "print the multiplayer CRC of a map, read two different ways" );
+	}
+#endif
 
 	Mod_ResetStudioAPI ();
 	Mod_InitStudioHull ();

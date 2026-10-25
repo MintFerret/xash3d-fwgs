@@ -4066,6 +4066,57 @@ qboolean CRC32_MapFile( dword *crcvalue, const char *filename, qboolean multipla
 	return true;
 }
 
+#if XASH_OGC
+/*
+=================
+Mod_MapCRC_f
+
+wii_mapcrc <mapa>: calcula el CRC de multijugador de dos formas (leyendo por trozos
+como CRC32_MapFile y leyendo el archivo entero) para saber si el CRC distinto al del
+servidor viene de la lectura o del archivo
+=================
+*/
+void Mod_MapCRC_f( void )
+{
+    char path[MAX_QPATH];
+    dword crc1 = 0, crc2;
+    fs_offset_t len = 0;
+    byte *buf;
+    dheader_t hdr;
+
+    if( Cmd_Argc() < 2 )
+    {
+        Con_Printf( "usage: wii_mapcrc <mapname>\n" );
+        return;
+    }
+
+    Q_snprintf( path, sizeof( path ), "maps/%s.bsp", Cmd_Argv( 1 ));
+    buf = FS_LoadFile( path, &len, false );
+    if( !buf || len < (fs_offset_t)sizeof( hdr ))
+    {
+        Con_Printf( "wii_mapcrc: can't read %s\n", path );
+        if( buf ) Mem_Free( buf );
+        return;
+    }
+
+    memcpy( &hdr, buf, sizeof( hdr ));
+    le_struct_swap( dheader_swap, &hdr );
+
+    CRC32_MapFile( &crc1, path, true );
+
+    CRC32_Init( &crc2 );
+    for( int i = LUMP_PLANES; i < HEADER_LUMPS; i++ )
+    {
+        if( hdr.lumps[i].filelen > 0 && hdr.lumps[i].fileofs >= 0 && hdr.lumps[i].fileofs + hdr.lumps[i].filelen <= len )
+            CRC32_ProcessBuffer( &crc2, buf + hdr.lumps[i].fileofs, hdr.lumps[i].filelen );
+    }
+
+    Con_Printf( "%s: %d bytes, bsp version %d\n  crc por trozos %08x, crc archivo entero %08x (%s)\n",
+        path, (int)len, hdr.version, (uint)crc1, (uint)crc2, crc1 == crc2 ? "iguales" : "DISTINTOS: falla la lectura" );
+    Mem_Free( buf );
+}
+#endif
+
 /*
 =================
 Mod_FindEndOfBSPFile

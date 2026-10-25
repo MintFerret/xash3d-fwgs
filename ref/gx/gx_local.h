@@ -33,6 +33,10 @@ GNU General Public License for more details.
 #include <gccore.h>
 #include <ogc/gx.h>
 
+/* sin esta declaracion C asume que devuelve int y todos los tiempos del renderer salian 0 */
+extern double Platform_DoubleTime( void );
+extern void OGC_ProfAdd( int bucket, double dt );
+
 #ifndef offsetof
 #ifdef __GNUC__
 #define offsetof(s,m) __builtin_offsetof(s,m)

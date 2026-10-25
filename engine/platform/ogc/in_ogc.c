@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 19
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync" };
+#define OGC_PROF_N 21
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -404,16 +404,17 @@ static void OGC_Prof_f( void )
 			int first = ogc_hitch_total - n;
 
 			Con_Printf( "  cuadros lentos (>%d ms): %d, ultimos %d\n", (int)OGC_HITCH_MS, ogc_hitch_total, n );
-			Con_Printf( "  cuadro total | srv prev dibujo snd | sonido lect modelo imagen | escena mundo entid gpu vsync (ms)\n" );
+			Con_Printf( "  cuadro total | srv prev dibujo snd | sonido lect modelo imagen | escena mundo entid gpu vsync | fis env (ms)\n" );
 			for( i = 0; i < n; i++ )
 			{
 				int k = ( first + i ) % OGC_HITCH_N;
 
-				Con_Printf( "  #%d %6.1f | %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f %5.1f %5.1f %5.1f %5.1f\n",
+				Con_Printf( "  #%d %6.1f | %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f %5.1f %5.1f %5.1f %5.1f | %4.1f %4.1f\n",
 					ogc_hitch[k].frame, ogc_hitch[k].ms, ogc_hitch[k].v[1], ogc_hitch[k].v[3],
 					ogc_hitch[k].v[4], ogc_hitch[k].v[6], ogc_hitch[k].v[7], ogc_hitch[k].v[9],
 					ogc_hitch[k].v[10], ogc_hitch[k].v[11], ogc_hitch[k].v[14], ogc_hitch[k].v[15],
-					ogc_hitch[k].v[16], ogc_hitch[k].v[17], ogc_hitch[k].v[18] );
+					ogc_hitch[k].v[16], ogc_hitch[k].v[17], ogc_hitch[k].v[18],
+					ogc_hitch[k].v[19], ogc_hitch[k].v[20] );
 			}
 		}
 		memset( ogc_hist, 0, sizeof( ogc_hist ));

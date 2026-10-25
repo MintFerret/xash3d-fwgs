@@ -41,6 +41,7 @@ CVAR_DEFINE_AUTO( gl_polyoffset_bmodels, "2", FCVAR_GLCONFIG, "polygon offset fo
 CVAR_DEFINE_AUTO( gx_fx_reset, "1", 0, "debug: reload the world matrices before drawing effects (0 = off)" );
 CVAR_DEFINE_AUTO( gx_fx_noz, "0", 0, "debug: draw beams and translucent TriAPI ignoring depth (1 = on)" );
 CVAR_DEFINE_AUTO( gl_wireframe, "0", FCVAR_GLCONFIG|FCVAR_SPONLY, "show wireframe overlay" );
+CVAR_DEFINE_AUTO( gx_vsync, "1", FCVAR_GLCONFIG, "0 = 60 fps (baja a 30 si el cuadro llega tarde), 1 = automatico (30 fijo si no alcanza 60), 2 = 30 fps fijos" );
 CVAR_DEFINE_AUTO( gl_finish, "0", FCVAR_GLCONFIG, "use GX_DrawDone instead of a plain flush" );
 CVAR_DEFINE_AUTO( gl_nosort, "0", FCVAR_GLCONFIG, "disable sorting of translucent surfaces" );
 CVAR_DEFINE_AUTO( gl_test, "0", 0, "engine developer cvar for quick testing new features" );
@@ -166,10 +167,41 @@ void GX_Present( void )
     double t_vs = Platform_DoubleTime();
     OGC_ProfAdd( 17, t_vs - t_gpu ); // espera a que la GPU termine el cuadro
 
+	/* Ritmo de cuadros. Con vsync, un cuadro que tarda un poco mas de 16,7 ms espera
+	   hasta 33,3 ms, y si el trabajo anda justo en ese limite la imagen alterna 60/30
+	   (tirones). En modo automatico, si en los ultimos 32 cuadros muchos pasaron de
+	   ~16 ms de trabajo se fijan 30 fps constantes; se vuelve a 60 cuando todos bajan
+	   de ~13,5 ms. */
+	static double last_end;
+	static int interval = 1, win_n, win_over;
+	static double win_max;
+	double work = t_vs - last_end;
+	int mode = (int)gx_vsync.value;
+
+	if( mode == 2 ) interval = 2;
+	else if( mode <= 0 ) interval = 1;
+	else if( work < 0.1 ) // se ignoran las cargas
+	{
+		win_n++;
+		if( work > 0.0158 ) win_over++;
+		if( work > win_max ) win_max = work;
+
+		if( win_n >= 32 )
+		{
+			if( interval == 1 && win_over >= 6 ) interval = 2;
+			else if( interval == 2 && win_max < 0.0135 ) interval = 1;
+			win_n = win_over = 0;
+			win_max = 0.0;
+		}
+	}
+
 	VIDEO_SetNextFramebuffer( gxvid.xfb[gxvid.fb] );
 	VIDEO_Flush();
 	VIDEO_WaitVSync();
 	OGC_ProfAdd( 18, Platform_DoubleTime() - t_vs ); // espera del vsync
+	if( interval == 2 && ( Platform_DoubleTime() - last_end ) < 0.024 )
+	    VIDEO_WaitVSync(); // todavia no pasaron dos retrazos: esperar el segundo
+	last_end = Platform_DoubleTime();
 	if( gxvid.rmode && FBitSet( gxvid.rmode->viTVMode, VI_NON_INTERLACE ))
 		VIDEO_WaitVSync();
 	if( n < 5 ) GX_LOG( "[GX] present %d: vsync ok\n", n );
@@ -349,6 +381,7 @@ static void GX_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &gl_nosort );
 	gEngfuncs.Cvar_RegisterVariable( &gl_test );
 	gEngfuncs.Cvar_RegisterVariable( &gl_wireframe );
+	gEngfuncs.Cvar_RegisterVariable( &gx_vsync );
 	gEngfuncs.Cvar_RegisterVariable( &gl_msaa );
 	gEngfuncs.Cvar_RegisterVariable( &gl_stencilbits );
 	gEngfuncs.Cvar_RegisterVariable( &gl_round_down );
