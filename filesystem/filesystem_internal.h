@@ -40,7 +40,12 @@ typedef struct pack_s pack_t;
 typedef struct wfile_s wfile_t;
 typedef struct android_assets_s android_assets_t;
 
+#if XASH_OGC
+// SD/USB via FAT: cada lectura tiene un coste fijo alto, asi que se leen bloques grandes
+#define FILE_BUFF_SIZE (16384)
+#else
 #define FILE_BUFF_SIZE (2048)
+#endif
 #define FILE_DEFLATED BIT( 0 )
 
 typedef struct ztoolkit_s

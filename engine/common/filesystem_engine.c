@@ -49,6 +49,8 @@ fs_api_t g_fsapi;
 // perfil de lecturas (wii_prof): se envuelven LoadFile y Read del filesystem
 static byte *(*fs_real_LoadFile)( const char *path, fs_offset_t *filesizeptr, qboolean gamedironly );
 static fs_offset_t (*fs_real_Read)( file_t *file, void *buffer, size_t buffersize );
+static file_t *(*fs_real_Open)( const char *filepath, const char *mode, qboolean gamedironly );
+static int (*fs_real_Seek)( file_t *file, fs_offset_t offset, int whence );
 
 static byte *OGC_FS_LoadFile( const char *path, fs_offset_t *filesizeptr, qboolean gamedironly )
 {
@@ -72,12 +74,34 @@ static fs_offset_t OGC_FS_Read( file_t *file, void *buffer, size_t buffersize )
     return n;
 }
 
+static file_t *OGC_FS_Open( const char *filepath, const char *mode, qboolean gamedironly )
+{
+    double t0 = Platform_DoubleTime();
+    file_t *f = fs_real_Open( filepath, mode, gamedironly );
+
+    OGC_ProfAdd( 12, Platform_DoubleTime() - t0 );
+    return f;
+}
+
+static int OGC_FS_Seek( file_t *file, fs_offset_t offset, int whence )
+{
+    double t0 = Platform_DoubleTime();
+    int ret = fs_real_Seek( file, offset, whence );
+
+    OGC_ProfAdd( 13, Platform_DoubleTime() - t0 );
+    return ret;
+}
+
 static void OGC_HookFS( void )
 {
     fs_real_LoadFile = g_fsapi.LoadFile;
     fs_real_Read = g_fsapi.Read;
+    fs_real_Open = g_fsapi.Open;
+    fs_real_Seek = g_fsapi.Seek;
     g_fsapi.LoadFile = OGC_FS_LoadFile;
     g_fsapi.Read = OGC_FS_Read;
+    g_fsapi.Open = OGC_FS_Open;
+    g_fsapi.Seek = OGC_FS_Seek;
 }
 #endif
 fs_globals_t *FI;
