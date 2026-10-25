@@ -22,6 +22,7 @@ GNU General Public License for more details.
 
 /* Contador de rendimiento para cl_showfps 3 */
 extern double g_gx_frame_time_ms;
+extern void OGC_ProfAdd( int bucket, double dt );
 extern double g_gx_cpu_time_ms;
 
 
@@ -890,6 +891,30 @@ void R_RenderScene( void )
         static int ls_prev[MAX_LIGHTSTYLES];
         static const void *ls_world;
         static int ls_last_rebuild;
+        static int ls_cur[MAX_LIGHTSTYLES];
+        static unsigned char ls_chg[MAX_LIGHTSTYLES], ls_anim[MAX_LIGHTSTYLES];
+
+        /* Los estilos que cambian todo el rato (luces con "pattern" que parpadean)
+           ya se actualizan por superficie en R_CheckLightMap. Reconstruir TODOS los
+           lightmaps por culpa de ellos costaba ~40 ms cada 16 cuadros (tirones).
+           Se marcan como animados y la red de seguridad los ignora: solo se
+           reconstruye por interruptores que cambian de vez en cuando. */
+        for( int i = 32; i < MAX_LIGHTSTYLES; i++ )
+        {
+            if( ls_cur[i] != (int)g_lightstylevalue[i] )
+            {
+                ls_cur[i] = (int)g_lightstylevalue[i];
+                if( ls_chg[i] < 255 ) ls_chg[i]++;
+            }
+        }
+        if(( tr.framecount & 63 ) == 0 )
+        {
+            for( int i = 32; i < MAX_LIGHTSTYLES; i++ )
+            {
+                ls_anim[i] = ls_chg[i] >= 4;
+                ls_chg[i] = 0;
+            }
+        }
 
         if( ls_world != WORLDMODEL )
         {
@@ -900,7 +925,7 @@ void R_RenderScene( void )
         {
             int changed = 0;
             for( int i = 32; i < MAX_LIGHTSTYLES; i++ )
-                if( ls_prev[i] != (int)g_lightstylevalue[i] ) changed = 1;
+                if( !ls_anim[i] && ls_prev[i] != (int)g_lightstylevalue[i] ) changed = 1;
 
             if( changed && ( tr.framecount - ls_last_rebuild ) > 15 )
             {
@@ -924,14 +949,19 @@ void R_RenderScene( void )
         R_AnimateRipples();
 
     R_CheckGLFog();
+    double __t_w = Platform_DoubleTime();
     R_DrawWorld();
+    OGC_ProfAdd( 15, Platform_DoubleTime() - __t_w );
     R_CheckFog();
 
     gEngfuncs.CL_ExtraUpdate();
 
+    __t_w = Platform_DoubleTime();
     R_DrawEntitiesOnList();
+    OGC_ProfAdd( 16, Platform_DoubleTime() - __t_w );
     R_DrawWaterSurfaces();
 	g_gx_frame_time_ms = (Platform_DoubleTime() - __t_start) * 1000.0;
+OGC_ProfAdd( 14, Platform_DoubleTime() - __t_start );
 }
 
 void R_GammaChanged( qboolean do_reset_gamma )

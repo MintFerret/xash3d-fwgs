@@ -15,6 +15,8 @@ GNU General Public License for more details.
 */
 
 #include "gx_local.h"
+extern double Platform_DoubleTime( void );
+extern void OGC_ProfAdd( int bucket, double dt );
 
 #include <gccore.h>
 #include <ogc/gx.h>
@@ -151,6 +153,7 @@ void GX_Present( void )
 		GX_TestBars();
 
 	if( n < 5 ) GX_LOG( "[GX] present %d: DrawDone\n", n );
+	double t_gpu = Platform_DoubleTime();
 	GX_DrawDone();
 	/* GX_CopyDisp(clear=TRUE) solo limpia color/alpha/Z si sus escrituras estan habilitadas en ese momento. */
 	/* Si el ultimo dibujo dejo Z-write o color-update apagado, el EFB no se limpia y el frame anterior se acumula. */
@@ -160,10 +163,13 @@ void GX_Present( void )
 	if( n < 5 ) GX_LOG( "[GX] present %d: CopyDisp\n", n );
 	GX_CopyDisp( gxvid.xfb[gxvid.fb], GX_TRUE );
 	GX_DrawDone(); /* esperar a que la copia EFB->XFB termine antes de mostrarla (evita tearing) */
+    double t_vs = Platform_DoubleTime();
+    OGC_ProfAdd( 17, t_vs - t_gpu ); // espera a que la GPU termine el cuadro
 
 	VIDEO_SetNextFramebuffer( gxvid.xfb[gxvid.fb] );
 	VIDEO_Flush();
 	VIDEO_WaitVSync();
+	OGC_ProfAdd( 18, Platform_DoubleTime() - t_vs ); // espera del vsync
 	if( gxvid.rmode && FBitSet( gxvid.rmode->viTVMode, VI_NON_INTERLACE ))
 		VIDEO_WaitVSync();
 	if( n < 5 ) GX_LOG( "[GX] present %d: vsync ok\n", n );
