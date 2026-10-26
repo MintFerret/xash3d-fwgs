@@ -23,6 +23,7 @@ GNU General Public License for more details.
 /* Contador de rendimiento para cl_showfps 3 */
 extern double g_gx_frame_time_ms;
 extern void OGC_ProfAdd( int bucket, double dt );
+extern void GX_UpdateStyleSurfaces( const byte *changed );
 extern double g_gx_cpu_time_ms;
 
 
@@ -923,15 +924,24 @@ void R_RenderScene( void )
         }
         else
         {
+            byte ls_changed[MAX_LIGHTSTYLES];
             int changed = 0;
+            memset( ls_changed, 0, sizeof( ls_changed ));
             for( int i = 32; i < MAX_LIGHTSTYLES; i++ )
-                if( !ls_anim[i] && ls_prev[i] != (int)g_lightstylevalue[i] ) changed = 1;
+            {
+                if( !ls_anim[i] && ls_prev[i] != (int)g_lightstylevalue[i] )
+                {
+                    ls_changed[i] = 1;
+                    changed = 1;
+                }
+            }
 
             if( changed && ( tr.framecount - ls_last_rebuild ) > 15 )
             {
                 ls_last_rebuild = tr.framecount;
                 for( int i = 0; i < MAX_LIGHTSTYLES; i++ ) ls_prev[i] = g_lightstylevalue[i];
-                GX_RebuildLightmaps();
+                /* solo las superficies de los estilos que cambiaron (antes: todos los lightmaps, ~62 ms) */
+                GX_UpdateStyleSurfaces( ls_changed );
             }
         }
     }

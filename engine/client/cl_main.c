@@ -37,6 +37,7 @@ static CVAR_DEFINE_AUTO( cl_resend, "6.0", 0, "time to resend connect" );
 CVAR_DEFINE( cl_allow_download, "cl_allowdownload", "1", FCVAR_ARCHIVE, "allow to downloading resources from the server" );
 static CVAR_DEFINE( cl_allow_upload, "cl_allowupload", "1", FCVAR_ARCHIVE, "allow to uploading resources to the server" );
 CVAR_DEFINE_AUTO( cl_download_ingame, "1", FCVAR_ARCHIVE, "allow to downloading resources while client is active" );
+CVAR_DEFINE_AUTO( cl_customization, "0", FCVAR_ARCHIVE, "download other players sprays/logos (Wii: off, they only add traffic)" );
 static CVAR_DEFINE_AUTO( cl_logofile, "lambda", FCVAR_ARCHIVE, "player logo name" );
 static CVAR_DEFINE_AUTO( cl_logocolor, "255 120 24", FCVAR_ARCHIVE, "player logo color" );
 static CVAR_DEFINE_AUTO( cl_logoext, "bmp", FCVAR_ARCHIVE, "temporary cvar to tell engine which logo must be packed" );
@@ -3552,6 +3553,7 @@ static void CL_InitLocal( void )
 	Cvar_RegisterVariable( &cl_allow_upload );
 	Cvar_RegisterVariable( &cl_allow_download );
 	Cvar_RegisterVariable( &cl_download_ingame );
+	Cvar_RegisterVariable( &cl_customization );
 	Cvar_RegisterVariable( &cl_logofile );
 	Cvar_RegisterVariable( &cl_logocolor );
 	Cvar_RegisterVariable( &cl_logoext );

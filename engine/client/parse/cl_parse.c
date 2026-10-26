@@ -626,6 +626,17 @@ static void CL_ParseCustomization( sizebuf_t *msg )
 		return;
 	}
 
+#if XASH_OGC
+	// los sprays/logos de otros jugadores son solo decoracion; en la Wii pedirlos al servidor
+	// termino en "server failed to transmit file 'customization'" y "Reliable channel overflowed"
+	if( !cl_customization.value )
+	{
+		Con_DPrintf( "Refusing customization, cl_customization set to 0\n" );
+		Mem_Free( pRes );
+		return;
+	}
+#endif
+
 	if( cls.state == ca_active && !cl_download_ingame.value )
 	{
 		Con_DPrintf( "Refusing new resource, cl_download_ingame set to 0\n" );

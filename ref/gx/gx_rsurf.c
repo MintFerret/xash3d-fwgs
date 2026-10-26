@@ -1633,6 +1633,57 @@ static qboolean R_CheckLightMap( msurface_t *fa )
 	return false;
 }
 
+/*
+Actualiza solo las superficies que usan alguno de los estilos de luz marcados en
+"changed" (con la misma logica que R_CheckLightMap). Antes se reconstruian TODOS los
+lightmaps cuando cambiaba un estilo (~62 ms), con un tiron cada vez que una luz
+parpadeaba. Aqui el costo es proporcional a las superficies afectadas.
+*/
+void GX_UpdateStyleSurfaces( const byte *changed )
+{
+    static byte temp[132*132*4];
+    model_t *world = WORLDMODEL;
+
+    if( !world || !world->surfaces )
+        return;
+
+    for( int i = 0; i < world->numsurfaces; i++ )
+    {
+        msurface_t *fa = &world->surfaces[i];
+
+        if( !fa->polys || FBitSet( fa->flags, SURF_DRAWTILED ) || !fa->samples || !fa->info )
+            continue;
+
+        if( fa->lightmaptexturenum < 0 || fa->lightmaptexturenum >= MAX_LIGHTMAPS || !tr.lightmapTextures[fa->lightmaptexturenum] )
+            continue;
+
+        qboolean hit = false;
+        for( int maps = 0; maps < MAXLIGHTMAPS && fa->styles[maps] != 255; maps++ )
+        {
+            if( changed[fa->styles[maps]] && g_lightstylevalue[fa->styles[maps]] != fa->cached_light[maps] )
+            {
+                hit = true;
+                break;
+            }
+        }
+
+        if( !hit )
+            continue;
+
+        mextrasurf_t *info = fa->info;
+        int sample_size = gEngfuncs.Mod_SampleSizeForFace( fa );
+        int smax = ( info->lightextents[0] / sample_size ) + 1;
+        int tmax = ( info->lightextents[1] / sample_size ) + 1;
+
+        if( smax >= 132 || tmax >= 132 )
+            continue; // las superficies enormes las deja como estan R_CheckLightMap
+
+        R_BuildLightMap( fa, temp, smax * 4, true );
+        R_UpdateSurfaceCachedLight( fa );
+        GX_UpdateTextureSub( tr.lightmapTextures[fa->lightmaptexturenum], fa->light_s, fa->light_t, smax, tmax, temp );
+    }
+}
+
 static void R_RenderLightmapForSurface( msurface_t *fa )
 {
 	if( !fa->polys || FBitSet( fa->flags, SURF_DRAWTILED ))
