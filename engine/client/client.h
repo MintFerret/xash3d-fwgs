@@ -107,7 +107,7 @@ extern int CL_UPDATE_BACKUP;
 // entidades visibles los deltas caducaran en 5-6 frames ("delta frame is too
 // old"). Solo afecta al cliente: el servidor propio sigue con NUM_PACKET_ENTITIES.
 #if XASH_OGC
-#define CL_NUM_PACKET_ENTITIES 128
+#define CL_NUM_PACKET_ENTITIES 256	// el servidor ahora puede mandar hasta 256 entidades visibles
 #else
 #define CL_NUM_PACKET_ENTITIES NUM_PACKET_ENTITIES
 #endif

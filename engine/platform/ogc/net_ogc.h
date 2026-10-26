@@ -137,6 +137,24 @@ static inline int ogc_net_recvfrom(int s, void *b, int l, int f, struct sockaddr
 	return -1;
 }
 
+// TCP (descargas HTTP, rcon): libogc devuelve -errno y no toca errno, asi que el
+// motor veia un errno viejo (por ejemplo ENOENT de un archivo, o EAGAIN que deja
+// recvfrom) y cualquier connect() en curso se tomaba por un error
+static inline int ogc_net_connect( int s, const struct sockaddr *a, socklen_t l )
+{
+    return ogc_net_fix_ret( net_connect( s, (struct sockaddr *)a, l ));
+}
+
+static inline int ogc_net_send( int s, const void *b, int l, int f )
+{
+    return ogc_net_fix_ret( net_send( s, b, l, f ));
+}
+
+static inline int ogc_net_recv( int s, void *b, int l, int f )
+{
+    return ogc_net_fix_ret( net_recv( s, b, l, f ));
+}
+
 #define ioctlsocket net_ioctl
 #define closesocket net_close
 
@@ -150,11 +168,11 @@ static inline int ogc_net_recvfrom(int s, void *b, int l, int f, struct sockaddr
 #define bind(s,a,l)                 net_bind((s),(a),(l))
 #define fcntl(s,cmd,arg)            net_fcntl((s),(cmd),(arg))
 
-#define connect(s,a,l)              net_connect((s),(a),(l))
+#define connect(s,a,l)              ogc_net_connect((s),(a),(l))
 #define listen(s,b)                 net_listen((s),(b))
-#define accept(s,a,l)               net_accept((s),(a),(l))
-#define send(s,b,l,f)               net_send((s),(b),(l),(f))
-#define recv(s,b,l,f)               net_recv((s),(b),(l),(f))
+#define accept(s,a,l)               ogc_net_fix_ret( net_accept((s),(a),(l)))
+#define send(s,b,l,f)               ogc_net_send((s),(b),(l),(f))
+#define recv(s,b,l,f)               ogc_net_recv((s),(b),(l),(f))
 #define setsockopt(s,lv,o,v,l)      net_setsockopt((s),(lv),(o),(v),(l))
 #define getsockopt(s,lv,o,v,l)      net_getsockopt((s),(lv),(o),(v),(l))
 #define getsockname(s,a,l)          net_getsockname((s),(a),(l))

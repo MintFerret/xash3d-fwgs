@@ -187,7 +187,7 @@ GNU General Public License for more details.
 #undef MAX_RENDER_DECALS
 #undef MAX_RESOURCES
 #undef MAX_LIGHTSTYLES
-#define MAX_VISIBLE_PACKET		128
+#define MAX_VISIBLE_PACKET		256	// con 128 el servidor ignoraba entidades visibles en mapas con muchas
 #define MAX_VISIBLE_PACKET_VIS_BYTES	((MAX_VISIBLE_PACKET + 7) / 8)
 #define MAX_EVENTS			128
 #define MAX_MODELS			2048

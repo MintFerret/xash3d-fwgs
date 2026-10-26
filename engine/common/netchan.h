@@ -89,7 +89,7 @@ GNU General Public License for more details.
 	#define CMD_BACKUP				16
 	#define MULTIPLAYER_BACKUP		16
 	#define SINGLEPLAYER_BACKUP		4
-	#define NUM_PACKET_ENTITIES		64
+	#define NUM_PACKET_ENTITIES		128	// historial de entidades por cuadro (antes 64)
 	#define MAX_CUSTOM_BASELINES		8
 	#define NET_MAX_FRAGMENT			32768
 #else
