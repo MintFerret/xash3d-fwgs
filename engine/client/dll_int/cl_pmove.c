@@ -1061,6 +1061,9 @@ void CL_PredictMovement( qboolean repredicting )
 
 	if(( i == CL_UPDATE_MASK ) || ( !to && !repredicting ))
 	{
+#if XASH_OGC
+		if( i == CL_UPDATE_MASK ) OGC_NetCount( 3 );
+#endif
 		cl.local.repredicting = false;
 		return; // net hasn't deliver packets in a long time...
 	}
@@ -1092,6 +1095,9 @@ void CL_PredictMovement( qboolean repredicting )
 
 	if( CL_PlayerTeleported( from, to ))
 	{
+#if XASH_OGC
+		OGC_NetCount( 4 );
+#endif
 		VectorCopy( to->client.velocity, cl.simvel );
 		VectorCopy( to->playerstate.origin, cl.simorg );
 		VectorCopy( to->client.punchangle, cl.punchangle );

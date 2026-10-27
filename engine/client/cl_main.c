@@ -1271,6 +1271,27 @@ static void CL_SendConnectPacket( connprotocol_t proto, int challenge )
 
 	if( adr.port == 0 ) adr.port = MSG_BigShort( PORT_SERVER );
 
+#if XASH_OGC
+	if( adrtype != NA_LOOPBACK )
+	{
+		// El cliente de Wii no incluye la prediccion de armas (CLIENT_WEAPONS). Con cl_lw 1 el
+		// servidor no le manda al tirador sus propios eventos (animacion del arma, fogonazo,
+		// sonido) porque espera que el cliente los reproduzca. Con cl_lw 0 los manda el servidor.
+		Cvar_DirectSet( &cl_lw, "0" );
+		Info_SetValueForKey( cls.userinfo, "cl_lw", "0", sizeof( cls.userinfo ));
+
+		// mas de 30 paquetes por segundo con ping alto dejaban los deltas sin confirmar
+		// ("delta frame is too old") y la prediccion se abortaba
+		if( cl_updaterate.value > 30.0f )
+		{
+			Cvar_DirectSet( &cl_updaterate, "30" );
+			Info_SetValueForKey( cls.userinfo, "cl_updaterate", "30", sizeof( cls.userinfo ));
+		}
+		if( cl_cmdrate.value > 30.0f )
+			Cvar_DirectSet( &cl_cmdrate, "30" );
+	}
+#endif
+
 	int input_devices = IN_CollectInputDevices();
 	IN_LockInputDevices( adrtype != NA_LOOPBACK ? true : false );
 

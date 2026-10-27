@@ -112,6 +112,10 @@ extern int CL_UPDATE_BACKUP;
 #define CL_NUM_PACKET_ENTITIES NUM_PACKET_ENTITIES
 #endif
 
+#if XASH_OGC
+void OGC_NetCount( int what ); // diagnostico de red (wii_prof)
+#endif
+
 #define SIGNONS		2		// signon messages to receive before connected
 #define INVALID_HANDLE	0xFFFF		// for XashXT cache system
 

@@ -687,6 +687,9 @@ qboolean CL_ValidateDeltaPacket( uint oldpacket, frame_t *oldframe )
 	if( subtracted == 0 )
 	{
 		Con_NPrintf( 2, "^3Warning:^1 update too old\n^7\n" );
+#if XASH_OGC
+		OGC_NetCount( 0 );
+#endif
 		return false;
 	}
 
@@ -694,12 +697,18 @@ qboolean CL_ValidateDeltaPacket( uint oldpacket, frame_t *oldframe )
 	{
 		// we can't use this, it is too old
 		Con_NPrintf( 2, "^3Warning:^1 delta frame is too old^7\n" );
+#if XASH_OGC
+		OGC_NetCount( 1 );
+#endif
 		return false;
 	}
 
 	if(( cls.next_client_entities - oldframe->first_entity ) > ( cls.num_client_entities - CL_NUM_PACKET_ENTITIES ))
 	{
 		Con_NPrintf( 2, "^3Warning:^1 delta frame is too old^7\n" );
+#if XASH_OGC
+		OGC_NetCount( 2 );
+#endif
 		return false;
 	}
 

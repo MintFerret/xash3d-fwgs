@@ -820,7 +820,12 @@ static void SV_SetupClients( void )
 	// feedback for cvar
 	Cvar_FullSet( "maxplayers", va( "%d", svs.maxclients ), FCVAR_LATCH );
 #if XASH_LOW_MEMORY != 2
+	#if XASH_OGC
+	// el cliente de Wii usa MULTIPLAYER_BACKUP 32, el servidor se queda en 16 (memoria)
+	SV_UPDATE_BACKUP = ( svs.maxclients == 1 ) ? SINGLEPLAYER_BACKUP : 16;
+#else
 	SV_UPDATE_BACKUP = ( svs.maxclients == 1 ) ? SINGLEPLAYER_BACKUP : MULTIPLAYER_BACKUP;
+#endif
 #endif
 
 	svs.clients = Z_Realloc( svs.clients, sizeof( sv_client_t ) * svs.maxclients );

@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 26
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma" };
+#define OGC_PROF_N 27
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -317,6 +317,13 @@ static int ogc_fs[4];
 #define OGC_NOTE_N 24
 static struct { char what; char name[44]; double ms; int frame; } ogc_note[OGC_NOTE_N];
 static int ogc_note_total;
+static int ogc_netc[6];	// contadores de red: 0 update repetido, 1 delta viejo (secuencia), 2 delta viejo (anillo), 3 prediccion abortada, 4 teletransporte
+
+__attribute__((visibility("default"))) void OGC_NetCount( int what )
+{
+	if( what >= 0 && what < 6 )
+		ogc_netc[what]++;
+}
 
 __attribute__((visibility("default"))) void OGC_NetDiag( int in_seq, int out_seq, int acked, float loss )
 {
@@ -342,8 +349,12 @@ __attribute__((visibility("default"))) void OGC_ProfSetInterval( int interval )
 __attribute__((visibility("default"))) void OGC_ProfFrameInfo( int models, int studiotris, int worldtris, int particles )
 {
     ogc_fs[0] = models;
-    ogc_fs[1] = studiotris;
-    ogc_fs[2] = worldtris;
+    // r_stats no se pone a cero cada cuadro: se guarda la diferencia
+    static unsigned int prev_st, prev_wo;
+    ogc_fs[1] = (int)( (unsigned int)studiotris - prev_st );
+    ogc_fs[2] = (int)( (unsigned int)worldtris - prev_wo );
+    prev_st = (unsigned int)studiotris;
+    prev_wo = (unsigned int)worldtris;
     ogc_fs[3] = particles;
 }
 
@@ -501,15 +512,15 @@ static void OGC_Prof_f( void )
                                 ogc_hitch[j] = tmp;
                             }
 
-                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot luz malla arma | fis env | modelos tris.est tris.mundo part\n" );
+                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | modelos tris.est tris.mundo part\n" );
                     for( i = 0; i < n; i++ )
                     {
                         double *v = ogc_hitch[i].v;
 
-                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %d %d %d %d\n",
+                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %d %d %d %d\n",
                             ogc_hitch[i].frame, ogc_hitch[i].ms, v[24], v[1], v[3], v[6],
                             v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
-                            v[21], v[22], v[23], v[25], v[19], v[20],
+                            v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
                             ogc_hitch[i].fs[0], ogc_hitch[i].fs[1], ogc_hitch[i].fs[2], ogc_hitch[i].fs[3] );
                     }
                 }

@@ -1882,7 +1882,7 @@ int R_GetEntityRenderMode( cl_entity_t *ent )
 	return ent->curstate.rendermode;
 }
 
-static void R_StudioClientEvents( void )
+static void R_StudioClientEventsImpl( void )
 {
 	cl_entity_t	*e = RI.currententity;
 
@@ -1935,6 +1935,13 @@ static void R_StudioClientEvents( void )
 		if( (float)pevent[i].frame > start && pevent[i].frame <= end )
 			gEngfuncs.pfnStudioEvent( &pevent[i], e );
 	}
+}
+
+static void R_StudioClientEvents( void )
+{
+    double t0 = Platform_DoubleTime();
+    R_StudioClientEventsImpl();
+    OGC_ProfAdd( 26, Platform_DoubleTime() - t0 );
 }
 
 static int R_StudioGetForceFaceFlags( void )
@@ -2568,7 +2575,7 @@ static cl_entity_t *R_FindParentEntity( cl_entity_t *e, cl_entity_t **entities, 
 	return NULL;
 }
 
-void R_DrawStudioModel( cl_entity_t *e )
+static void R_DrawStudioModelImpl( cl_entity_t *e )
 {
 	if( FBitSet( RI.rvp.flags, RF_DRAW_CUBEMAP ))
 		return;
@@ -2608,6 +2615,13 @@ void R_DrawStudioModel( cl_entity_t *e )
 	}
 }
 
+void R_DrawStudioModel( cl_entity_t *e )
+{
+    double t0 = Platform_DoubleTime();
+    R_DrawStudioModelImpl( e );
+    OGC_ProfAdd( 21, Platform_DoubleTime() - t0 );
+}
+
 void R_RunViewmodelEvents( void )
 {
 	if( r_drawviewmodel->value == 0 )
@@ -2634,7 +2648,7 @@ void R_RunViewmodelEvents( void )
 	R_StudioDrawModelInternal( RI.currententity, STUDIO_EVENTS );
 }
 
-void R_DrawViewModel( void )
+static void R_DrawViewModelImpl( void )
 {
 	cl_entity_t	*view = tr.viewent;
 
@@ -2688,6 +2702,13 @@ void R_DrawViewModel( void )
 	}
 
 	GX_SetDepthRange( gldepthmin, gldepthmax );
+}
+
+void R_DrawViewModel( void )
+{
+    double t0 = Platform_DoubleTime();
+    R_DrawViewModelImpl();
+    OGC_ProfAdd( 25, Platform_DoubleTime() - t0 );
 }
 
 static void R_StudioLoadTexture( model_t *mod, studiohdr_t *phdr, mstudiotexture_t *ptexture )
