@@ -152,7 +152,7 @@ wavdata_t *S_LoadSound( sfx_t *sfx )
 
 #if XASH_OGC
 	OGC_ProfAdd( 7, Platform_DoubleTime() - prof_t0 );
-	OGC_ProfNote( \'S\', sfx->name, Platform_DoubleTime() - prof_t0 );
+	OGC_ProfNote( 'S', sfx->name, Platform_DoubleTime() - prof_t0 );
 	if( sc ) OGC_ProfBytes( 7, (double)sc->size );
 #endif
 

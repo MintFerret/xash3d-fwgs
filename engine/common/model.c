@@ -459,7 +459,7 @@ model_t *Mod_ForName( const char *name, qboolean crash, qboolean trackCRC )
     model_t *ret = Mod_LoadModel( mod, crash );
 
     OGC_ProfAdd( 10, Platform_DoubleTime() - t0 );
-    OGC_ProfNote( \'M\', mod->name, Platform_DoubleTime() - t0 );
+    OGC_ProfNote( 'M', mod->name, Platform_DoubleTime() - t0 );
     return ret;
 #else
     return Mod_LoadModel( mod, crash );
