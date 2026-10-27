@@ -135,6 +135,8 @@ const char *OGC_BaseDir( void );
 qboolean OGC_MountSD( void );
 void OGC_ProfAdd( int bucket, double dt );
 void OGC_ProfBytes( int bucket, double bytes );
+void OGC_ProfNote( int kind, const char *name, double dt );
+void OGC_NetDiag( int in_seq, int out_seq, int acked, float loss );
 void OGC_LoadMark( int what );
 extern int ogc_usb_kbd_ok;
 extern int ogc_usb_mouse_ok;

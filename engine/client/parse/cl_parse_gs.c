@@ -585,6 +585,10 @@ void CL_ParseGoldSrcServerMessage( sizebuf_t *msg )
 			s = MSG_ReadString( msg );
 			if( !COM_StringEmpty( s ))
 				Con_Printf( "Server issued disconnect. Reason: %s\n", s );
+#if XASH_OGC
+            // diagnostico: el servidor nos echa si no confirmamos sus paquetes a tiempo
+            OGC_NetDiag( cls.netchan.incoming_sequence, cls.netchan.outgoing_sequence, cls.netchan.incoming_acknowledged, cls.packet_loss );
+#endif
 			CL_Drop ();
 			Host_AbortCurrentFrame ();
 			break;

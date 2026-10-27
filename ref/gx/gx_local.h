@@ -36,6 +36,8 @@ GNU General Public License for more details.
 /* sin esta declaracion C asume que devuelve int y todos los tiempos del renderer salian 0 */
 extern double Platform_DoubleTime( void );
 extern void OGC_ProfAdd( int bucket, double dt );
+extern void OGC_ProfSetInterval( int interval );
+extern void OGC_ProfFrameInfo( int models, int studiotris, int worldtris, int particles );
 
 #ifndef offsetof
 #ifdef __GNUC__

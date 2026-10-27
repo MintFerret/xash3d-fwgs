@@ -1008,7 +1008,7 @@ static int R_StudioCheckBBox( void )
 	return R_StudioComputeBBox( NULL );
 }
 
-static void R_StudioEntityLight( alight_t *lightinfo )
+static void R_StudioEntityLightImpl( alight_t *lightinfo )
 {
 	float		lstrength[MAX_LOCALLIGHTS];
 	cl_entity_t	*ent = RI.currententity;
@@ -1083,7 +1083,14 @@ static void R_StudioEntityLight( alight_t *lightinfo )
 	}
 }
 
-static void R_StudioSetupLighting( alight_t *plight )
+static void R_StudioEntityLight( alight_t *lightinfo )
+{
+    double t0 = Platform_DoubleTime();
+    R_StudioEntityLightImpl( lightinfo );
+    OGC_ProfAdd( 22, Platform_DoubleTime() - t0 );
+}
+
+static void R_StudioSetupLightingImpl( alight_t *plight )
 {
 	float	scale = 1.0f;
 
@@ -1104,6 +1111,13 @@ static void R_StudioSetupLighting( alight_t *plight )
 	}
 
 	VectorCopy( plight->color, g_studio.lightcolor );
+}
+
+static void R_StudioSetupLighting( alight_t *lightinfo )
+{
+    double t0 = Platform_DoubleTime();
+    R_StudioSetupLightingImpl( lightinfo );
+    OGC_ProfAdd( 22, Platform_DoubleTime() - t0 );
 }
 
 static void R_StudioLighting( float *lv, int bone, int flags, vec3_t normal )
@@ -1401,7 +1415,7 @@ static void R_StudioSubmitMesh( short *ptricmds, vec3_t *pstudionorms, float s, 
 	}
 }
 
-static void R_StudioDrawPoints( void )
+static void R_StudioDrawPointsImpl( void )
 {
 	float		shellscale = 0.0f;
 	qboolean		need_sort = false;
@@ -1585,6 +1599,13 @@ static void R_StudioDrawPoints( void )
 		r_stats.c_studio_polys += pmesh->numtris;
 		tr.blend = oldblend;
 	}
+}
+
+static void R_StudioDrawPoints( void )
+{
+    double t0 = Platform_DoubleTime();
+    R_StudioDrawPointsImpl();
+    OGC_ProfAdd( 23, Platform_DoubleTime() - t0 );
 }
 
 static void R_StudioDrawHulls( void )
@@ -2309,7 +2330,6 @@ static void R_StudioProcessGait( entity_state_t *pplayer )
 
 static int R_StudioDrawPlayer( int flags, entity_state_t *pplayer )
 {
-	double prof_t;
 	alight_t	lighting;
 	vec3_t	dir;
 
@@ -2394,8 +2414,6 @@ static int R_StudioDrawPlayer( int flags, entity_state_t *pplayer )
 
 		if( !( !gpGlobals->developer && gp_cl->maxclients == 1 ) && ( RI.currentmodel == RI.currententity->model ))
 			RI.currententity->curstate.body = 1;
-
-		prof_t = Platform_DoubleTime();
 		lighting.plightvec = dir;
 		R_EntityDynamicLight( RI.currententity, &lighting, FBitSet( RI.rvp.flags, RF_DRAW_WORLD ), g_studio.time, g_studio.lightspot, g_studio.lightvec );
 
@@ -2414,11 +2432,7 @@ static int R_StudioDrawPlayer( int flags, entity_state_t *pplayer )
 		if( g_nBottomColor > 360 ) g_nBottomColor = 360;
 
 		R_StudioSetRemapColors( g_nTopColor, g_nBottomColor );
-		OGC_ProfAdd( 22, Platform_DoubleTime() - prof_t ); // luz (trazado de luz del mapa)
-
-		prof_t = Platform_DoubleTime();
 		R_StudioRenderModel( );
-		OGC_ProfAdd( 23, Platform_DoubleTime() - prof_t ); // malla (transformar vertices + enviarlos)
 		m_pPlayerInfo = NULL;
 
 		if( pplayer->weaponmodel )
@@ -2484,13 +2498,12 @@ static int R_StudioDrawModel( int flags )
 			return 1;
 	}
 
-	double prof_t = Platform_DoubleTime();
+	double
 	if( RI.currententity->curstate.movetype == MOVETYPE_FOLLOW )
 		R_StudioMergeBones( RI.currententity, RI.currentmodel );
 	else R_StudioSetupBones( RI.currententity );
 
 	R_StudioSaveBones();
-	OGC_ProfAdd( 21, Platform_DoubleTime() - prof_t ); // huesos (animacion)
 
 	if( flags & STUDIO_EVENTS )
 	{
@@ -2517,11 +2530,7 @@ static int R_StudioDrawModel( int flags )
 		g_nBottomColor = (RI.currententity->curstate.colormap & 0xFF00) >> 8;
 
 		R_StudioSetRemapColors( g_nTopColor, g_nBottomColor );
-		OGC_ProfAdd( 22, Platform_DoubleTime() - prof_t ); // luz (trazado de luz del mapa)
-
-		prof_t = Platform_DoubleTime();
 		R_StudioRenderModel();
-		OGC_ProfAdd( 23, Platform_DoubleTime() - prof_t ); // malla (transformar vertices + enviarlos)
 	}
 
 	return 1;

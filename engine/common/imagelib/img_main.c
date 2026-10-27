@@ -416,6 +416,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
     rgbdata_t *ret = FS_LoadImage_impl( filename, buffer, size );
 
     OGC_ProfAdd( 11, Platform_DoubleTime() - t0 );
+    OGC_ProfNote( \'I\', filename, Platform_DoubleTime() - t0 );
     return ret;
 #else
     return FS_LoadImage_impl( filename, buffer, size );

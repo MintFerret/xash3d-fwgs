@@ -293,80 +293,166 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 24
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.huesos", "est.luz", "est.malla" };
+#define OGC_PROF_N 26
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
 static double ogc_load_t0, ogc_load_server, ogc_load_total;
 
-/*
-Tirones: histograma del tiempo de cada cuadro y registro de los ultimos cuadros lentos
-(mas de 30 ms) con el desglose de lo que paso en ese cuadro. Se ve con "wii_prof".
-*/
-#define OGC_HITCH_MS 30.0
-#define OGC_HITCH_N 40
+#define OGC_HITCH_N 32
+#define OGC_NCAUSE 9
+static const char *ogc_cause_name[OGC_NCAUSE] = { "carga (sonido/modelo/imagen)", "servidor", "cl.previo", "mundo", "entidades", "resto de escena", "espera GPU", "resto de dibujo (HUD)", "sonido (mezcla)" };
 static double ogc_frame_acc[OGC_PROF_N];
-static int ogc_hist[6];	// <=18, <=34, <=50, <=100, <=250, >250 ms
-static struct { double ms, v[OGC_PROF_N]; int frame; } ogc_hitch[OGC_HITCH_N];
-static int ogc_hitch_total, ogc_frames_seen;
+static int ogc_frame_cnt[OGC_PROF_N];
+static int ogc_hist[6];
+static struct { double ms, v[OGC_PROF_N]; int frame, fs[4]; } ogc_hitch[OGC_HITCH_N];
+static int ogc_hitch_total, ogc_hitch_count, ogc_frames_seen;
+static int ogc_cause[OGC_NCAUSE];
+static double ogc_recent[256];
+static int ogc_recent_n;
+static int ogc_interval = 1;
+static int ogc_fs[4];
 
-__attribute__((visibility("default"))) __attribute__((visibility("default"))) void OGC_ProfBytes( int bucket, double bytes )
+#define OGC_NOTE_N 24
+static struct { char what; char name[44]; double ms; int frame; } ogc_note[OGC_NOTE_N];
+static int ogc_note_total;
+
+__attribute__((visibility("default"))) void OGC_NetDiag( int in_seq, int out_seq, int acked, float loss )
 {
-	if( bucket >= 0 && bucket < OGC_PROF_N )
-		ogc_prof_bytes[bucket] += bytes;
+    int n = ogc_recent_n < 256 ? ogc_recent_n : 256, i, slow = 0;
+    double sum = 0.0, mx = 0.0;
+
+    for( i = 0; i < n; i++ )
+    {
+        sum += ogc_recent[i];
+        if( ogc_recent[i] > mx ) mx = ogc_recent[i];
+        if( ogc_recent[i] > 100.0 ) slow++;
+    }
+
+    Con_Printf( "[red] ultimos %d cuadros: media %.1f ms, maximo %.0f ms, mas de 100 ms: %d
+", n, n ? sum / n : 0.0, mx, slow );
+    Con_Printf( "[red] paquetes: recibidos #%d, enviados #%d, confirmados #%d (sin confirmar %d), perdidos %.0f%%
+", in_seq, out_seq, acked, out_seq - acked, loss );
+}
+
+__attribute__((visibility("default"))) void OGC_ProfSetInterval( int interval )
+{
+    ogc_interval = interval < 1 ? 1 : interval;
+}
+
+__attribute__((visibility("default"))) void OGC_ProfFrameInfo( int models, int studiotris, int worldtris, int particles )
+{
+    ogc_fs[0] = models;
+    ogc_fs[1] = studiotris;
+    ogc_fs[2] = worldtris;
+    ogc_fs[3] = particles;
+}
+
+__attribute__((visibility("default"))) void OGC_ProfNote( int kind, const char *name, double dt )
+{
+    int k;
+
+    if( dt < 0.003 || !name )
+        return;
+
+    k = ogc_note_total % OGC_NOTE_N;
+    ogc_note[k].what = (char)kind;
+    Q_strncpy( ogc_note[k].name, name, sizeof( ogc_note[k].name ));
+    ogc_note[k].ms = dt * 1000.0;
+    ogc_note[k].frame = ogc_frames_seen;
+    ogc_note_total++;
+}
+
+__attribute__((visibility("default"))) void OGC_ProfBytes( int bucket, double bytes )
+{
+    if( bucket >= 0 && bucket < OGC_PROF_N )
+        ogc_prof_bytes[bucket] += bytes;
 }
 
 __attribute__((visibility("default"))) void OGC_ProfAdd( int bucket, double dt )
 {
-	if( bucket < 0 || bucket >= OGC_PROF_N )
-		return;
+    if( bucket < 0 || bucket >= OGC_PROF_N )
+        return;
 
-	ogc_prof_sum[bucket] += dt;
-	ogc_prof_cnt[bucket]++;
-	if( dt > ogc_prof_max[bucket] )
-		ogc_prof_max[bucket] = dt;
+    ogc_prof_sum[bucket] += dt;
+    ogc_prof_cnt[bucket]++;
+    if( dt > ogc_prof_max[bucket] )
+        ogc_prof_max[bucket] = dt;
 
-	if( bucket != 0 )
-	{
-		ogc_frame_acc[bucket] += dt;
-	}
-	else
-	{
-		// fin de cuadro: clasificar y, si fue lento, guardar el desglose
-		double ms = dt * 1000.0;
-		int h = ms <= 18.0 ? 0 : ms <= 34.0 ? 1 : ms <= 50.0 ? 2 : ms <= 100.0 ? 3 : ms <= 250.0 ? 4 : 5;
+    if( bucket != 0 )
+    {
+        ogc_frame_acc[bucket] += dt;
+        ogc_frame_cnt[bucket]++;
+    }
+    else
+    {
+        double ms = dt * 1000.0;
+        int h = ms <= 18.0 ? 0 : ms <= 34.0 ? 1 : ms <= 50.0 ? 2 : ms <= 100.0 ? 3 : ms <= 250.0 ? 4 : 5;
 
-		ogc_hist[h]++;
-		ogc_frames_seen++;
-		if( ms > OGC_HITCH_MS )
-		{
-			int k = ogc_hitch_total % OGC_HITCH_N, i;
+        ogc_hist[h]++;
+        ogc_frames_seen++;
+        ogc_recent[ogc_recent_n++ & 255] = ms;
+        if( ms > ogc_interval * 16.7 + 4.0 && ms < 400.0 )
+        {
+            double c[OGC_NCAUSE], *a = ogc_frame_acc;
+            int k, i, best = 0;
 
-			ogc_hitch[k].ms = ms;
-			ogc_hitch[k].frame = ogc_frames_seen;
-			for( i = 1; i < OGC_PROF_N; i++ )
-				ogc_hitch[k].v[i] = ogc_frame_acc[i] * 1000.0;
-			ogc_hitch_total++;
-		}
-		memset( ogc_frame_acc, 0, sizeof( ogc_frame_acc ));
-	}
+            c[0] = a[7] + a[10] + a[11];
+            c[1] = a[1];
+            c[2] = a[3];
+            c[3] = a[15];
+            c[4] = a[16];
+            c[5] = a[14] - a[15] - a[16];
+            c[6] = a[17];
+            c[7] = a[4] - a[14] - a[17] - a[18];
+            c[8] = a[6];
+            for( i = 1; i < OGC_NCAUSE; i++ )
+                if( c[i] > c[best] ) best = i;
+            ogc_cause[best]++;
+            ogc_hitch_total++;
+
+            if( ogc_hitch_count < OGC_HITCH_N )
+                k = ogc_hitch_count++;
+            else
+            {
+                k = 0;
+                for( i = 1; i < OGC_HITCH_N; i++ )
+                    if( ogc_hitch[i].ms < ogc_hitch[k].ms ) k = i;
+                if( ms <= ogc_hitch[k].ms ) k = -1;
+            }
+            if( k >= 0 )
+            {
+                ogc_hitch[k].ms = ms;
+                ogc_hitch[k].frame = ogc_frames_seen;
+                for( i = 1; i < OGC_PROF_N; i++ )
+                    ogc_hitch[k].v[i] = ogc_frame_acc[i] * 1000.0;
+                memcpy( ogc_hitch[k].fs, ogc_fs, sizeof( ogc_fs ));
+                ogc_hitch[k].fs[0] = ogc_frame_cnt[21];
+            }
+        }
+        memset( ogc_frame_acc, 0, sizeof( ogc_frame_acc ));
+        memset( ogc_frame_cnt, 0, sizeof( ogc_frame_cnt ));
+    }
 }
 
 // 0 = empieza la carga, 1 = servidor listo, 2 = el cliente ya esta jugando
 __attribute__((visibility("default"))) void OGC_LoadMark( int what )
 {
-	double now = Platform_DoubleTime();
+    double now = Platform_DoubleTime();
 
-	if( what == 0 )
-	{
-		ogc_load_t0 = now;
-		ogc_load_server = ogc_load_total = 0.0;
-	}
-	else if( what == 1 && ogc_load_t0 > 0.0 )
-		ogc_load_server = now - ogc_load_t0;
-	else if( what == 2 && ogc_load_t0 > 0.0 && ogc_load_total == 0.0 )
-		ogc_load_total = now - ogc_load_t0;
+    if( what == 0 )
+    {
+        ogc_load_t0 = now;
+        ogc_load_server = ogc_load_total = 0.0;
+    }
+    else if( what == 1 && ogc_load_t0 > 0.0 )
+        ogc_load_server = now - ogc_load_t0;
+    else if( what == 2 && ogc_load_t0 > 0.0 && ogc_load_total == 0.0 )
+    {
+        ogc_load_total = now - ogc_load_t0;
+        ogc_note_total = 0;
+    }
 }
 
 static void OGC_Prof_f( void )

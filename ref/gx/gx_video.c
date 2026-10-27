@@ -198,7 +198,9 @@ void GX_Present( void )
 	VIDEO_SetNextFramebuffer( gxvid.xfb[gxvid.fb] );
 	VIDEO_Flush();
 	VIDEO_WaitVSync();
-	OGC_ProfAdd( 18, Platform_DoubleTime() - t_vs ); // espera del vsync
+	OGC_ProfAdd( 18, last_end - t_vs ); // espera de vsync (las dos)
+	if( work < 0.1 ) OGC_ProfAdd( 24, work ); // trabajo real del cuadro, sin esperas
+	OGC_ProfSetInterval( interval );
 	if( interval == 2 && ( Platform_DoubleTime() - last_end ) < 0.024 )
 	    VIDEO_WaitVSync(); // todavia no pasaron dos retrazos: esperar el segundo
 	last_end = Platform_DoubleTime();

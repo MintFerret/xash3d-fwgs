@@ -23,6 +23,7 @@ GNU General Public License for more details.
 /* Contador de rendimiento para cl_showfps 3 */
 extern double g_gx_frame_time_ms;
 extern void OGC_ProfAdd( int bucket, double dt );
+extern void OGC_ProfFrameInfo( int models, int studiotris, int worldtris, int particles );
 extern void GX_UpdateStyleSurfaces( const byte *changed );
 extern double g_gx_cpu_time_ms;
 
@@ -972,6 +973,7 @@ void R_RenderScene( void )
     R_DrawWaterSurfaces();
 	g_gx_frame_time_ms = (Platform_DoubleTime() - __t_start) * 1000.0;
 OGC_ProfAdd( 14, Platform_DoubleTime() - __t_start );
+    OGC_ProfFrameInfo( r_stats.c_studio_models_drawn, r_stats.c_studio_polys, r_stats.c_world_polys, r_stats.c_particle_count );
 }
 
 void R_GammaChanged( qboolean do_reset_gamma )
