@@ -2498,7 +2498,6 @@ static int R_StudioDrawModel( int flags )
 			return 1;
 	}
 
-	double
 	if( RI.currententity->curstate.movetype == MOVETYPE_FOLLOW )
 		R_StudioMergeBones( RI.currententity, RI.currentmodel );
 	else R_StudioSetupBones( RI.currententity );
