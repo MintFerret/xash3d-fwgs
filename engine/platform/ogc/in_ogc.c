@@ -330,10 +330,8 @@ __attribute__((visibility("default"))) void OGC_NetDiag( int in_seq, int out_seq
         if( ogc_recent[i] > 100.0 ) slow++;
     }
 
-    Con_Printf( "[red] ultimos %d cuadros: media %.1f ms, maximo %.0f ms, mas de 100 ms: %d
-", n, n ? sum / n : 0.0, mx, slow );
-    Con_Printf( "[red] paquetes: recibidos #%d, enviados #%d, confirmados #%d (sin confirmar %d), perdidos %.0f%%
-", in_seq, out_seq, acked, out_seq - acked, loss );
+    Con_Printf( "[red] ultimos %d cuadros: media %.1f ms, maximo %.0f ms, mas de 100 ms: %d\n", n, n ? sum / n : 0.0, mx, slow );
+    Con_Printf( "[red] paquetes: recibidos #%d, enviados #%d, confirmados #%d (sin confirmar %d), perdidos %.0f%%\n", in_seq, out_seq, acked, out_seq - acked, loss );
 }
 
 __attribute__((visibility("default"))) void OGC_ProfSetInterval( int interval )
@@ -484,25 +482,37 @@ static void OGC_Prof_f( void )
 	{
 		Con_Printf( "  cuadros (ms): <=18 %d, <=34 %d, <=50 %d, <=100 %d, <=250 %d, >250 %d\n",
 			ogc_hist[0], ogc_hist[1], ogc_hist[2], ogc_hist[3], ogc_hist[4], ogc_hist[5] );
-		if( ogc_hitch_total )
-		{
-			int n = ogc_hitch_total < OGC_HITCH_N ? ogc_hitch_total : OGC_HITCH_N;
-			int first = ogc_hitch_total - n;
+                if( ogc_hitch_total )
+                {
+                    int n = ogc_hitch_count, i, j;
 
-			Con_Printf( "  cuadros lentos (>%d ms): %d, ultimos %d\n", (int)OGC_HITCH_MS, ogc_hitch_total, n );
-			Con_Printf( "  cuadro total | srv prev dibujo snd | sonido lect modelo imagen | escena mundo entid gpu vsync | fis env (ms)\n" );
-			for( i = 0; i < n; i++ )
-			{
-				int k = ( first + i ) % OGC_HITCH_N;
+                    Con_Printf( "  cuadros lentos (pasan del vsync +4 ms): %d. causa principal:\n", ogc_hitch_total );
+                    for( i = 0; i < OGC_NCAUSE; i++ )
+                        if( ogc_cause[i] )
+                            Con_Printf( "    %-30s %d\n", ogc_cause_name[i], ogc_cause[i] );
 
-				Con_Printf( "  #%d %6.1f | %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f %5.1f %5.1f %5.1f %5.1f | %4.1f %4.1f\n",
-					ogc_hitch[k].frame, ogc_hitch[k].ms, ogc_hitch[k].v[1], ogc_hitch[k].v[3],
-					ogc_hitch[k].v[4], ogc_hitch[k].v[6], ogc_hitch[k].v[7], ogc_hitch[k].v[9],
-					ogc_hitch[k].v[10], ogc_hitch[k].v[11], ogc_hitch[k].v[14], ogc_hitch[k].v[15],
-					ogc_hitch[k].v[16], ogc_hitch[k].v[17], ogc_hitch[k].v[18],
-					ogc_hitch[k].v[19], ogc_hitch[k].v[20] );
-			}
-		}
+                    // ordenar por tiempo (mayor primero)
+                    for( i = 0; i < n; i++ )
+                        for( j = i + 1; j < n; j++ )
+                            if( ogc_hitch[j].ms > ogc_hitch[i].ms )
+                            {
+                                typeof( ogc_hitch[0] ) tmp = ogc_hitch[i];
+                                ogc_hitch[i] = ogc_hitch[j];
+                                ogc_hitch[j] = tmp;
+                            }
+
+                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot luz malla arma | fis env | modelos tris.est tris.mundo part\n" );
+                    for( i = 0; i < n; i++ )
+                    {
+                        double *v = ogc_hitch[i].v;
+
+                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %d %d %d %d\n",
+                            ogc_hitch[i].frame, ogc_hitch[i].ms, v[24], v[1], v[3], v[6],
+                            v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
+                            v[21], v[22], v[23], v[25], v[19], v[20],
+                            ogc_hitch[i].fs[0], ogc_hitch[i].fs[1], ogc_hitch[i].fs[2], ogc_hitch[i].fs[3] );
+                    }
+                }
 		memset( ogc_hist, 0, sizeof( ogc_hist ));
 		ogc_hitch_total = ogc_frames_seen = 0;
 	}
