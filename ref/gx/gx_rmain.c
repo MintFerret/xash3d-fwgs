@@ -516,7 +516,6 @@ static void R_SetupFrame( void )
 
                sizeof( cl_entity_t* ), R_TransEntityCompare );
     }
-    GXPT_END( 30 );
     GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
         R_FindViewLeaf();
@@ -820,13 +819,16 @@ static void R_DrawEntitiesOnList( void )
             R_DrawSpriteModel( RI.currententity );
     }
 
+    GXPT_END( 30 );
     GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
-        gEngfuncs.CL_DrawEFX( tr.frametime, false );    GXPT_END( 31 );
+        gEngfuncs.CL_DrawEFX( tr.frametime, false );
+    GXPT_END( 31 );
 
     GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
-        gEngfuncs.pfnDrawNormalTriangles();    GXPT_END( 32 );
+        gEngfuncs.pfnDrawNormalTriangles();
+    GXPT_END( 32 );
 
     for( int i = 0; i < tr.draw_list->num_trans_entities && !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ); i++ )
     {
@@ -860,7 +862,8 @@ static void R_DrawEntitiesOnList( void )
     {
         GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
         gEngfuncs.pfnDrawTransparentTriangles();
-    }    GXPT_END( 34 );
+    }
+    GXPT_END( 34 );
 
     GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
@@ -869,6 +872,7 @@ static void R_DrawEntitiesOnList( void )
         gEngfuncs.CL_DrawEFX( tr.frametime, true );
         R_AllowFog( true );
     }
+    GXPT_END( 35 );
 
     GX_SetBlendMode( GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR );
 
