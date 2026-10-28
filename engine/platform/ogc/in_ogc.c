@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 29
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp" };
+#define OGC_PROF_N 37
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -541,15 +541,16 @@ static void OGC_Prof_f( void )
                                 ogc_hitch[j] = tmp;
                             }
 
-                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | modelos tris.est tris.mundo part\n" );
+                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | modelos tris.est tris.mundo part\n" );
                     for( i = 0; i < n; i++ )
                     {
                         double *v = ogc_hitch[i].v;
 
-                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %d %d %d %d\n",
+                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %d %d %d %d\n",
                             ogc_hitch[i].frame, ogc_hitch[i].ms, v[24], v[1], v[3], v[6],
                             v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
                             v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
+                            v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36],
                             ogc_hitch[i].fs[0], ogc_hitch[i].fs[1], ogc_hitch[i].fs[2], ogc_hitch[i].fs[3] );
                     }
                 }

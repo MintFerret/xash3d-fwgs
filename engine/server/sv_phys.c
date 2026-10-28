@@ -937,6 +937,21 @@ static edict_t *SV_PushMove( edict_t *pusher, float movetime )
 		if( !SV_CanPushed( check ))
 			continue;
 
+#if XASH_OGC
+		// descarte rapido: si la caja no toca al pusher y no esta parado sobre el, el
+		// resultado siempre era "continue"; ahorra un SV_Move por entidad y por pusher
+		if( !FBitSet( check->v.flags, FL_CLIENT|FL_FAKECLIENT ) && !( FBitSet( check->v.flags, FL_ONGROUND ) && check->v.groundentity == pusher ))
+		{
+			if( check->v.absmin[0] >= maxs[0]
+			 || check->v.absmin[1] >= maxs[1]
+			 || check->v.absmin[2] >= maxs[2]
+			 || check->v.absmax[0] <= mins[0]
+			 || check->v.absmax[1] <= mins[1]
+			 || check->v.absmax[2] <= mins[2] )
+				continue;
+		}
+#endif
+
 		pusher->v.solid = SOLID_NOT;
 		block = SV_TestEntityPosition( check, pusher );
 		pusher->v.solid = oldsolid;
@@ -1055,6 +1070,20 @@ static edict_t *SV_PushRotate( edict_t *pusher, float movetime )
 		// filter movetypes to collide with
 		if( !SV_CanPushed( check ))
 			continue;
+
+#if XASH_OGC
+		// descarte rapido (ver SV_PushMove)
+		if( !FBitSet( check->v.flags, FL_CLIENT|FL_FAKECLIENT ) && !(( check->v.flags & FL_ONGROUND ) && check->v.groundentity == pusher ))
+		{
+			if( check->v.absmin[0] >= pusher->v.absmax[0]
+			|| check->v.absmin[1] >= pusher->v.absmax[1]
+			|| check->v.absmin[2] >= pusher->v.absmax[2]
+			|| check->v.absmax[0] <= pusher->v.absmin[0]
+			|| check->v.absmax[1] <= pusher->v.absmin[1]
+			|| check->v.absmax[2] <= pusher->v.absmin[2] )
+				continue;
+		}
+#endif
 
 		pusher->v.solid = SOLID_NOT;
 		block = SV_TestEntityPosition( check, pusher );

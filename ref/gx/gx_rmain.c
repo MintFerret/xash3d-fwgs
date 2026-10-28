@@ -516,7 +516,7 @@ static void R_SetupFrame( void )
 
                sizeof( cl_entity_t* ), R_TransEntityCompare );
     }
-
+    GXPT_END( 30 );
     GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
         R_FindViewLeaf();
@@ -771,8 +771,13 @@ void GX_ResetEffectState( void )
     GX_SetTexCoordGen( GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY );
 }
 
+/* medicion por etapa de wii_prof: ent.solido, ent.sprite, efx.opaco, tri.normal, ent.trans, tri.trans, efx.trans, alfa */
+#define GXPT_BEGIN() double gxpt = Platform_DoubleTime()
+#define GXPT_END( b ) do { double gxpn = Platform_DoubleTime(); OGC_ProfAdd(( b ), gxpn - gxpt ); gxpt = gxpn; } while( 0 )
+
 static void R_DrawEntitiesOnList( void )
 {
+    GXPT_BEGIN();
     tr.blend = 1.0f;
 
     for( int i = 0; i < tr.draw_list->num_solid_entities && !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ); i++ )
@@ -795,7 +800,9 @@ static void R_DrawEntitiesOnList( void )
         }
     }
 
+    GXPT_END( 29 );
     R_DrawAlphaTextureChains();
+    GXPT_END( 36 );
     GX_ResetEffectState();
 
     for( int i = 0; i < tr.draw_list->num_solid_entities && !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ); i++ )
@@ -815,11 +822,11 @@ static void R_DrawEntitiesOnList( void )
 
     GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
-        gEngfuncs.CL_DrawEFX( tr.frametime, false );
+        gEngfuncs.CL_DrawEFX( tr.frametime, false );    GXPT_END( 31 );
 
     GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
-        gEngfuncs.pfnDrawNormalTriangles();
+        gEngfuncs.pfnDrawNormalTriangles();    GXPT_END( 32 );
 
     for( int i = 0; i < tr.draw_list->num_trans_entities && !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ); i++ )
     {
@@ -847,13 +854,13 @@ static void R_DrawEntitiesOnList( void )
         default: break;
         }
     }
-
+    GXPT_END( 33 );
     GX_ResetEffectState();
     if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
     {
         GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
         gEngfuncs.pfnDrawTransparentTriangles();
-    }
+    }    GXPT_END( 34 );
 
     GX_ResetEffectState();
     if( !FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
