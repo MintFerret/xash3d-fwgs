@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 27
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event" };
+#define OGC_PROF_N 29
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -317,6 +317,35 @@ static int ogc_fs[4];
 #define OGC_NOTE_N 24
 static struct { char what; char name[44]; double ms; int frame; } ogc_note[OGC_NOTE_N];
 static int ogc_note_total;
+// tiempo de servidor por tipo de entidad (classname), para ver que monstruos/objetos pesan
+#define OGC_ENT_N 48
+static struct { char name[28]; double sum, max; int cnt; } ogc_ent[OGC_ENT_N];
+static int ogc_ent_n;
+
+__attribute__((visibility("default"))) void OGC_EntProf( const char *classname, double dt )
+{
+    int i;
+
+    if( !classname || !classname[0] )
+        classname = "(sin nombre)";
+
+    for( i = 0; i < ogc_ent_n; i++ )
+        if( !strcmp( ogc_ent[i].name, classname ))
+            break;
+
+    if( i == ogc_ent_n )
+    {
+        if( ogc_ent_n >= OGC_ENT_N )
+            return;
+        ogc_ent_n++;
+        Q_strncpy( ogc_ent[i].name, classname, sizeof( ogc_ent[i].name ));
+    }
+
+    ogc_ent[i].sum += dt;
+    ogc_ent[i].cnt++;
+    if( dt > ogc_ent[i].max )
+        ogc_ent[i].max = dt;
+}
 static int ogc_netc[6];	// contadores de red: 0 update repetido, 1 delta viejo (secuencia), 2 delta viejo (anillo), 3 prediccion abortada, 4 teletransporte
 
 __attribute__((visibility("default"))) void OGC_NetCount( int what )
@@ -528,6 +557,38 @@ static void OGC_Prof_f( void )
 		ogc_hitch_total = ogc_hitch_count = ogc_frames_seen = 0;
 		memset( ogc_cause, 0, sizeof( ogc_cause ));
 		Con_Printf( "  vsync: intervalo actual %d (%s)\n", ogc_interval, ogc_interval > 1 ? "30 fps fijos" : "60 fps" );
+	}
+
+	if( ogc_ent_n )
+	{
+		int i, j, order[OGC_ENT_N], shown = 0;
+		double total = 0.0;
+
+		for( i = 0; i < ogc_ent_n; i++ )
+		{
+			order[i] = i;
+			total += ogc_ent[i].sum;
+		}
+
+		for( i = 0; i < ogc_ent_n; i++ )
+			for( j = i + 1; j < ogc_ent_n; j++ )
+				if( ogc_ent[order[j]].sum > ogc_ent[order[i]].sum )
+				{
+					int tmp = order[i];
+					order[i] = order[j];
+					order[j] = tmp;
+				}
+
+		Con_Printf( "  servidor por entidad (total %.2f s): classname | total s | max ms | llamadas | us/llamada\n", total );
+		for( i = 0; i < ogc_ent_n && shown < 14; i++, shown++ )
+		{
+			int k = order[i];
+			Con_Printf( "    %-26s %6.2f %6.1f %7d %6.0f\n", ogc_ent[k].name, ogc_ent[k].sum, ogc_ent[k].max * 1000.0,
+				ogc_ent[k].cnt, ogc_ent[k].cnt ? ogc_ent[k].sum * 1.0e6 / ogc_ent[k].cnt : 0.0 );
+		}
+
+		memset( ogc_ent, 0, sizeof( ogc_ent ));
+		ogc_ent_n = 0;
 	}
 
 	if( ogc_netc[0] + ogc_netc[1] + ogc_netc[2] + ogc_netc[3] + ogc_netc[4] )

@@ -1560,10 +1560,16 @@ static void S_UpdateChannels( void )
 		endtime -= ( endtime - snd.paintedtime ) & 0x3;
 	}
 
+#if XASH_OGC
+	double prof_t0 = Platform_DoubleTime();
+#endif
 	if( clgame.soundFuncs.pfnS_PaintChannels )
 		clgame.soundFuncs.pfnS_PaintChannels( endtime );
 	else
 		S_PaintChannels( endtime );
+#if XASH_OGC
+	OGC_ProfAdd( 27, Platform_DoubleTime() - prof_t0 );
+#endif
 
 	SNDDMA_Submit();
 }

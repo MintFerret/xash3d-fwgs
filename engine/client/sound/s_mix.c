@@ -560,7 +560,15 @@ void S_PaintChannels( int endtime )
 
 		// now process DSP and mix result into paintbuffer
 		if( cls.key_dest != key_menu )
+		{
+#if XASH_OGC
+			double prof_t0 = Platform_DoubleTime();
+#endif
 			SX_RoomFX( roombuffer, num_samples );
+#if XASH_OGC
+			OGC_ProfAdd( 28, Platform_DoubleTime() - prof_t0 );
+#endif
+		}
 
 		if( room_channels > 0 || cls.key_dest != key_menu )
 			S_MixBufferWithGain( paintbuffer, roombuffer, num_samples, gain );

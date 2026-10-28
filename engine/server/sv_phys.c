@@ -19,6 +19,7 @@ GNU General Public License for more details.
 #include "library.h"
 #include "triangleapi.h"
 #include "ref_common.h"
+#include "platform/platform.h"
 
 typedef int (*PHYSICAPI)( int, server_physics_api_t*, physics_interface_t* );
 #if !XASH_DEDICATED
@@ -1803,7 +1804,13 @@ void SV_Physics( void )
 	svgame.globals->time = sv.time;
 
 	// let the progs know that a new frame has started
+#if XASH_OGC
+	double prof_sf = Platform_DoubleTime();
+#endif
 	svgame.dllFuncs.pfnStartFrame();
+#if XASH_OGC
+	OGC_EntProf( "(StartFrame)", Platform_DoubleTime() - prof_sf );
+#endif
 
 	// treat each object in turn
 	for( int i = 0; i < svgame.numEntities; i++ )
@@ -1816,7 +1823,13 @@ void SV_Physics( void )
 		if( i > 0 && i <= svs.maxclients )
 			continue;
 
+#if XASH_OGC
+		double prof_t0 = Platform_DoubleTime();
 		SV_Physics_Entity( ent );
+		OGC_EntProf( SV_GetString( ent->v.classname ), Platform_DoubleTime() - prof_t0 );
+#else
+		SV_Physics_Entity( ent );
+#endif
 	}
 
 	if( svgame.globals->force_retouch != 0.0f )
