@@ -294,18 +294,55 @@ static qboolean NET_GetHostByName( const char *hostname, int family, struct sock
 
 	return ret;
 #else
-	struct hostent *h;
+	// IOS resuelve DNS de forma poco fiable (falla a ratos con "failed to resolve"):
+    // reintentamos y guardamos las ultimas resoluciones buenas como respaldo
+    static struct { string name; struct in_addr ip; } cache[8];
+    static int cache_next;
+    struct hostent *h = NULL;
+    int i;
 
-	if( family == AF_INET6 )
-		return false;
+    if( family == AF_INET6 )
+        return false;
 
-	if(!( h = net_gethostbyname( hostname )))
-		return false;
+    for( i = 0; i < 3 && !h; i++ )
+    {
+        if( i ) Platform_Sleep( 250 );
+        h = net_gethostbyname( hostname );
+        if( h && ( h->h_length != 4 || !h->h_addr_list || !h->h_addr_list[0] ))
+            h = NULL;
+    }
 
-	((struct sockaddr_in *)addr)->sin_family = AF_INET;
-	((struct sockaddr_in *)addr)->sin_addr = *(struct in_addr *)h->h_addr_list[0];
+    if( h )
+    {
+        struct in_addr ip = *(struct in_addr *)h->h_addr_list[0];
 
-	return true;
+        for( i = 0; i < ARRAYSIZE( cache ); i++ )
+            if( !Q_strcmp( cache[i].name, hostname ))
+                break;
+
+        if( i == ARRAYSIZE( cache ))
+            i = cache_next++ % ARRAYSIZE( cache );
+
+        Q_strncpy( cache[i].name, hostname, sizeof( cache[i].name ));
+        cache[i].ip = ip;
+
+        ((struct sockaddr_in *)addr)->sin_family = AF_INET;
+        ((struct sockaddr_in *)addr)->sin_addr = ip;
+        return true;
+    }
+
+    for( i = 0; i < ARRAYSIZE( cache ); i++ )
+    {
+        if( cache[i].name[0] && !Q_strcmp( cache[i].name, hostname ))
+        {
+            Con_Printf( "DNS: usando direccion en cache para %s\n", hostname );
+            ((struct sockaddr_in *)addr)->sin_family = AF_INET;
+            ((struct sockaddr_in *)addr)->sin_addr = cache[i].ip;
+            return true;
+        }
+    }
+
+    return false;
 #endif
 }
 
@@ -470,7 +507,12 @@ net_gai_state_t NET_StringToSockaddr( const char *s, struct sockaddr_storage *sa
 	{
 		qboolean asyncfailed = true;
 
+#if XASH_OGC
+		// sin hilo DNS en Wii: net_gethostbyname bloquea poco y evita fallos de pthread/IOS
+		if( false )
+#else
 		if( net.threads_initialized && nonblocking )
+#endif
 		{
 			mutex_lock( nsthread.mutexres );
 

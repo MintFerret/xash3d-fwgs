@@ -525,7 +525,19 @@ static void OGC_Prof_f( void )
                     }
                 }
 		memset( ogc_hist, 0, sizeof( ogc_hist ));
-		ogc_hitch_total = ogc_frames_seen = 0;
+		ogc_hitch_total = ogc_hitch_count = ogc_frames_seen = 0;
+		memset( ogc_cause, 0, sizeof( ogc_cause ));
+		Con_Printf( "  vsync: intervalo actual %d (%s)\n", ogc_interval, ogc_interval > 1 ? "30 fps fijos" : "60 fps" );
+	}
+
+	if( ogc_netc[0] + ogc_netc[1] + ogc_netc[2] + ogc_netc[3] + ogc_netc[4] )
+	{
+		Con_Printf( "  red: delta viejo por secuencia %d, por anillo %d, update repetido %d | prediccion abortada %d | teletransportes %d\n",
+			ogc_netc[1], ogc_netc[2], ogc_netc[0], ogc_netc[3], ogc_netc[4] );
+		Con_Printf( "  red: cl_updaterate %g cl_cmdrate %g rate %g cl_lw %g cl_interp %g\n",
+			Cvar_VariableValue( "cl_updaterate" ), Cvar_VariableValue( "cl_cmdrate" ), Cvar_VariableValue( "rate" ),
+			Cvar_VariableValue( "cl_lw" ), Cvar_VariableValue( "ex_interp" ));
+		memset( ogc_netc, 0, sizeof( ogc_netc ));
 	}
 
 	if( ogc_load_total > 0.0 )

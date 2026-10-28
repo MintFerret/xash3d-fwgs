@@ -1080,6 +1080,105 @@ static qboolean Mod_SwapStudioModel( const char *name, void *buffer, size_t buff
 	return true;
 }
 
+#if XASH_OGC
+/*
+=================
+Mod_PreloadSeqGroups
+
+Los modelos con grupos de secuencias externos (barney01.mdl, zombie01.mdl...) cargaban cada
+archivo de la SD la primera vez que sonaba una animacion de ese grupo, en pleno juego:
+20-100 ms de tiron cada vez que un enemigo hacia un ataque nuevo. Aqui se leen al cargar el
+modelo (pantalla de carga) y se les da el byteswap de todas sus secuencias.
+=================
+*/
+CVAR_DEFINE_AUTO( wii_preload_anims, "1", FCVAR_ARCHIVE, "preload sequence group files (barney01.mdl...) at model load instead of in the middle of the game" );
+
+static void Mod_PreloadSeqGroups( model_t *mod, studiohdr_t *phdr )
+{
+    cache_user_t *paSequences;
+    string modelname, modelpath;
+
+    if( !phdr || phdr->numseqgroups <= 1 || phdr->numseqgroups > MAXSTUDIOGROUPS )
+        return;
+
+    paSequences = (cache_user_t *)mod->submodels;
+    if( paSequences == NULL )
+    {
+        paSequences = (cache_user_t *)Mem_Calloc( com_studiocache, MAXSTUDIOGROUPS * sizeof( cache_user_t ));
+        mod->submodels = (void *)paSequences;
+    }
+
+    COM_FileBase( mod->name, modelname, sizeof( modelname ));
+    COM_ExtractFilePath( mod->name, modelpath );
+
+    for( int g = 1; g < phdr->numseqgroups; g++ )
+    {
+        mstudioseqdesc_t *pseq = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex );
+        qboolean used = false;
+        string filepath;
+        fs_offset_t filesize;
+        byte *buf;
+
+        if( Mod_CacheCheck( &paSequences[g] ))
+            continue;
+
+        for( int i = 0; i < phdr->numseq; i++ )
+        {
+            if( pseq[i].seqgroup == g )
+            {
+                used = true;
+                break;
+            }
+        }
+
+        if( !used )
+            continue;
+
+        // mismo nombre que arma R_StudioGetAnim
+        Q_snprintf( filepath, sizeof( filepath ), "%s/%s%i%i.mdl", modelpath, modelname, g / 10, g % 10 );
+
+        buf = FS_LoadFile( filepath, &filesize, false );
+        if( !buf || !filesize || LittleLong( IDSEQGRPHEADER ) != *(uint *)buf )
+        {
+            if( buf ) Mem_Free( buf );
+            continue; // si de verdad hace falta, la carga normal avisara del error
+        }
+
+        paSequences[g].data = Mem_Calloc( com_studiocache, filesize );
+        memcpy( paSequences[g].data, buf, filesize );
+        Mem_Free( buf );
+
+#if XASH_BIG_ENDIAN
+        for( int i = 0; i < phdr->numseq; i++ )
+        {
+            if( pseq[i].seqgroup == g )
+                Mod_SwapStudioSeqGroupAnims( phdr, &pseq[i], (byte *)paSequences[g].data );
+        }
+#endif
+    }
+}
+
+// libera los grupos de secuencias de un modelo (antes quedaban en el pool para siempre)
+void Mod_FreeSeqGroups( model_t *mod )
+{
+    cache_user_t *paSequences = (cache_user_t *)mod->submodels;
+
+    if( !paSequences || mod->type != mod_studio )
+        return;
+
+    for( int g = 1; g < MAXSTUDIOGROUPS; g++ )
+    {
+        if( paSequences[g].data && Mem_IsAllocatedExt( com_studiocache, paSequences[g].data ))
+            Mem_Free( paSequences[g].data );
+    }
+
+    if( Mem_IsAllocatedExt( com_studiocache, paSequences ))
+        Mem_Free( paSequences );
+
+    mod->submodels = NULL;
+}
+#endif
+
 /*
 =================
 R_StudioLoadHeader
@@ -1222,6 +1321,11 @@ void Mod_LoadStudioModel( model_t *mod, void *buffer, size_t buffersize, qboolea
 	mod->numframes = Mod_StudioBodyVariations( mod );
 	mod->radius = RadiusFromBounds( mod->mins, mod->maxs );
 	mod->flags = phdr->flags; // copy header flags
+
+#if XASH_OGC
+	if( wii_preload_anims.value )
+		Mod_PreloadSeqGroups( mod, phdr );
+#endif
 
 	if( loaded ) *loaded = true;
 }

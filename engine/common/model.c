@@ -141,6 +141,14 @@ void Mod_FreeModel( model_t *mod )
 	if( !mod || mod->needload == NL_UNREFERENCED )
 		return;
 
+#if XASH_OGC
+	if( mod->type == mod_studio )
+	{
+		extern void Mod_FreeSeqGroups( model_t *mod );
+		Mod_FreeSeqGroups( mod );
+	}
+#endif
+
 	if( mod->type != mod_brush || mod->name[0] != '*' )
 	{
 		Mod_FreeUserData( mod );
@@ -186,7 +194,9 @@ void Mod_Init( void )
 	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
 #if XASH_OGC
 	{
+		extern convar_t wii_preload_anims;
 		extern void Mod_MapCRC_f( void );
+		Cvar_RegisterVariable( &wii_preload_anims );
 		Cmd_AddCommand( "wii_mapcrc", Mod_MapCRC_f, "print the multiplayer CRC of a map, read two different ways" );
 	}
 #endif
