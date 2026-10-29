@@ -595,7 +595,7 @@ static void OGC_Prof_f( void )
 
                     Con_Printf( "  sin escena (menu / pantalla de carga): %d cuadros lentos, %d pasan de 50 ms, maximo %.0f ms
 ",
-ogc_ns_total, ogc_ns_over50, ogc_ns_max );
+						ogc_ns_total, ogc_ns_over50, ogc_ns_max );
 
 Con_Printf( "  peores cuadros CON escena (juego):
 " );
