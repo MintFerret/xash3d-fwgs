@@ -2833,9 +2833,98 @@ void Mod_StudioUnloadTextures( void *data )
 	}
 }
 
+/*
+ * R_EntityDynamicLight hace por entidad y por cuadro: una o dos trazas de luz (R_LightVec, que con
+ * r_lighting_extended recorre ademas todos los physents brush) y, como los mapas de HL no tienen
+ * deluxemaps, otras 4 trazas para el gradiente. Con 50-70 modelos eso es mucho trabajo repetido
+ * para un resultado que casi no cambia entre cuadros. Se reutiliza el resultado mientras la entidad
+ * no se mueva mas de 2 unidades y no pasen 0,1 s (los estilos de luz se actualizan a 10 Hz); con
+ * cualquier dlight activo se recalcula siempre, para que los fogonazos iluminen al instante.
+ */
+#define GX_LIGHTCACHE_N 512
+
+CVAR_DEFINE_AUTO( gx_studio_lightcache, "1", FCVAR_ARCHIVE, "reuse the lighting of studio entities for up to 0.1 s while they barely move (0 = recompute every frame)" );
+
+static struct
+{
+    int         index;
+    const model_t   *model;
+    int         renderfx;
+    int         effects;
+    double          time;
+    vec3_t          origin;
+    int         ambientlight;
+    int         shadelight;
+    vec3_t          color;
+    vec3_t          plightvec;
+    vec3_t          lightspot;
+    vec3_t          lightvec;
+    colorVec        floorcolor;
+} gx_lightcache[GX_LIGHTCACHE_N];
+
+static qboolean GX_AnyDynamicLight( double time )
+{
+    for( int i = 0; i < MAX_DLIGHTS; i++ )
+    {
+        if( gp_dlights[i].die >= time && gp_dlights[i].radius > 0.0f )
+            return true;
+    }
+
+    return false;
+}
+
 static void pfnStudioDynamicLight( cl_entity_t *ent, alight_t *plight )
 {
-	R_EntityDynamicLight( ent, plight, FBitSet( RI.rvp.flags, RF_DRAW_WORLD ), g_studio.time, g_studio.lightspot, g_studio.lightvec );
+    double t0 = Platform_DoubleTime();
+    qboolean draw_world = FBitSet( RI.rvp.flags, RF_DRAW_WORLD ) ? true : false;
+    qboolean use_cache = gx_studio_lightcache.value && draw_world && ent && plight && ent->model && ent->index > 0 && ent->index < 4096;
+
+    if( use_cache )
+    {
+        int slot = ent->index % GX_LIGHTCACHE_N;
+        vec3_t d;
+
+        VectorSubtract( ent->origin, gx_lightcache[slot].origin, d );
+
+        if( gx_lightcache[slot].index == ent->index && gx_lightcache[slot].model == ent->model
+            && gx_lightcache[slot].renderfx == ent->curstate.renderfx && gx_lightcache[slot].effects == ent->curstate.effects
+            && ( g_studio.time - gx_lightcache[slot].time ) < 0.1 && ( g_studio.time - gx_lightcache[slot].time ) >= 0.0
+            && DotProduct( d, d ) < 4.0f && !GX_AnyDynamicLight( g_studio.time ))
+        {
+            plight->ambientlight = gx_lightcache[slot].ambientlight;
+            plight->shadelight = gx_lightcache[slot].shadelight;
+            VectorCopy( gx_lightcache[slot].color, plight->color );
+            VectorCopy( gx_lightcache[slot].plightvec, plight->plightvec );
+            VectorCopy( gx_lightcache[slot].lightspot, g_studio.lightspot );
+            VectorCopy( gx_lightcache[slot].lightvec, g_studio.lightvec );
+            ent->cvFloorColor = gx_lightcache[slot].floorcolor;
+            OGC_ProfAdd( 37, Platform_DoubleTime() - t0 );
+            return;
+        }
+    }
+
+    R_EntityDynamicLight( ent, plight, draw_world, g_studio.time, g_studio.lightspot, g_studio.lightvec );
+
+    if( use_cache )
+    {
+        int slot = ent->index % GX_LIGHTCACHE_N;
+
+        gx_lightcache[slot].index = ent->index;
+        gx_lightcache[slot].model = ent->model;
+        gx_lightcache[slot].renderfx = ent->curstate.renderfx;
+        gx_lightcache[slot].effects = ent->curstate.effects;
+        gx_lightcache[slot].time = g_studio.time;
+        VectorCopy( ent->origin, gx_lightcache[slot].origin );
+        gx_lightcache[slot].ambientlight = plight->ambientlight;
+        gx_lightcache[slot].shadelight = plight->shadelight;
+        VectorCopy( plight->color, gx_lightcache[slot].color );
+        VectorCopy( plight->plightvec, gx_lightcache[slot].plightvec );
+        VectorCopy( g_studio.lightspot, gx_lightcache[slot].lightspot );
+        VectorCopy( g_studio.lightvec, gx_lightcache[slot].lightvec );
+        gx_lightcache[slot].floorcolor = ent->cvFloorColor;
+    }
+
+    OGC_ProfAdd( 37, Platform_DoubleTime() - t0 );
 }
 
 qboolean R_StudioFillAPI( engine_studio_api_t *api, r_studio_interface_t *pDefaultDraw )

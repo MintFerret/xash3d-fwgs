@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 37
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa" };
+#define OGC_PROF_N 38
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa", "est.luzdin" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -318,7 +318,7 @@ static int ogc_fs[4];
 static struct { char what; char name[44]; double ms; int frame; } ogc_note[OGC_NOTE_N];
 static int ogc_note_total;
 // tiempo de servidor por tipo de entidad (classname), para ver que monstruos/objetos pesan
-#define OGC_ENT_N 48
+#define OGC_ENT_N 64
 static struct { char name[28]; double sum, max; int cnt; } ogc_ent[OGC_ENT_N];
 static int ogc_ent_n;
 
@@ -541,16 +541,16 @@ static void OGC_Prof_f( void )
                                 ogc_hitch[j] = tmp;
                             }
 
-                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | modelos tris.est tris.mundo part\n" );
+                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | modelos tris.est tris.mundo part\n" );
                     for( i = 0; i < n; i++ )
                     {
                         double *v = ogc_hitch[i].v;
 
-                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %d %d %d %d\n",
+                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f | %d %d %d %d\n",
                             ogc_hitch[i].frame, ogc_hitch[i].ms, v[24], v[1], v[3], v[6],
                             v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
                             v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
-                            v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36],
+                            v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37],
                             ogc_hitch[i].fs[0], ogc_hitch[i].fs[1], ogc_hitch[i].fs[2], ogc_hitch[i].fs[3] );
                     }
                 }
@@ -581,7 +581,7 @@ static void OGC_Prof_f( void )
 				}
 
 		Con_Printf( "  servidor por entidad (total %.2f s): classname | total s | max ms | llamadas | us/llamada\n", total );
-		for( i = 0; i < ogc_ent_n && shown < 14; i++, shown++ )
+		for( i = 0; i < ogc_ent_n && shown < 22; i++, shown++ )
 		{
 			int k = order[i];
 			Con_Printf( "    %-26s %6.2f %6.1f %7d %6.0f\n", ogc_ent[k].name, ogc_ent[k].sum, ogc_ent[k].max * 1000.0,

@@ -602,6 +602,9 @@ void *R_StudioGetAnim( studiohdr_t *m_pStudioHeader, model_t *m_pSubModel, mstud
 		Q_snprintf( filepath, sizeof( filepath ), "%s/%s%i%i.mdl", modelpath, modelname, pseqdesc->seqgroup / 10, pseqdesc->seqgroup % 10 );
 
 		fs_offset_t filesize;
+#if XASH_OGC
+		double prof_t0 = Platform_DoubleTime();
+#endif
 		byte *buf = FS_LoadFile( filepath, &filesize, false );
 		if( !buf || !filesize )
 			Host_Error( "%s: can't load %s\n", __func__, filepath );
@@ -616,6 +619,10 @@ void *R_StudioGetAnim( studiohdr_t *m_pStudioHeader, model_t *m_pSubModel, mstud
 
 		Mod_SwapStudioSeqGroupAnims( m_pStudioHeader, pseqdesc,
 			(byte *)paSequences[pseqdesc->seqgroup].data );
+#if XASH_OGC
+		OGC_ProfAdd( 8, Platform_DoubleTime() - prof_t0 );
+		OGC_ProfNote( 'A', filepath, Platform_DoubleTime() - prof_t0 );
+#endif
 	}
 
 	return ((byte *)paSequences[pseqdesc->seqgroup].data + pseqdesc->animindex);
@@ -1093,7 +1100,7 @@ modelo (pantalla de carga) y se les da el byteswap de todas sus secuencias.
 */
 CVAR_DEFINE_AUTO( wii_preload_anims, "1", FCVAR_ARCHIVE, "preload sequence group files (barney01.mdl...) at model load instead of in the middle of the game" );
 
-static void Mod_PreloadSeqGroups( model_t *mod, studiohdr_t *phdr )
+void Mod_PreloadSeqGroups( model_t *mod, studiohdr_t *phdr )
 {
     cache_user_t *paSequences;
     string modelname, modelpath;
@@ -1156,6 +1163,21 @@ static void Mod_PreloadSeqGroups( model_t *mod, studiohdr_t *phdr )
         }
 #endif
     }
+}
+
+/*
+Al cambiar de nivel Mod_PurgeStudioCache vacia el pool y pone submodels = NULL en todos los
+modelos studio, pero los que se reutilizan NO se vuelven a cargar (Mod_LoadModel sale antes con
+mempool != NULL), asi que la precarga de Mod_LoadStudioModel no se repetia y los grupos
+volvian a leerse de la SD en pleno juego (barney01.mdl, zombie01.mdl...).
+*/
+void Mod_RefreshSeqGroups( model_t *mod )
+{
+    if( !wii_preload_anims.value || !mod || mod->type != mod_studio || mod->submodels != NULL )
+        return;
+
+    if( mod->cache.data )
+        Mod_PreloadSeqGroups( mod, (studiohdr_t *)mod->cache.data );
 }
 
 // libera los grupos de secuencias de un modelo (antes quedaban en el pool para siempre)

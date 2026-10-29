@@ -325,6 +325,13 @@ static model_t *Mod_LoadModel( model_t *mod, qboolean crash )
 	if( mod->mempool || mod->name[0] == '*' )
 	{
 		mod->needload = NL_PRESENT;
+#if XASH_OGC
+		{
+			// el pool de secuencias se vacia al cambiar de nivel: volver a precargarlas
+			extern void Mod_RefreshSeqGroups( model_t *mod );
+			Mod_RefreshSeqGroups( mod );
+		}
+#endif
 		return mod;
 	}
 
