@@ -22,6 +22,15 @@ GNU General Public License for more details.
 #include "input.h" // touch
 #include "platform/platform.h" // GL_UpdateSwapInterval
 
+#if XASH_OGC
+// wii_prof: tiempo de cada etapa del dibujo 2D / vista
+#define PT_BEGIN() double pt_ = Platform_DoubleTime()
+#define PT_END( b ) do { double pn_ = Platform_DoubleTime(); OGC_ProfAdd(( b ), pn_ - pt_ ); pt_ = pn_; } while( 0 )
+#else
+#define PT_BEGIN()
+#define PT_END( b )
+#endif
+
 /*
 ===============
 V_CalcViewRect
@@ -395,6 +404,9 @@ void V_RenderView( void )
 	if( !cl.video_prepped || ( !ui_renderworld.value && UI_IsVisible() && !cl.background ))
 		return; // still loading
 
+#if XASH_OGC
+	double pv_start = Platform_DoubleTime(), pv_calc = 0.0;
+#endif
 	V_CalcViewRect ();	// compute viewport rectangle
 	V_SetRefParams( &rp );
 	V_SetupViewModel ();
@@ -404,8 +416,12 @@ void V_RenderView( void )
 
 	do
 	{
+#if XASH_OGC
+		double pv_t = Platform_DoubleTime();
+#endif
 		clgame.dllFuncs.pfnCalcRefdef( &rp );
 #if XASH_OGC
+		pv_calc += Platform_DoubleTime() - pv_t;
 		// after the client has placed the weapon, lean it towards the pointer
 		OGC_ApplyPointerToViewModel( &clgame.viewent );
 #endif
@@ -427,6 +443,10 @@ void V_RenderView( void )
 	// draw debug triangles on a server
 	SV_DrawDebugTriangles ();
 	ref.dllFuncs.GL_BackendEndFrame ();
+#if XASH_OGC
+	OGC_ProfAdd( 45, pv_calc );
+	OGC_ProfAdd( 38, Platform_DoubleTime() - pv_start );
+#endif
 }
 
 #define POINT_SIZE		16.0f
@@ -531,6 +551,7 @@ V_PostRender
 void V_PostRender( void )
 {
 	qboolean		draw_2d = false;
+	PT_BEGIN();
 
 	ref.dllFuncs.R_AllowFog( false );
 	VPR( "fog ok" );
@@ -572,10 +593,13 @@ void V_PostRender( void )
 		VPR( "showtextures ok" );
 		R_ShowTree();
 		VPR( "pre-console" );
+		PT_END( 39 );
 		Con_DrawConsole();
 		VPR( "console drawn" );
+		PT_END( 40 );
 		UI_UpdateMenu( host.realtime );
 		VPR( "menu drawn" );
+		PT_END( 41 );
 		Con_DrawVersion();
 		VPR( "version drawn" );
 		Con_DrawDebug(); // must be last
@@ -583,6 +607,7 @@ void V_PostRender( void )
 		OSK_Draw();
 
 		S_ExtraUpdate();
+		PT_END( 42 );
 	}
 
 	SCR_MakeScreenShot();

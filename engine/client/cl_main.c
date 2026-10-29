@@ -3804,7 +3804,13 @@ void Host_ClientFrame( void )
 	// the incoming messages have been read
 	if( !SV_Active( )) CL_SendCommand ();
 
+#if XASH_OGC
+	double tq = Platform_DoubleTime();
+#endif
 	clgame.dllFuncs.pfnFrame( host.frametime );
+#if XASH_OGC
+	OGC_ProfAdd( 43, Platform_DoubleTime() - tq );
+#endif
 
 	// remember last received framenum
 	CL_SetLastUpdate ();
@@ -3820,7 +3826,13 @@ void Host_ClientFrame( void )
 	Voice_Idle( host.frametime );
 
 	// emit visible entities
+#if XASH_OGC
+	tq = Platform_DoubleTime();
+#endif
 	CL_EmitEntities ();
+#if XASH_OGC
+	OGC_ProfAdd( 44, Platform_DoubleTime() - tq );
+#endif
 
 	// in case we lost connection
 	CL_CheckForResend ();

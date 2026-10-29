@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 38
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa", "est.luzdin" };
+#define OGC_PROF_N 46
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa", "est.luzdin", "vista", "hud", "consola", "menu", "snd.extra", "cl.frame", "cl.emit", "calcref" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -306,8 +306,13 @@ static const char *ogc_cause_name[OGC_NCAUSE] = { "carga (sonido/modelo/imagen)"
 static double ogc_frame_acc[OGC_PROF_N];
 static int ogc_frame_cnt[OGC_PROF_N];
 static int ogc_hist[6];
-static struct { double ms, v[OGC_PROF_N]; int frame, fs[4]; } ogc_hitch[OGC_HITCH_N];
+typedef struct { double ms, v[OGC_PROF_N]; int frame, fs[4]; } ogc_hitch_t;
+#define OGC_HITCH_NS 8
+static ogc_hitch_t ogc_hitch[OGC_HITCH_N];		// cuadros lentos con escena (juego)
+static ogc_hitch_t ogc_hitch_ns[OGC_HITCH_NS];	// cuadros lentos sin escena (menu, carga, pantalla de carga)
 static int ogc_hitch_total, ogc_hitch_count, ogc_frames_seen;
+static int ogc_hitch_ns_count, ogc_ns_total, ogc_ns_over50;
+static double ogc_ns_max;
 static int ogc_cause[OGC_NCAUSE];
 static double ogc_recent[256];
 static int ogc_recent_n;
@@ -321,6 +326,10 @@ static int ogc_note_total;
 #define OGC_ENT_N 64
 static struct { char name[28]; double sum, max; int cnt; } ogc_ent[OGC_ENT_N];
 static int ogc_ent_n;
+// llamadas individuales del servidor que pasaron de 2,5 ms, con el cuadro en que ocurrieron
+#define OGC_SPIKE_N 32
+static struct { char name[28]; double ms; int frame; } ogc_spike[OGC_SPIKE_N];
+static int ogc_spike_total;
 
 __attribute__((visibility("default"))) void OGC_EntProf( const char *classname, double dt )
 {
@@ -493,6 +502,34 @@ __attribute__((visibility("default"))) void OGC_LoadMark( int what )
     }
 }
 
+static void OGC_PrintHitch( ogc_hitch_t *arr, int n )
+{
+	int i, j;
+
+	for( i = 0; i < n; i++ )
+		for( j = i + 1; j < n; j++ )
+			if( arr[j].ms > arr[i].ms )
+			{
+				ogc_hitch_t tmp = arr[i];
+				arr[i] = arr[j];
+				arr[j] = tmp;
+			}
+
+	Con_Printf( "    #cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | vista calcref hud consola menu snd.extra | cl.frame emit | modelos tris.est tris.mundo part\n" );
+	for( i = 0; i < n; i++ )
+	{
+		double *v = arr[i].v;
+
+		Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f | %5.1f %5.1f | %d %d %d %d\n",
+			arr[i].frame, arr[i].ms, v[24], v[1], v[3], v[6],
+			v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
+			v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
+			v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37],
+			v[38], v[45], v[39], v[40], v[41], v[42], v[43], v[44],
+			arr[i].fs[0], arr[i].fs[1], arr[i].fs[2], arr[i].fs[3] );
+	}
+}
+
 static void OGC_Prof_f( void )
 {
 	int i;
@@ -524,7 +561,7 @@ static void OGC_Prof_f( void )
 			ogc_hist[0], ogc_hist[1], ogc_hist[2], ogc_hist[3], ogc_hist[4], ogc_hist[5] );
                 if( ogc_hitch_total )
                 {
-                    int n = ogc_hitch_count, i, j;
+                    int i;
 
                     Con_Printf( "  cuadros lentos (pasan del vsync +4 ms): %d. causa principal:\n", ogc_hitch_total );
                     for( i = 0; i < OGC_NCAUSE; i++ )
@@ -556,6 +593,8 @@ static void OGC_Prof_f( void )
                 }
 		memset( ogc_hist, 0, sizeof( ogc_hist ));
 		ogc_hitch_total = ogc_hitch_count = ogc_frames_seen = 0;
+		ogc_hitch_ns_count = ogc_ns_total = ogc_ns_over50 = 0;
+		ogc_ns_max = 0.0;
 		memset( ogc_cause, 0, sizeof( ogc_cause ));
 		Con_Printf( "  vsync: intervalo actual %d (%s)\n", ogc_interval, ogc_interval > 1 ? "30 fps fijos" : "60 fps" );
 	}
@@ -590,6 +629,21 @@ static void OGC_Prof_f( void )
 
 		memset( ogc_ent, 0, sizeof( ogc_ent ));
 		ogc_ent_n = 0;
+	}
+
+	if( ogc_spike_total )
+	{
+		int n = ogc_spike_total < OGC_SPIKE_N ? ogc_spike_total : OGC_SPIKE_N, i;
+		int first = ogc_spike_total < OGC_SPIKE_N ? 0 : ogc_spike_total % OGC_SPIKE_N;
+
+		Con_Printf( "  picos del servidor (una llamada >2.5 ms): %d en total, ultimos %d\n", ogc_spike_total, n );
+		for( i = 0; i < n; i++ )
+		{
+			int k = ( first + i ) % OGC_SPIKE_N;
+
+			Con_Printf( "    cuadro %5d  %-26s %6.1f ms\n", ogc_spike[k].frame, ogc_spike[k].name, ogc_spike[k].ms );
+		}
+		ogc_spike_total = 0;
 	}
 
 	if( ogc_netc[0] + ogc_netc[1] + ogc_netc[2] + ogc_netc[3] + ogc_netc[4] )
