@@ -335,7 +335,16 @@ __attribute__((visibility("default"))) void OGC_EntProf( const char *classname, 
 {
     int i;
 
-    if( !classname || !classname[0] )
+if( dt > 0.0025 && classname && classname[0] )
+{
+int k = ogc_spike_total++ % OGC_SPIKE_N;
+
+Q_strncpy( ogc_spike[k].name, classname, sizeof( ogc_spike[k].name ));
+ogc_spike[k].ms = dt * 1000.0;
+ogc_spike[k].frame = ogc_frames_seen + 1; // mismo numero que en la tabla de cuadros
+}
+
+if( !classname || !classname[0] )
         classname = "(sin nombre)";
 
     for( i = 0; i < ogc_ent_n; i++ )
@@ -459,24 +468,40 @@ __attribute__((visibility("default"))) void OGC_ProfAdd( int bucket, double dt )
             ogc_cause[best]++;
             ogc_hitch_total++;
 
-            if( ogc_hitch_count < OGC_HITCH_N )
-                k = ogc_hitch_count++;
-            else
-            {
-                k = 0;
-                for( i = 1; i < OGC_HITCH_N; i++ )
-                    if( ogc_hitch[i].ms < ogc_hitch[k].ms ) k = i;
-                if( ms <= ogc_hitch[k].ms ) k = -1;
-            }
-            if( k >= 0 )
-            {
-                ogc_hitch[k].ms = ms;
-                ogc_hitch[k].frame = ogc_frames_seen;
-                for( i = 1; i < OGC_PROF_N; i++ )
-                    ogc_hitch[k].v[i] = ogc_frame_acc[i] * 1000.0;
-                memcpy( ogc_hitch[k].fs, ogc_fs, sizeof( ogc_fs ));
-                ogc_hitch[k].fs[0] = ogc_frame_cnt[21];
-            }
+{
+// los cuadros sin escena (menu, pantalla de carga) van a su propia lista
+// para que no tapen los tirones de juego
+int noscene = ogc_frame_acc[14] <= 0.0;
+ogc_hitch_t *arr = noscene ? ogc_hitch_ns : ogc_hitch;
+int cap = noscene ? OGC_HITCH_NS : OGC_HITCH_N;
+int *cnt = noscene ? &ogc_hitch_ns_count : &ogc_hitch_count;
+
+if( noscene )
+{
+ogc_ns_total++;
+if( ms > 50.0 ) ogc_ns_over50++;
+if( ms > ogc_ns_max ) ogc_ns_max = ms;
+}
+
+if( *cnt < cap )
+k = (*cnt)++;
+else
+{
+k = 0;
+for( i = 1; i < cap; i++ )
+if( arr[i].ms < arr[k].ms ) k = i;
+if( ms <= arr[k].ms ) k = -1;
+}
+if( k >= 0 )
+{
+arr[k].ms = ms;
+arr[k].frame = ogc_frames_seen;
+for( i = 1; i < OGC_PROF_N; i++ )
+arr[k].v[i] = ogc_frame_acc[i] * 1000.0;
+memcpy( arr[k].fs, ogc_fs, sizeof( ogc_fs ));
+arr[k].fs[0] = ogc_frame_cnt[21];
+}
+}
         }
         memset( ogc_frame_acc, 0, sizeof( ogc_frame_acc ));
         memset( ogc_frame_cnt, 0, sizeof( ogc_frame_cnt ));
@@ -568,28 +593,19 @@ static void OGC_Prof_f( void )
                         if( ogc_cause[i] )
                             Con_Printf( "    %-30s %d\n", ogc_cause_name[i], ogc_cause[i] );
 
-                    // ordenar por tiempo (mayor primero)
-                    for( i = 0; i < n; i++ )
-                        for( j = i + 1; j < n; j++ )
-                            if( ogc_hitch[j].ms > ogc_hitch[i].ms )
-                            {
-                                typeof( ogc_hitch[0] ) tmp = ogc_hitch[i];
-                                ogc_hitch[i] = ogc_hitch[j];
-                                ogc_hitch[j] = tmp;
-                            }
+                    Con_Printf( "  sin escena (menu / pantalla de carga): %d cuadros lentos, %d pasan de 50 ms, maximo %.0f ms
+",
+ogc_ns_total, ogc_ns_over50, ogc_ns_max );
 
-                    Con_Printf( "  peores cuadros: cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | modelos tris.est tris.mundo part\n" );
-                    for( i = 0; i < n; i++ )
-                    {
-                        double *v = ogc_hitch[i].v;
-
-                        Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f | %d %d %d %d\n",
-                            ogc_hitch[i].frame, ogc_hitch[i].ms, v[24], v[1], v[3], v[6],
-                            v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
-                            v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
-                            v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37],
-                            ogc_hitch[i].fs[0], ogc_hitch[i].fs[1], ogc_hitch[i].fs[2], ogc_hitch[i].fs[3] );
-                    }
+Con_Printf( "  peores cuadros CON escena (juego):
+" );
+OGC_PrintHitch( ogc_hitch, ogc_hitch_count );
+if( ogc_hitch_ns_count )
+{
+Con_Printf( "  peores cuadros SIN escena:
+" );
+OGC_PrintHitch( ogc_hitch_ns, ogc_hitch_ns_count );
+}
                 }
 		memset( ogc_hist, 0, sizeof( ogc_hist ));
 		ogc_hitch_total = ogc_hitch_count = ogc_frames_seen = 0;
