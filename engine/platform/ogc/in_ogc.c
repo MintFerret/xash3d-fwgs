@@ -593,19 +593,16 @@ static void OGC_Prof_f( void )
                         if( ogc_cause[i] )
                             Con_Printf( "    %-30s %d\n", ogc_cause_name[i], ogc_cause[i] );
 
-                    Con_Printf( "  sin escena (menu / pantalla de carga): %d cuadros lentos, %d pasan de 50 ms, maximo %.0f ms
-",
+                    Con_Printf( "  sin escena (menu / pantalla de carga): %d cuadros lentos, %d pasan de 50 ms, maximo %.0f ms\n",
 						ogc_ns_total, ogc_ns_over50, ogc_ns_max );
 
-Con_Printf( "  peores cuadros CON escena (juego):
-" );
-OGC_PrintHitch( ogc_hitch, ogc_hitch_count );
-if( ogc_hitch_ns_count )
-{
-Con_Printf( "  peores cuadros SIN escena:
-" );
-OGC_PrintHitch( ogc_hitch_ns, ogc_hitch_ns_count );
-}
+					Con_Printf( "  peores cuadros CON escena (juego):\n" );
+					OGC_PrintHitch( ogc_hitch, ogc_hitch_count );
+					if( ogc_hitch_ns_count )
+					{
+						Con_Printf( "  peores cuadros SIN escena:\n" );
+						OGC_PrintHitch( ogc_hitch_ns, ogc_hitch_ns_count );
+					}
                 }
 		memset( ogc_hist, 0, sizeof( ogc_hist ));
 		ogc_hitch_total = ogc_hitch_count = ogc_frames_seen = 0;
