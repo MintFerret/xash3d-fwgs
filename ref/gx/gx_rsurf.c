@@ -24,6 +24,12 @@ GNU General Public License for more details.
 
 #define TURBSCALE		( 256.0f / ( M_PI2 ))
 
+extern void OGC_ProfAdd( int bucket, double dt );
+
+extern void OGC_ProfAdd( int bucket, double dt );
+
+extern void OGC_ProfAdd( int bucket, double dt );
+
 static const float r_turbsin[] =
 {
 #include "warpsin.h"
@@ -2165,9 +2171,10 @@ static int R_SortBrushModelSurfaces( cl_entity_t *e, model_t *clmodel, vec3_t mi
 	return num_sorted;
 }
 
-void R_DrawBrushModel( cl_entity_t *e )
+static void R_DrawBrushModelImpl( cl_entity_t *e )
 {
 	vec3_t mins, maxs;
+	double prof_t = Platform_DoubleTime(), prof_n;
 	qboolean rotated;
 	qboolean allow_vbo = R_HasEnabledVBO();
 
@@ -2245,6 +2252,9 @@ void R_DrawBrushModel( cl_entity_t *e )
 
 	qboolean drawlightmap = R_HasLightmap();
 
+	prof_n = Platform_DoubleTime(); OGC_ProfAdd( 50, prof_n - prof_t ); prof_t = prof_n; // brush.prep: cull + orden de superficies
+	OGC_ProfAdd( 53, num_sorted * 0.001 ); // brush.sup#: el "ms" de esta columna es la cantidad de superficies
+
 	if( gl_polyoffset_bmodels.value )
 		GX_PushPolygonOffset( -0.5f, -gl_polyoffset_bmodels.value );
 
@@ -2260,6 +2270,10 @@ void R_DrawBrushModel( cl_entity_t *e )
 	GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
 	GX_SetCullMode( GX_CULL_NONE );
 
+	// formato de vertice de las superficies: el mismo para todas, se fija una vez. Las superficies
+	// de agua (EmitWaterPolys) lo cambian, asi que tras una se vuelve a fijar
+	qboolean fmt_set = false;
+
 	for( int i = 0; i < num_sorted; i++ )
 	{
 		msurface_t *bs = gpGlobals->draw_surfaces[i].surf;
@@ -2268,38 +2282,42 @@ void R_DrawBrushModel( cl_entity_t *e )
 		{
 			R_RenderBrushPoly( bs, gpGlobals->draw_surfaces[i].cull );
 
-			if( bs->polys && !FBitSet( bs->flags, SURF_DRAWTURB | SURF_DRAWSKY ))
-			{
-				glpoly2_t *q;
-				int tris = 0;
+			if( FBitSet( bs->flags, SURF_DRAWTURB ))
+fmt_set = false;
 
-				for( q = bs->polys; q != NULL; q = q->chain )
-					if( q->numverts >= 3 ) tris += q->numverts - 2;
+if( bs->polys && !FBitSet( bs->flags, SURF_DRAWTURB | SURF_DRAWSKY ))
+{
+glpoly2_t *q;
 
-				if( tris > 0 )
-				{
-					GX_ClearVtxDesc();
-					GX_SetVtxDesc( GX_VA_POS,  GX_DIRECT );
-					GX_SetVtxDesc( GX_VA_TEX0, GX_DIRECT );
-					GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_POS,  GX_POS_XYZ, GX_F32, 0 );
-					GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0 );
-					GX_Begin( GX_TRIANGLES, GX_VTXFMT0, tris * 3 );
-					for( q = bs->polys; q != NULL; q = q->chain )
-					{
-						float *base = q->verts[0];
-						for( int k = 1; k < q->numverts - 1; k++ )
-						{
-							float *v[3] = { base, base + k * VERTEXSIZE, base + ( k + 1 ) * VERTEXSIZE };
-							for( int m = 0; m < 3; m++ )
-							{
-								GX_Position3f32( v[m][0], v[m][1], v[m][2] );
-								GX_TexCoord2f32( v[m][3], v[m][4] );
-							}
-						}
-					}
-					GX_End();
-				}
-			}
+if( !fmt_set )
+{
+GX_ClearVtxDesc();
+GX_SetVtxDesc( GX_VA_POS,  GX_DIRECT );
+GX_SetVtxDesc( GX_VA_TEX0, GX_DIRECT );
+GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_POS,  GX_POS_XYZ, GX_F32, 0 );
+GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0 );
+fmt_set = true;
+}
+
+// un abanico por poligono (n vertices) en vez de (n-2) triangulos sueltos (3*(n-2)):
+// un cuadrado pasa de 6 vertices a 4. El orden es el mismo, asi que el culling no cambia
+for( q = bs->polys; q != NULL; q = q->chain )
+{
+if( q->numverts < 3 )
+continue;
+
+GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, (u16)q->numverts );
+for( int k = 0; k < q->numverts; k++ )
+{
+float *v = q->verts[0] + k * VERTEXSIZE;
+
+GX_Position3f32( v[0], v[1], v[2] );
+GX_TexCoord2f32( v[3], v[4] );
+}
+GX_End();
+}
+}
+}
 		}
 	}
 
@@ -2334,6 +2352,16 @@ void R_DrawBrushModel( cl_entity_t *e )
 	}
 
 	R_LoadIdentity();
+
+	OGC_ProfAdd( 52, Platform_DoubleTime() - prof_t ); // brush.pase: decals, lightmaps, fullbright, detalles
+}
+
+void R_DrawBrushModel( cl_entity_t *e )
+{
+	double t0 = Platform_DoubleTime();
+
+	R_DrawBrushModelImpl( e );
+	OGC_ProfAdd( 49, Platform_DoubleTime() - t0 ); // ent.brush
 }
 
 qboolean R_HasGeneratedVBO( void )

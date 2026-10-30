@@ -293,8 +293,8 @@ del cuadro y de la carga de nivel. "wii_prof" lo muestra y lo reinicia.
   0 cuadro completo  1 servidor  2 cliente (todo)  3 pantalla (render + vsync)
   4 sonido           5 entrada
 */
-#define OGC_PROF_N 49
-static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa", "est.luzdin", "vista", "hud", "consola", "menu", "snd.extra", "cl.frame", "cl.emit", "calcref", "est.xform", "est.luzvert", "est.envio" };
+#define OGC_PROF_N 54
+static const char *ogc_prof_name[OGC_PROF_N] = { "cuadro", "servidor", "cliente", "cl.previo", "dibujo", "entrada", "snd.update", "S_LoadSnd", "LoadFile", "FS_Read", "Mod_ForNm", "LoadImage", "FS_Open", "FS_Seek", "escena", "mundo", "entidad", "gpu.esp", "vsync", "sv.fisica", "sv.envio", "est.total", "est.luz", "est.malla", "trabajo", "arma", "est.event", "snd.mezcla", "snd.dsp", "ent.solido", "ent.sprite", "efx.opaco", "tri.normal", "ent.trans", "tri.trans", "efx.trans", "cad.alfa", "est.luzdin", "vista", "hud", "consola", "menu", "snd.extra", "cl.frame", "cl.emit", "calcref", "est.xform", "est.luzvert", "est.envio", "ent.brush", "brush.prep", "brush.sup", "brush.pase", "brush.sup#" };
 static double ogc_prof_sum[OGC_PROF_N], ogc_prof_max[OGC_PROF_N];
 static int ogc_prof_cnt[OGC_PROF_N];
 static double ogc_prof_bytes[OGC_PROF_N];
@@ -306,7 +306,7 @@ static const char *ogc_cause_name[OGC_NCAUSE] = { "carga (sonido/modelo/imagen)"
 static double ogc_frame_acc[OGC_PROF_N];
 static int ogc_frame_cnt[OGC_PROF_N];
 static int ogc_hist[6];
-typedef struct { double ms, v[OGC_PROF_N]; int frame, fs[4]; } ogc_hitch_t;
+typedef struct { double ms, v[OGC_PROF_N]; int frame, fs[5]; } ogc_hitch_t;
 #define OGC_HITCH_NS 8
 static ogc_hitch_t ogc_hitch[OGC_HITCH_N];		// cuadros lentos con escena (juego)
 static ogc_hitch_t ogc_hitch_ns[OGC_HITCH_NS];	// cuadros lentos sin escena (menu, carga, pantalla de carga)
@@ -505,6 +505,7 @@ for( i = 1; i < OGC_PROF_N; i++ )
 arr[k].v[i] = ogc_frame_acc[i] * 1000.0;
 memcpy( arr[k].fs, ogc_fs, sizeof( ogc_fs ));
 arr[k].fs[0] = ogc_frame_cnt[21];
+                    arr[k].fs[4] = ogc_frame_cnt[49];
 }
 }
         }
@@ -545,18 +546,21 @@ static void OGC_PrintHitch( ogc_hitch_t *arr, int n )
 				arr[j] = tmp;
 			}
 
-	Con_Printf( "    #cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | vista calcref hud consola menu snd.extra | cl.frame emit | modelos tris.est tris.mundo part\n" );
+	Con_Printf( "    #cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | vista calcref hud consola menu snd.extra | cl.frame emit | brush(n) prep sup pase sup# | modelos tris.est tris.mundo part
+" );
 	for( i = 0; i < n; i++ )
 	{
 		double *v = arr[i].v;
 
-		Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f | %5.1f %5.1f | %d %d %d %d\n",
-			arr[i].frame, arr[i].ms, v[24], v[1], v[3], v[6],
-			v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
-			v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
-			v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37],
-			v[38], v[45], v[39], v[40], v[41], v[42], v[43], v[44],
-			arr[i].fs[0], arr[i].fs[1], arr[i].fs[2], arr[i].fs[3] );
+		Con_Printf( "  #%d %6.1f %5.1f | %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %4.1f | %5.1f %5.1f %4.1f %4.1f %5.1f %4.1f | %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %4.1f %4.1f %4.1f %4.1f | %5.1f | %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f | %5.1f %5.1f | %5.1f(%d) %4.1f %4.1f %4.1f %4.0f | %d %d %d %d
+",
+arr[i].frame, arr[i].ms, v[24], v[1], v[3], v[6],
+v[7] + v[10] + v[11], v[14], v[15], v[16], v[17],
+v[21], v[21] - v[22] - v[23] - v[26], v[26], v[22], v[23], v[25], v[19], v[20],
+v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37],
+v[38], v[45], v[39], v[40], v[41], v[42], v[43], v[44],
+v[49], arr[i].fs[4], v[50], v[51], v[52], v[53],
+arr[i].fs[0], arr[i].fs[1], arr[i].fs[2], arr[i].fs[3] );
 	}
 }
 
