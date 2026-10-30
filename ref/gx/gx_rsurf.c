@@ -2275,54 +2275,53 @@ static void R_DrawBrushModelImpl( cl_entity_t *e )
 	// de agua (EmitWaterPolys) lo cambian, asi que tras una se vuelve a fijar
 	qboolean fmt_set = false;
 
-for( int i = 0; i < num_sorted; i++ )
-{
-msurface_t *bs = gpGlobals->draw_surfaces[i].surf;
+	for( int i = 0; i < num_sorted; i++ )
+	{
+		msurface_t *bs = gpGlobals->draw_surfaces[i].surf;
 
-if( !allow_vbo || !R_AddSurfToVBO( bs, drawlightmap ))
-{
-R_RenderBrushPoly( bs, gpGlobals->draw_surfaces[i].cull );
+		if( !allow_vbo || !R_AddSurfToVBO( bs, drawlightmap ))
+		{
+			R_RenderBrushPoly( bs, gpGlobals->draw_surfaces[i].cull );
 
-if( FBitSet( bs->flags, SURF_DRAWTURB ))
-fmt_set = false;
+			if( FBitSet( bs->flags, SURF_DRAWTURB ))
+				fmt_set = false;
 
-if( bs->polys && !FBitSet( bs->flags, SURF_DRAWTURB | SURF_DRAWSKY ))
-{
-glpoly2_t *q;
+			if( bs->polys && !FBitSet( bs->flags, SURF_DRAWTURB | SURF_DRAWSKY ))
+			{
+				glpoly2_t *q;
 
-if( !fmt_set )
-{
-GX_ClearVtxDesc();
-GX_SetVtxDesc( GX_VA_POS,  GX_DIRECT );
-GX_SetVtxDesc( GX_VA_TEX0, GX_DIRECT );
-GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_POS,  GX_POS_XYZ, GX_F32, 0 );
-GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0 );
-fmt_set = true;
-}
+				if( !fmt_set )
+				{
+					GX_ClearVtxDesc();
+					GX_SetVtxDesc( GX_VA_POS,  GX_DIRECT );
+					GX_SetVtxDesc( GX_VA_TEX0, GX_DIRECT );
+					GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_POS,  GX_POS_XYZ, GX_F32, 0 );
+					GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0 );
+					fmt_set = true;
+				}
 
-for( q = bs->polys; q != NULL; q = q->chain )
-{
-if( q->numverts < 3 )
-continue;
+				for( q = bs->polys; q != NULL; q = q->chain )
+				{
+					if( q->numverts < 3 )
+						continue;
 
-GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, (u16)q->numverts );
-for( int k = 0; k < q->numverts; k++ )
-{
-float *v = q->verts[0] + k * VERTEXSIZE;
+					GX_Begin( GX_TRIANGLEFAN, GX_VTXFMT0, (u16)q->numverts );
+					for( int k = 0; k < q->numverts; k++ )
+					{
+						float *v = q->verts[0] + k * VERTEXSIZE;
 
-GX_Position3f32( v[0], v[1], v[2] );
-GX_TexCoord2f32( v[3], v[4] );
-}
-GX_End();
-}
-}
-}
-}
+						GX_Position3f32( v[0], v[1], v[2] );
+						GX_TexCoord2f32( v[3], v[4] );
+					}
+					GX_End();
+				}
+			}
+		}
+	}
 
-prof_n = Platform_DoubleTime(); OGC_ProfAdd( 51, prof_n - prof_t ); prof_t = prof_n; // brush.sup: R_RenderBrushPoly + vertices
+	prof_n = Platform_DoubleTime(); OGC_ProfAdd( 51, prof_n - prof_t ); prof_t = prof_n;
 
-R_DrawVBO( drawlightmap, true );
-
+	R_DrawVBO( drawlightmap, true );
 	DrawDecalsBatch();
 
 	GX_ResetFogColor();
