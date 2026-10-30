@@ -319,7 +319,7 @@ static int ogc_recent_n;
 static int ogc_interval = 1;
 static int ogc_fs[4];
 
-#define OGC_NOTE_N 24
+#define OGC_NOTE_N 40
 static struct { char what; char name[44]; double ms; int frame; } ogc_note[OGC_NOTE_N];
 static int ogc_note_total;
 // tiempo de servidor por tipo de entidad (classname), para ver que monstruos/objetos pesan
@@ -414,7 +414,12 @@ __attribute__((visibility("default"))) void OGC_ProfNote( int kind, const char *
 
     k = ogc_note_total % OGC_NOTE_N;
     ogc_note[k].what = (char)kind;
-    Q_strncpy( ogc_note[k].name, name, sizeof( ogc_note[k].name ));
+    {
+        // rutas largas: conservar el final (el nombre del archivo)
+        int len = (int)Q_strlen( name ), max = (int)sizeof( ogc_note[k].name ) - 1;
+
+        Q_strncpy( ogc_note[k].name, len > max ? name + len - max : name, sizeof( ogc_note[k].name ));
+    }
     ogc_note[k].ms = dt * 1000.0;
     ogc_note[k].frame = ogc_frames_seen;
     ogc_note_total++;
@@ -657,6 +662,21 @@ static void OGC_Prof_f( void )
 			Con_Printf( "    cuadro %5d  %-26s %6.1f ms\n", ogc_spike[k].frame, ogc_spike[k].name, ogc_spike[k].ms );
 		}
 		ogc_spike_total = 0;
+	}
+
+	if( ogc_note_total )
+	{
+		int n = ogc_note_total < OGC_NOTE_N ? ogc_note_total : OGC_NOTE_N, i;
+		int first = ogc_note_total < OGC_NOTE_N ? 0 : ogc_note_total % OGC_NOTE_N;
+
+		Con_Printf( "  cargas de archivos durante el juego (>3 ms): %d en total, ultimas %d (S sonido, M modelo, I imagen, A animacion)\n", ogc_note_total, n );
+		for( i = 0; i < n; i++ )
+		{
+			int k = ( first + i ) % OGC_NOTE_N;
+
+			Con_Printf( "    cuadro %5d  %c %-44s %6.1f ms\n", ogc_note[k].frame, ogc_note[k].what, ogc_note[k].name, ogc_note[k].ms );
+		}
+		ogc_note_total = 0;
 	}
 
 	if( ogc_netc[0] + ogc_netc[1] + ogc_netc[2] + ogc_netc[3] + ogc_netc[4] )
