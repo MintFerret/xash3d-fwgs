@@ -116,6 +116,7 @@ typedef struct
 	vec2_t			arraycoord[MAXSTUDIOVERTS];
 	unsigned short	arrayelems[MAXSTUDIOVERTS*6];
 	byte			arraycolor[MAXSTUDIOVERTS][4];
+	unsigned int	arraycolor32[MAXSTUDIOVERTS];	// RGB en los 24 bits altos, alfa se pone al dibujar
 	uint			numverts;
 	uint			numelems;
 } studio_draw_state_t;
@@ -1242,6 +1243,10 @@ static void R_StudioSetColorArray( short *ptricmds, vec3_t *pstudionorms, byte *
 static void R_StudioDrawNormalMesh( short *ptricmds, vec3_t *pstudionorms, float s, float t )
 {
 	int	i;
+	// sin luces locales el color sale de la tabla ya empaquetada: una sola escritura de 32 bits
+	// al FIFO en vez de cuatro de 8 bits por vertice
+	const qboolean fast = !g_studio.numlocallights;
+	const unsigned int alpha = (unsigned int)( tr.blend * 255.0f ) & 0xFF;
 
 	while(( i = *( ptricmds++ )))
 	{
@@ -1257,13 +1262,22 @@ static void R_StudioDrawNormalMesh( short *ptricmds, vec3_t *pstudionorms, float
 
 		for( ; i > 0; i--, ptricmds += 4 )
 		{
-			byte color[4];
-			R_StudioSetColorArray( ptricmds, pstudionorms, color );
+			unsigned int rgba;
+
+			if( likely( fast ))
+				rgba = g_studio.arraycolor32[ptricmds[1]] | alpha;
+			else
+			{
+				byte color[4];
+
+				R_StudioSetColorArray( ptricmds, pstudionorms, color );
+				rgba = ( (unsigned int)color[0] << 24 ) | ( (unsigned int)color[1] << 16 ) | ( (unsigned int)color[2] << 8 ) | color[3];
+			}
 
 			GX_Position3f32( g_studio.verts[ptricmds[0]][0],
 			                 g_studio.verts[ptricmds[0]][1],
 			                 g_studio.verts[ptricmds[0]][2] );
-			GX_Color4u8( color[0], color[1], color[2], color[3] );
+			GX_Color1u32( rgba );
 			GX_TexCoord2f32( ptricmds[2] * s, ptricmds[3] * t );
 		}
 
@@ -1439,6 +1453,9 @@ static void R_StudioDrawPointsImpl( void )
 
 	const int numverts = m_pSubModel->numverts;
 	const int numnorms = m_pSubModel->numnorms;
+	double prof_t = Platform_DoubleTime(), prof_n;
+
+#define GXPS_END( b ) do { prof_n = Platform_DoubleTime(); OGC_ProfAdd(( b ), prof_n - prof_t ); prof_t = prof_n; } while( 0 )
 
 	if( FBitSet( m_pStudioHeader->flags, STUDIO_HAS_BONEWEIGHTS ) && m_pSubModel->blendvertinfoindex != 0 && m_pSubModel->blendnorminfoindex != 0 )
 	{
@@ -1463,6 +1480,8 @@ static void R_StudioDrawPointsImpl( void )
 		for( int i = 0; i < numverts; i++ )
 			Matrix3x4_VectorTransform( g_studio.bonestransform[pvertbone[i]], pstudioverts[i], g_studio.verts[i] );
 	}
+
+	GXPS_END( 46 ); // est.xform: vertices por la matriz de hueso
 
 	if( RI.currententity->curstate.renderfx == kRenderFxGlowShell )
 	{
@@ -1517,8 +1536,13 @@ static void R_StudioDrawPointsImpl( void )
 			g_studio.arraycolor[n][0] = (byte)( g_studio.lightvalues[n][0] * 255.0f );
 			g_studio.arraycolor[n][1] = (byte)( g_studio.lightvalues[n][1] * 255.0f );
 			g_studio.arraycolor[n][2] = (byte)( g_studio.lightvalues[n][2] * 255.0f );
+			g_studio.arraycolor32[n] = ( (unsigned int)g_studio.arraycolor[n][0] << 24 ) |
+				( (unsigned int)g_studio.arraycolor[n][1] << 16 ) |
+				( (unsigned int)g_studio.arraycolor[n][2] << 8 );
 		}
 	}
+
+	GXPS_END( 47 ); // est.luzvert: iluminacion por normal
 
 	if( r_studio_sort_textures.value && need_sort )
 	{
@@ -1542,6 +1566,12 @@ static void R_StudioDrawPointsImpl( void )
 		tr.fFlipViewModel = false;
 		GX_Cull( XASH_CULL_BACK );
 	}
+
+	// el modo TEV y el formato de vertice son los mismos para todos los meshes del submodelo:
+	// fijarlos una vez en vez de una vez por mesh (cada llamada reescribe registros de la GPU)
+	GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
+	GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
+	GX_SetupVtxFormatStudio( true, true );
 
 	for( int j = 0; j < m_pSubModel->nummesh; j++ )
 	{
@@ -1576,12 +1606,7 @@ static void R_StudioDrawPointsImpl( void )
 			}
 		}
 
-		GX_SetTevOp( GX_TEVSTAGE0, GX_MODULATE );
-		GX_SetTevOrder( GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0 );
-
 		R_StudioSetupSkin( m_pStudioHeader, pskinref[pmesh->skinref] );
-
-		GX_SetupVtxFormatStudio( true, true );
 
 		R_StudioSubmitMesh( ptricmds, pstudionorms, s, t, shellscale, 0 );
 
@@ -1599,6 +1624,9 @@ static void R_StudioDrawPointsImpl( void )
 		r_stats.c_studio_polys += pmesh->numtris;
 		tr.blend = oldblend;
 	}
+
+	GXPS_END( 48 ); // est.envio: estado de GX + vertices al FIFO
+#undef GXPS_END
 }
 
 static void R_StudioDrawPoints( void )
