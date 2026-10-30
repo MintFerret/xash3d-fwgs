@@ -2171,6 +2171,7 @@ static int R_SortBrushModelSurfaces( cl_entity_t *e, model_t *clmodel, vec3_t mi
 	return num_sorted;
 }
 
+// Reparado para brush_v12
 static void R_DrawBrushModelImpl( cl_entity_t *e )
 {
 	vec3_t mins, maxs;
