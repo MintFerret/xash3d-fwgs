@@ -533,6 +533,7 @@ __attribute__((visibility("default"))) void OGC_LoadMark( int what )
     }
 }
 
+// fix_ci_2026
 static void OGC_PrintHitch( ogc_hitch_t *arr, int n )
 {
 	int i, j;
