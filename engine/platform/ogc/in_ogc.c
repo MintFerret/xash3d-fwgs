@@ -546,8 +546,7 @@ static void OGC_PrintHitch( ogc_hitch_t *arr, int n )
 				arr[j] = tmp;
 			}
 
-	Con_Printf( "    #cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | vista calcref hud consola menu snd.extra | cl.frame emit | brush(n) prep sup pase sup# | modelos tris.est tris.mundo part
-" );
+	Con_Printf( "    #cuadro total trab | srv prev snd | carga | escena mundo entid gpu | est.tot (huesos+otros) event luz malla arma | fis env | solido sprite efx tri | trans tri.t efx.t alfa | luzdin | vista calcref hud consola menu snd.extra | cl.frame emit | brush(n) prep sup pase sup# | modelos tris.est tris.mundo part\n" );
 	for( i = 0; i < n; i++ )
 	{
 		double *v = arr[i].v;

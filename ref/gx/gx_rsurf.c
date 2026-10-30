@@ -2274,15 +2274,15 @@ static void R_DrawBrushModelImpl( cl_entity_t *e )
 	// de agua (EmitWaterPolys) lo cambian, asi que tras una se vuelve a fijar
 	qboolean fmt_set = false;
 
-	for( int i = 0; i < num_sorted; i++ )
-	{
-		msurface_t *bs = gpGlobals->draw_surfaces[i].surf;
+for( int i = 0; i < num_sorted; i++ )
+{
+msurface_t *bs = gpGlobals->draw_surfaces[i].surf;
 
-		if( !allow_vbo || !R_AddSurfToVBO( bs, drawlightmap ))
-		{
-			R_RenderBrushPoly( bs, gpGlobals->draw_surfaces[i].cull );
+if( !allow_vbo || !R_AddSurfToVBO( bs, drawlightmap ))
+{
+R_RenderBrushPoly( bs, gpGlobals->draw_surfaces[i].cull );
 
-			if( FBitSet( bs->flags, SURF_DRAWTURB ))
+if( FBitSet( bs->flags, SURF_DRAWTURB ))
 fmt_set = false;
 
 if( bs->polys && !FBitSet( bs->flags, SURF_DRAWTURB | SURF_DRAWSKY ))
@@ -2299,8 +2299,6 @@ GX_SetVtxAttrFmt( GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0 );
 fmt_set = true;
 }
 
-// un abanico por poligono (n vertices) en vez de (n-2) triangulos sueltos (3*(n-2)):
-// un cuadrado pasa de 6 vertices a 4. El orden es el mismo, asi que el culling no cambia
 for( q = bs->polys; q != NULL; q = q->chain )
 {
 if( q->numverts < 3 )
@@ -2318,10 +2316,11 @@ GX_End();
 }
 }
 }
-		}
-	}
+}
 
-	R_DrawVBO( drawlightmap, true );
+prof_n = Platform_DoubleTime(); OGC_ProfAdd( 51, prof_n - prof_t ); prof_t = prof_n; // brush.sup: R_RenderBrushPoly + vertices
+
+R_DrawVBO( drawlightmap, true );
 
 	DrawDecalsBatch();
 
