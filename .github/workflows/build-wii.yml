@@ -90,6 +90,25 @@ jobs:
           echo "=== Generated ELF/DOL files ==="
           find build -type f \( -name "*.dol" -o -name "*.elf" \) -print
 
+      - name: Resolve DSI Crash Addresses
+
+
+        run: |
+
+
+          ELF_PATH=$(find . -name "*.elf" | head -n 1)
+
+
+          if [ -z "$ELF_PATH" ]; then echo "No elf found"; exit 1; fi
+
+
+          echo "Analizando: $ELF_PATH"
+
+
+          powerpc-eabi-addr2line -e "$ELF_PATH" -f -C 0x8046C348 0x8046C394 0x800c8fa4 0x8007a7d8 0x800e9898 0x80100c30 0x800f2284 0x80085e28 0x800851ec 0x800044ac
+
+
+
       - name: Resolve Wii crash addresses
         run: |
           echo "=== DEVKITPRO ==="
