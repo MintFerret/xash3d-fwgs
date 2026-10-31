@@ -1,9 +1,11 @@
-# DSI al cargar partida (build 0ad8668): PC, LR y cadena de la pila. DAR=0x42787AB6 (un float usado como puntero)
-0x8013C578
-0x800F3FC4
-0x800F6108
-0x800F1198
-0x80083694
-0x80085314
-0x80084694
-0x800044AC
+# DSI en malloc (build 40707b4): PC, LR y cadena de la pila. DAR=0xB9E7B584 (lwz r4 desde el chunk 0xB9E7B580 de la lista libre: heap corrupto)
+0x8046C75C
+0x8046C3AC
+0x80468848
+0x800C8FA4
+0x800AE868
+0x800AF254
+0x800E52A4
+0x800AD4FC
+0x80130B34
+0x8013F394
