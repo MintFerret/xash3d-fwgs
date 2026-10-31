@@ -4885,6 +4885,10 @@ static qboolean SV_ParseEdict( char **pfile, edict_t *ent )
 		char	value[2048];
 		int len;
 
+                // Seguridad: limpiar buffers antes de leer para evitar basura si el guardado está corrupto
+                memset( keyname, 0, sizeof( keyname ));
+                memset( value, 0, sizeof( value ));
+
 		// parse key
 		if(( *pfile = COM_ParseFile( *pfile, keyname, sizeof( keyname ))) == NULL )
 			Host_Error( "%s: EOF without closing brace\n", __func__ );
