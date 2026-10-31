@@ -271,6 +271,9 @@ static int GX_CalcMipmapCount( gl_texture_t *tex, qboolean haveBuffer )
 	return mipcount + 1;
 }
 
+// solo se activa durante la subida de una imagen real (no en GX_UpdateTexSize)
+static qboolean s_allow_half;
+
 static void GX_SetTextureDimensions( gl_texture_t *tex, int width, int height, int depth )
 {
 	Assert( tex != NULL );
@@ -295,6 +298,14 @@ static void GX_SetTextureDimensions( gl_texture_t *tex, int width, int height, i
 	height = scaled_height;
 
 	while( width > maxTextureSize || height > maxTextureSize )
+	{
+		width  >>= 1;
+		height >>= 1;
+	}
+
+	// gx_texhalf: mitad de resolucion en texturas con mipmaps (mundo y modelos); las de
+	// interfaz, fuentes y lightmaps (TF_NOMIPMAP) se quedan como estan
+	if( s_allow_half && gx_texhalf.value && !FBitSet( tex->flags, TF_NOMIPMAP ) && width >= 64 && height >= 64 )
 	{
 		width  >>= 1;
 		height >>= 1;
@@ -739,7 +750,9 @@ static qboolean GX_UploadTexture( gl_texture_t *tex, rgbdata_t *pic )
 		return false;
 	}
 
+	s_allow_half = ( pic->buffer != NULL );
 	GX_SetTextureDimensions( tex, pic->width, pic->height, pic->depth );
+	s_allow_half = false;
 	if( g_diagFmtCount < 10 )
 	{
 		g_diagFmtCount++;

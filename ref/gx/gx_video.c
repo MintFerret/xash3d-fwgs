@@ -58,6 +58,7 @@ CVAR_DEFINE_AUTO( r_lockpvs, "0", FCVAR_CHEAT, "lockpvs area at current point (p
 CVAR_DEFINE_AUTO( r_lockfrustum, "0", FCVAR_CHEAT, "lock frustrum area at current point (cull test)" );
 CVAR_DEFINE_AUTO( r_traceglow, "0", FCVAR_GLCONFIG, "cull flares behind models" );
 CVAR_DEFINE_AUTO( gl_round_down, "2", FCVAR_GLCONFIG|FCVAR_READ_ONLY, "round texture sizes to nearest POT value" );
+CVAR_DEFINE_AUTO( gx_texhalf, "1", FCVAR_ARCHIVE, "halve width and height of mipmapped textures (world/models) to save RAM; applies to textures loaded afterwards" );
 
 CVAR_DEFINE( r_vbo, "gl_vbo", "0", FCVAR_GLCONFIG|FCVAR_READ_ONLY, "draw world using VBO-style indexed arrays (unused on GX)" );
 
@@ -390,6 +391,7 @@ static void GX_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &gl_msaa );
 	gEngfuncs.Cvar_RegisterVariable( &gl_stencilbits );
 	gEngfuncs.Cvar_RegisterVariable( &gl_round_down );
+	gEngfuncs.Cvar_RegisterVariable( &gx_texhalf );
 	gEngfuncs.Cvar_RegisterVariable( &gl_overbright );
 	gEngfuncs.Cvar_RegisterVariable( &gl_fog );
 	gEngfuncs.Cvar_RegisterVariable( &gl_litwater_force );
