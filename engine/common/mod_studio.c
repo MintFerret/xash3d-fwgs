@@ -538,10 +538,20 @@ static void Mod_StudioCalcRotations( int boneused[], int numbones, const byte *p
 }
 
 
-void Mod_SwapStudioSeqGroupAnims( studiohdr_t *phdr, mstudioseqdesc_t *pseq, byte *buf )
+// bufsize == 0 -> sin limite (datos del propio modelo, ya validados por el cargador)
+void Mod_SwapStudioSeqGroupAnims( studiohdr_t *phdr, mstudioseqdesc_t *pseq, byte *buf, size_t bufsize )
 {
 	mstudioanim_t *panim = (mstudioanim_t *)( buf + pseq->animindex );
 	int numanims = pseq->numblends * phdr->numbones;
+	byte *bufend = bufsize ? buf + bufsize : NULL;
+
+	if( bufend && ( pseq->animindex < 0 || numanims < 0 ||
+		(byte *)( panim + numanims ) > bufend || (byte *)( panim + numanims ) < (byte *)panim ))
+	{
+		Con_Printf( S_ERROR "%s: sequence '%s' anim table out of bounds (index %i, count %i, size %zu)\n",
+			__func__, pseq->label, pseq->animindex, numanims, bufsize );
+		return;
+	}
 
 	for( int j = 0; j < numanims; j++, panim++ )
 	{
@@ -557,8 +567,22 @@ void Mod_SwapStudioSeqGroupAnims( studiohdr_t *phdr, mstudioseqdesc_t *pseq, byt
 			int frames = pseq->numframes;
 			while( frames > 0 )
 			{
-				int valid = panimvalue->num.valid;
-				int total = panimvalue->num.total;
+				int valid, total;
+
+				if( bufend && ( (byte *)panimvalue < buf || (byte *)( panimvalue + 1 ) > bufend ))
+				{
+					Con_Printf( S_ERROR "%s: anim value run out of bounds in '%s'\n", __func__, pseq->label );
+					return;
+				}
+
+				valid = panimvalue->num.valid;
+				total = panimvalue->num.total;
+
+				if( bufend && ( total <= 0 || (byte *)( panimvalue + valid + 1 ) > bufend ))
+				{
+					Con_Printf( S_ERROR "%s: bad anim run (valid %i total %i) in '%s'\n", __func__, valid, total, pseq->label );
+					return;
+				}
 
 				for( int l = 1; l <= valid; l++ )
 					panimvalue[l].value = LittleShort( panimvalue[l].value );
@@ -618,7 +642,7 @@ void *R_StudioGetAnim( studiohdr_t *m_pStudioHeader, model_t *m_pSubModel, mstud
 		Mem_Free( buf );
 
 		Mod_SwapStudioSeqGroupAnims( m_pStudioHeader, pseqdesc,
-			(byte *)paSequences[pseqdesc->seqgroup].data );
+			(byte *)paSequences[pseqdesc->seqgroup].data, (size_t)filesize );
 #if XASH_OGC
 		OGC_ProfAdd( 8, Platform_DoubleTime() - prof_t0 );
 		OGC_ProfNote( 'A', filepath, Platform_DoubleTime() - prof_t0 );
@@ -1045,7 +1069,7 @@ static qboolean Mod_SwapStudioModel( const char *name, void *buffer, size_t buff
 		if( pseq->seqgroup != 0 )
 			continue;
 
-		Mod_SwapStudioSeqGroupAnims( phdr, pseq, mod_base );
+		Mod_SwapStudioSeqGroupAnims( phdr, pseq, mod_base, 0 );
 	}
 
 	for( int i = 0; i < phdr->numbodyparts; i++ )
@@ -1159,7 +1183,7 @@ void Mod_PreloadSeqGroups( model_t *mod, studiohdr_t *phdr )
         for( int i = 0; i < phdr->numseq; i++ )
         {
             if( pseq[i].seqgroup == g )
-                Mod_SwapStudioSeqGroupAnims( phdr, &pseq[i], (byte *)paSequences[g].data );
+                Mod_SwapStudioSeqGroupAnims( phdr, &pseq[i], (byte *)paSequences[g].data, (size_t)filesize );
         }
 #endif
     }

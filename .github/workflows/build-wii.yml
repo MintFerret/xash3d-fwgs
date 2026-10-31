@@ -78,6 +78,7 @@ jobs:
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Wii.cmake \
             -DXASH_RENDERER=ref_gx \
+            -DXASH_OGC_MEMCHECK=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
       - name: Build

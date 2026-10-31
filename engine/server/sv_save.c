@@ -2078,12 +2078,21 @@ void SV_ChangeLevel( qboolean loadfromsavedgame, const char *mapname, const char
 		}
 	}
 
+#if XASH_OGC_MEMCHECK
+	Mem_Check(); // [A] antes de tocar nada del nivel viejo
+#endif
 	SV_InactivateClients ();
 	SV_FinalMessage( "", true );
 	SV_DeactivateServer ();
+#if XASH_OGC_MEMCHECK
+	Mem_Check(); // [B] despues de SV_DeactivateServer
+#endif
 
 	if( !SV_SpawnServer( level, startspot, background ))
 		return;	// ???
+#if XASH_OGC_MEMCHECK
+	Mem_Check(); // [C] despues de SV_SpawnServer (carga del mapa nuevo)
+#endif
 
 	if( loadfromsavedgame )
 	{

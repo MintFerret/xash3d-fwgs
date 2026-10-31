@@ -653,7 +653,7 @@ void GAME_EXPORT Mod_LoadCacheFile( const char *filename, cache_user_t *cu )
 
 			// assuming filename passes seqgroup's name
 			if( !Q_stricmp( pgrp->name, filename ))
-				Mod_SwapStudioSeqGroupAnims( phdr, &pseq[i], (byte *)cu->data );
+				Mod_SwapStudioSeqGroupAnims( phdr, &pseq[i], (byte *)cu->data, (size_t)size );
 		}
 	}
 #endif
