@@ -4953,6 +4953,10 @@ else Con_Printf( S_ERROR "%s: too many keyvalue pairs!\n", __func__ );
 break;
 }
 
+// Protección: forzar el terminador nulo por si el mapa/guardado tiene datos corruptos
+keyname[sizeof(keyname) - 1] = '\0';
+value[sizeof(value) - 1] = '\0';
+
 // create keyvalue strings
 pkvd[numpairs].szClassName = (char*)""; // unknown at this moment
 pkvd[numpairs].szKeyName = copystring( keyname );
