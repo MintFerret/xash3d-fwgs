@@ -105,7 +105,20 @@ jobs:
           echo "Analizando: $ELF_PATH"
 
 
-          powerpc-eabi-addr2line -e "$ELF_PATH" -f -C 0x8046C348 0x8046C394 0x800c8fa4 0x8007a7d8 0x800e9898 0x80100c30 0x800f2284 0x80085e28 0x800851ec 0x800044ac
+          # Buscar addr2line en las carpetas de devkitPro
+
+
+          ADDR2LINE=$(find /opt/devkitpro /usr -name "powerpc-eabi-addr2line" 2>/dev/null | head -n 1)
+
+
+          if [ -z "$ADDR2LINE" ]; then echo "No se encontró addr2line"; exit 1; fi
+
+
+          echo "Usando: $ADDR2LINE"
+
+
+          $ADDR2LINE -e "$ELF_PATH" -f -C 0x8046C348 0x8046C394 0x800c8fa4 0x8007a7d8 0x800e9898 0x80100c30 0x800f2284 0x80085e28 0x800851ec 0x800044ac
+
 
 
 
